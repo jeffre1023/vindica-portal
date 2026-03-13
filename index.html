@@ -673,9 +673,8 @@
   // ── AUTH STATE — redirige si ya hay sesión activa ──────────────────────────
   // Si el usuario ya está autenticado, lo manda directo al portal.
   // Flag para evitar loop: si venimos de portal.html no redirigir de vuelta
-  const cameFromPortal = document.referrer.includes('portal.html');
   auth.onAuthStateChanged(user => {
-    if (user && !cameFromPortal) {
+    if (user) {
       window.location.href = 'portal.html';
     }
   });
