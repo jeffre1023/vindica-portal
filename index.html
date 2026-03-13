@@ -640,78 +640,78 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 
 <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 
-let lang=‘es’;
+let lang='es';
 function toggleLang(){
-lang=lang===‘es’?‘en’:‘es’;
-document.getElementById(‘langFlag’).textContent=lang===‘es’?‘🇺🇸’:‘🇵🇷’;
-document.getElementById(‘langBtnLabel’).textContent=lang===‘es’?‘Switch to English’:‘Cambiar a Español’;
-document.querySelectorAll(’[data-es]’).forEach(el=>{
-const txt=el.getAttribute(‘data-’+lang);
-if(txt!==null){if(el.tagName===‘OPTION’)el.textContent=txt;else if(el.tagName===‘INPUT’||el.tagName===‘TEXTAREA’){}else el.innerHTML=txt;}
+lang=lang==='es'?'en':'es';
+document.getElementById('langFlag').textContent=lang==='es'?'🇺🇸':'🇵🇷';
+document.getElementById('langBtnLabel').textContent=lang==='es'?'Switch to English':'Cambiar a Español';
+document.querySelectorAll('[data-es]').forEach(el=>{
+const txt=el.getAttribute('data-'+lang);
+if(txt!==null){if(el.tagName==='OPTION')el.textContent=txt;else if(el.tagName==='INPUT'||el.tagName==='TEXTAREA'){}else el.innerHTML=txt;}
 });
 paUpdateProgress();apUpdateProgress();paUpdateDocChecklist();
 }
 
 // ── PLACEHOLDERS — reemplazar antes de deploy ────────────────────
-const CF_BASE_URL=‘https://vindica-cf-v4-10-5-82635207094.us-east1.run.app’;
-const VINDICA_KEY=‘REEMPLAZAR-CON-TU-VINDICA-API-KEY’;
+const CF_BASE_URL='https://vindica-cf-v4-10-5-82635207094.us-east1.run.app';
+const VINDICA_KEY='REEMPLAZAR-CON-TU-VINDICA-API-KEY';
 // ────────────────────────────────────────────────────────────────
 
-const PA_CF_URL=CF_BASE_URL+’/analyzeCase’;
+const PA_CF_URL=CF_BASE_URL+'/analyzeCase';
 
 let paStep=1;
 
 const docs={
 TKA:[
-{es:‘Reporte de Radiólogo’,en:‘Radiologist Report’,des:‘RX AP y lateral (weight-bearing). Si hay MRI o CT, incluir reporte escrito.’,den:‘X-ray AP and lateral (weight-bearing). If MRI or CT available, include written report.’,req:true,cat:‘IMAGEN’},
-{es:‘Notas clínicas del médico’,en:‘Physician clinical notes’,des:‘Historia clínica completa, escalas funcionales (KOOS, WOMAC, VAS), hallazgos en examen físico.’,den:‘Complete clinical history, functional scales (KOOS, WOMAC, VAS), physical exam findings.’,req:true,cat:‘NOTAS’},
-{es:‘Fisioterapia / Tratamiento conservador’,en:‘Physical therapy / Conservative treatment’,des:‘Notas de PT, resumen de tratamiento, mínimo 3 meses de manejo conservador.’,den:‘PT notes, treatment summary, minimum 3 months conservative management.’,req:true,cat:‘TERAPIA’},
-{es:‘Estudios adicionales’,en:‘Additional studies’,des:‘EMG, labs, otras imágenes si fueron ordenadas.’,den:‘EMG, labs, other imaging if ordered.’,req:false,cat:‘LABS’},
+{es:'Reporte de Radiólogo',en:'Radiologist Report',des:'RX AP y lateral (weight-bearing). Si hay MRI o CT, incluir reporte escrito.',den:'X-ray AP and lateral (weight-bearing). If MRI or CT available, include written report.',req:true,cat:'IMAGEN'},
+{es:'Notas clínicas del médico',en:'Physician clinical notes',des:'Historia clínica completa, escalas funcionales (KOOS, WOMAC, VAS), hallazgos en examen físico.',den:'Complete clinical history, functional scales (KOOS, WOMAC, VAS), physical exam findings.',req:true,cat:'NOTAS'},
+{es:'Fisioterapia / Tratamiento conservador',en:'Physical therapy / Conservative treatment',des:'Notas de PT, resumen de tratamiento, mínimo 3 meses de manejo conservador.',den:'PT notes, treatment summary, minimum 3 months conservative management.',req:true,cat:'TERAPIA'},
+{es:'Estudios adicionales',en:'Additional studies',des:'EMG, labs, otras imágenes si fueron ordenadas.',den:'EMG, labs, other imaging if ordered.',req:false,cat:'LABS'},
 ],
 THA:[
-{es:‘Reporte de Radiólogo’,en:‘Radiologist Report’,des:‘RX AP pelvis y AP cadera afectada. Reporte escrito del radiólogo.’,den:‘AP pelvis and AP affected hip X-rays. Written radiologist report.’,req:true,cat:‘IMAGEN’},
-{es:‘Notas clínicas del médico’,en:‘Physician clinical notes’,des:‘Historia clínica, Harris Hip Score, hallazgos en examen físico.’,den:‘Clinical history, Harris Hip Score, physical exam findings.’,req:true,cat:‘NOTAS’},
-{es:‘Fisioterapia / Tratamiento conservador’,en:‘Physical therapy / Conservative treatment’,des:‘Documentación de fallo de tratamiento conservador. Notas de PT.’,den:‘Documentation of failed conservative treatment. PT notes.’,req:true,cat:‘TERAPIA’},
-{es:‘Estudios adicionales’,en:‘Additional studies’,des:‘MRI, CT u otros estudios si fueron ordenados.’,den:‘MRI, CT or other studies if ordered.’,req:false,cat:‘LABS’},
+{es:'Reporte de Radiólogo',en:'Radiologist Report',des:'RX AP pelvis y AP cadera afectada. Reporte escrito del radiólogo.',den:'AP pelvis and AP affected hip X-rays. Written radiologist report.',req:true,cat:'IMAGEN'},
+{es:'Notas clínicas del médico',en:'Physician clinical notes',des:'Historia clínica, Harris Hip Score, hallazgos en examen físico.',den:'Clinical history, Harris Hip Score, physical exam findings.',req:true,cat:'NOTAS'},
+{es:'Fisioterapia / Tratamiento conservador',en:'Physical therapy / Conservative treatment',des:'Documentación de fallo de tratamiento conservador. Notas de PT.',den:'Documentation of failed conservative treatment. PT notes.',req:true,cat:'TERAPIA'},
+{es:'Estudios adicionales',en:'Additional studies',des:'MRI, CT u otros estudios si fueron ordenados.',den:'MRI, CT or other studies if ordered.',req:false,cat:'LABS'},
 ],
 LUMBAR:[
-{es:‘Reporte de Radiólogo’,en:‘Radiologist Report’,des:‘MRI columna lumbar — reporte completo del radiólogo. CT si fue ordenado además del MRI.’,den:‘Lumbar spine MRI — complete radiologist report. CT if ordered in addition to MRI.’,req:true,cat:‘IMAGEN’},
-{es:‘Notas clínicas del médico’,en:‘Physician clinical notes’,des:‘Historia clínica, descripción de dolor, irradiación, déficit neurológico si aplica.’,den:‘Clinical history, pain description, radiation pattern, neurological deficit if applicable.’,req:true,cat:‘NOTAS’},
-{es:‘Fisioterapia / Tratamiento conservador’,en:‘Physical therapy / Conservative treatment’,des:‘Mínimo 6 semanas de PT conservador. Notas de manejo médico previo (antiinflamatorios, inyecciones).’,den:‘Minimum 6 weeks conservative PT. Notes on prior medical management (anti-inflammatories, injections).’,req:true,cat:‘TERAPIA’},
-{es:‘EMG / Estudios adicionales’,en:‘EMG / Additional Studies’,des:‘EMG / conducción nerviosa — REQUERIDO para LUMBAR. Documente hallazgos o justifique si no fue ordenado.’,den:‘EMG / nerve conduction — REQUIRED for LUMBAR. Document findings or justify if not ordered.’,req:true,cat:‘LABS’},
+{es:'Reporte de Radiólogo',en:'Radiologist Report',des:'MRI columna lumbar — reporte completo del radiólogo. CT si fue ordenado además del MRI.',den:'Lumbar spine MRI — complete radiologist report. CT if ordered in addition to MRI.',req:true,cat:'IMAGEN'},
+{es:'Notas clínicas del médico',en:'Physician clinical notes',des:'Historia clínica, descripción de dolor, irradiación, déficit neurológico si aplica.',den:'Clinical history, pain description, radiation pattern, neurological deficit if applicable.',req:true,cat:'NOTAS'},
+{es:'Fisioterapia / Tratamiento conservador',en:'Physical therapy / Conservative treatment',des:'Mínimo 6 semanas de PT conservador. Notas de manejo médico previo (antiinflamatorios, inyecciones).',den:'Minimum 6 weeks conservative PT. Notes on prior medical management (anti-inflammatories, injections).',req:true,cat:'TERAPIA'},
+{es:'EMG / Estudios adicionales',en:'EMG / Additional Studies',des:'EMG / conducción nerviosa — REQUERIDO para LUMBAR. Documente hallazgos o justifique si no fue ordenado.',den:'EMG / nerve conduction — REQUIRED for LUMBAR. Document findings or justify if not ordered.',req:true,cat:'LABS'},
 ],
 CERVICAL:[
-{es:‘Reporte de Radiólogo’,en:‘Radiologist Report’,des:‘MRI columna cervical — reporte completo del radiólogo. RX dinámicas si hay inestabilidad.’,den:‘Cervical spine MRI — complete radiologist report. Dynamic X-rays if instability present.’,req:true,cat:‘IMAGEN’},
-{es:‘Notas clínicas del médico’,en:‘Physician clinical notes’,des:‘Historia clínica, descripción de mielopatía, radiculopatía, déficit neurológico.’,den:‘Clinical history, myelopathy, radiculopathy, neurological deficit description.’,req:true,cat:‘NOTAS’},
-{es:‘Fisioterapia / Tratamiento conservador’,en:‘Physical therapy / Conservative treatment’,des:‘Documentación de manejo conservador previo (opcional para cervical).’,den:‘Prior conservative management documentation (optional for cervical).’,req:false,cat:‘TERAPIA’},
-{es:‘EMG / Estudios adicionales’,en:‘EMG / Additional Studies’,des:‘EMG / conducción nerviosa — REQUERIDO para CERVICAL. Documenta radiculopatía o mielopatía.’,den:‘EMG / nerve conduction — REQUIRED for CERVICAL. Documents radiculopathy or myelopathy.’,req:true,cat:‘LABS’},
+{es:'Reporte de Radiólogo',en:'Radiologist Report',des:'MRI columna cervical — reporte completo del radiólogo. RX dinámicas si hay inestabilidad.',den:'Cervical spine MRI — complete radiologist report. Dynamic X-rays if instability present.',req:true,cat:'IMAGEN'},
+{es:'Notas clínicas del médico',en:'Physician clinical notes',des:'Historia clínica, descripción de mielopatía, radiculopatía, déficit neurológico.',den:'Clinical history, myelopathy, radiculopathy, neurological deficit description.',req:true,cat:'NOTAS'},
+{es:'Fisioterapia / Tratamiento conservador',en:'Physical therapy / Conservative treatment',des:'Documentación de manejo conservador previo (opcional para cervical).',den:'Prior conservative management documentation (optional for cervical).',req:false,cat:'TERAPIA'},
+{es:'EMG / Estudios adicionales',en:'EMG / Additional Studies',des:'EMG / conducción nerviosa — REQUERIDO para CERVICAL. Documenta radiculopatía o mielopatía.',den:'EMG / nerve conduction — REQUIRED for CERVICAL. Documents radiculopathy or myelopathy.',req:true,cat:'LABS'},
 ],
 ARTHROSCOPY:[
-{es:‘Reporte de Radiólogo’,en:‘Radiologist Report’,des:‘MRI de rodilla — patología de menisco o ligamento. RX para descartar artritis severa.’,den:‘Knee MRI — meniscus or ligament pathology. X-ray to rule out severe arthritis.’,req:true,cat:‘IMAGEN’},
-{es:‘Notas clínicas del médico’,en:‘Physician clinical notes’,des:‘Síntomas, hallazgos en examen físico, pruebas especiales (McMurray, Lachman).’,den:‘Symptoms, physical exam findings, special tests (McMurray, Lachman).’,req:true,cat:‘NOTAS’},
-{es:‘Fisioterapia / Tratamiento conservador’,en:‘Physical therapy / Conservative treatment’,des:‘Documentación de tratamiento conservador (opcional para artroscopía).’,den:‘Conservative treatment documentation (optional for arthroscopy).’,req:false,cat:‘TERAPIA’},
-{es:‘Estudios adicionales’,en:‘Additional studies’,des:‘Labs u otros estudios si fueron ordenados.’,den:‘Labs or other studies if ordered.’,req:false,cat:‘LABS’},
+{es:'Reporte de Radiólogo',en:'Radiologist Report',des:'MRI de rodilla — patología de menisco o ligamento. RX para descartar artritis severa.',den:'Knee MRI — meniscus or ligament pathology. X-ray to rule out severe arthritis.',req:true,cat:'IMAGEN'},
+{es:'Notas clínicas del médico',en:'Physician clinical notes',des:'Síntomas, hallazgos en examen físico, pruebas especiales (McMurray, Lachman).',den:'Symptoms, physical exam findings, special tests (McMurray, Lachman).',req:true,cat:'NOTAS'},
+{es:'Fisioterapia / Tratamiento conservador',en:'Physical therapy / Conservative treatment',des:'Documentación de tratamiento conservador (opcional para artroscopía).',den:'Conservative treatment documentation (optional for arthroscopy).',req:false,cat:'TERAPIA'},
+{es:'Estudios adicionales',en:'Additional studies',des:'Labs u otros estudios si fueron ordenados.',den:'Labs or other studies if ordered.',req:false,cat:'LABS'},
 ],
 SHOULDER:[
-{es:‘Reporte de Radiólogo’,en:‘Radiologist Report’,des:‘RX de hombro (AP, axilar, Grashey). MRI o CT — reporte del radiólogo.’,den:‘Shoulder X-rays (AP, axillary, Grashey). MRI or CT — radiologist report.’,req:true,cat:‘IMAGEN’},
-{es:‘Notas clínicas del médico’,en:‘Physician clinical notes’,des:‘Historia clínica, escalas funcionales (ASES, DASH), hallazgos en examen físico.’,den:‘Clinical history, functional scales (ASES, DASH), physical exam findings.’,req:true,cat:‘NOTAS’},
-{es:‘Fisioterapia / Tratamiento conservador’,en:‘Physical therapy / Conservative treatment’,des:‘Documentación de tratamiento conservador (opcional para shoulder replacement).’,den:‘Conservative treatment documentation (optional for shoulder replacement).’,req:false,cat:‘TERAPIA’},
-{es:‘Estudios adicionales’,en:‘Additional studies’,des:‘EMG / conducción nerviosa si hay componente neurológico. Labs si fueron ordenados.’,den:‘EMG / nerve conduction if neurological component. Labs if ordered.’,req:false,cat:‘LABS’},
+{es:'Reporte de Radiólogo',en:'Radiologist Report',des:'RX de hombro (AP, axilar, Grashey). MRI o CT — reporte del radiólogo.',den:'Shoulder X-rays (AP, axillary, Grashey). MRI or CT — radiologist report.',req:true,cat:'IMAGEN'},
+{es:'Notas clínicas del médico',en:'Physician clinical notes',des:'Historia clínica, escalas funcionales (ASES, DASH), hallazgos en examen físico.',den:'Clinical history, functional scales (ASES, DASH), physical exam findings.',req:true,cat:'NOTAS'},
+{es:'Fisioterapia / Tratamiento conservador',en:'Physical therapy / Conservative treatment',des:'Documentación de tratamiento conservador (opcional para shoulder replacement).',den:'Conservative treatment documentation (optional for shoulder replacement).',req:false,cat:'TERAPIA'},
+{es:'Estudios adicionales',en:'Additional studies',des:'EMG / conducción nerviosa si hay componente neurológico. Labs si fueron ordenados.',den:'EMG / nerve conduction if neurological component. Labs if ordered.',req:false,cat:'LABS'},
 ],
 };
 
 const docCategories={
-es:{NOTAS:{icon:‘📋’,label:‘Notas Clínicas del Médico’,desc:‘Historia clínica, notas de consulta, escalas funcionales.’},IMAGEN:{icon:‘🩻’,label:‘Reporte de Radiólogo’,desc:‘Informe escrito del radiólogo — RX, MRI, CT. No subir imágenes DICOM crudas.’},TERAPIA:{icon:‘🏃’,label:‘Fisioterapia y Tratamiento Conservador’,desc:‘Notas de PT, resumen de tratamiento, notas de alta.’},LABS:{icon:‘🧪’,label:‘Labs y Estudios Adicionales’,desc:‘EMG, conducción nerviosa, resultados de laboratorio.’},OTROS:{icon:‘📎’,label:‘Otros Documentos’,desc:‘Especialistas previos, notas de peso/BMI, otros.’}},
-en:{NOTAS:{icon:‘📋’,label:‘Physician Clinical Notes’,desc:‘Clinical history, consultation notes, functional scales.’},IMAGEN:{icon:‘🩻’,label:‘Radiologist Report’,desc:‘Written radiologist report — X-ray, MRI, CT. Do not upload raw DICOM images.’},TERAPIA:{icon:‘🏃’,label:‘Physical Therapy & Conservative Treatment’,desc:‘PT notes, treatment summary, discharge notes.’},LABS:{icon:‘🧪’,label:‘Labs & Additional Studies’,desc:‘EMG, nerve conduction studies, lab results.’},OTROS:{icon:‘📎’,label:‘Other Documents’,desc:‘Prior specialists, weight/BMI notes, other.’}}
+es:{NOTAS:{icon:'📋',label:'Notas Clínicas del Médico',desc:'Historia clínica, notas de consulta, escalas funcionales.'},IMAGEN:{icon:'🩻',label:'Reporte de Radiólogo',desc:'Informe escrito del radiólogo — RX, MRI, CT. No subir imágenes DICOM crudas.'},TERAPIA:{icon:'🏃',label:'Fisioterapia y Tratamiento Conservador',desc:'Notas de PT, resumen de tratamiento, notas de alta.'},LABS:{icon:'🧪',label:'Labs y Estudios Adicionales',desc:'EMG, conducción nerviosa, resultados de laboratorio.'},OTROS:{icon:'📎',label:'Otros Documentos',desc:'Especialistas previos, notas de peso/BMI, otros.'}},
+en:{NOTAS:{icon:'📋',label:'Physician Clinical Notes',desc:'Clinical history, consultation notes, functional scales.'},IMAGEN:{icon:'🩻',label:'Radiologist Report',desc:'Written radiologist report — X-ray, MRI, CT. Do not upload raw DICOM images.'},TERAPIA:{icon:'🏃',label:'Physical Therapy & Conservative Treatment',desc:'PT notes, treatment summary, discharge notes.'},LABS:{icon:'🧪',label:'Labs & Additional Studies',desc:'EMG, nerve conduction studies, lab results.'},OTROS:{icon:'📎',label:'Other Documents',desc:'Prior specialists, weight/BMI notes, other.'}}
 };
 
 const docCategoryMap={
-TKA:        [{cat:‘IMAGEN’,req:true},{cat:‘NOTAS’,req:true},{cat:‘TERAPIA’,req:true},{cat:‘LABS’,req:false},{cat:‘OTROS’,req:false}],
-THA:        [{cat:‘IMAGEN’,req:true},{cat:‘NOTAS’,req:true},{cat:‘TERAPIA’,req:true},{cat:‘LABS’,req:false},{cat:‘OTROS’,req:false}],
-LUMBAR:     [{cat:‘IMAGEN’,req:true},{cat:‘NOTAS’,req:true},{cat:‘TERAPIA’,req:true},{cat:‘LABS’,req:true},{cat:‘OTROS’,req:false}],  // FIX-Q01: LABS req (CF lo exige)
-CERVICAL:   [{cat:‘IMAGEN’,req:true},{cat:‘NOTAS’,req:true},{cat:‘TERAPIA’,req:false},{cat:‘LABS’,req:true},{cat:‘OTROS’,req:false}],  // FIX-Q01: TERAPIA=opt LABS=req (CF)
-ARTHROSCOPY:[{cat:‘IMAGEN’,req:true},{cat:‘NOTAS’,req:true},{cat:‘TERAPIA’,req:false},{cat:‘LABS’,req:false},{cat:‘OTROS’,req:false}], // FIX-Q01: TERAPIA=opt (CF no la exige)
-SHOULDER:   [{cat:‘IMAGEN’,req:true},{cat:‘NOTAS’,req:true},{cat:‘TERAPIA’,req:false},{cat:‘LABS’,req:false},{cat:‘OTROS’,req:false}], // FIX-Q01: TERAPIA=opt (CF no la exige)
+TKA:        [{cat:'IMAGEN',req:true},{cat:'NOTAS',req:true},{cat:'TERAPIA',req:true},{cat:'LABS',req:false},{cat:'OTROS',req:false}],
+THA:        [{cat:'IMAGEN',req:true},{cat:'NOTAS',req:true},{cat:'TERAPIA',req:true},{cat:'LABS',req:false},{cat:'OTROS',req:false}],
+LUMBAR:     [{cat:'IMAGEN',req:true},{cat:'NOTAS',req:true},{cat:'TERAPIA',req:true},{cat:'LABS',req:true},{cat:'OTROS',req:false}],  // FIX-Q01: LABS req (CF lo exige)
+CERVICAL:   [{cat:'IMAGEN',req:true},{cat:'NOTAS',req:true},{cat:'TERAPIA',req:false},{cat:'LABS',req:true},{cat:'OTROS',req:false}],  // FIX-Q01: TERAPIA=opt LABS=req (CF)
+ARTHROSCOPY:[{cat:'IMAGEN',req:true},{cat:'NOTAS',req:true},{cat:'TERAPIA',req:false},{cat:'LABS',req:false},{cat:'OTROS',req:false}], // FIX-Q01: TERAPIA=opt (CF no la exige)
+SHOULDER:   [{cat:'IMAGEN',req:true},{cat:'NOTAS',req:true},{cat:'TERAPIA',req:false},{cat:'LABS',req:false},{cat:'OTROS',req:false}], // FIX-Q01: TERAPIA=opt (CF no la exige)
 };
 
 function getRequiredCats(proc){
@@ -721,58 +721,58 @@ docCategoryMap[proc].forEach(d=>{if(d.req)s.add(d.cat);});
 return[…s];
 }
 const catFiles={NOTAS:[],IMAGEN:[],TERAPIA:[],LABS:[],OTROS:[]};
-const fmt=b=>b<1024?b+’ B’:b<1048576?(b/1024).toFixed(0)+’ KB’:(b/1048576).toFixed(1)+’ MB’;
-const fileIcon=n=>{const e=n.split(’.’).pop().toLowerCase();return e===‘pdf’?‘📄’:[‘jpg’,‘jpeg’,‘png’].includes(e)?‘🖼️’:‘📝’;};
+const fmt=b=>b<1024?b+' B':b<1048576?(b/1024).toFixed(0)+' KB':(b/1048576).toFixed(1)+' MB';
+const fileIcon=n=>{const e=n.split('.').pop().toLowerCase();return e==='pdf'?'📄':['jpg','jpeg','png'].includes(e)?'🖼️':'📝';};
 const getAllFiles=()=>Object.values(catFiles).flat();
 
 // FIX-P05: getCorrectMimeType — detección de MIME por extensión para evitar fallback incorrecto
 function getCorrectMimeType(file){
 if(file.type)return file.type;
-const ext=file.name.split(’.’).pop().toLowerCase();
-const map={‘pdf’:‘application/pdf’,‘jpg’:‘image/jpeg’,‘jpeg’:‘image/jpeg’,‘png’:‘image/png’,
-‘tif’:‘image/tiff’,‘tiff’:‘image/tiff’,‘webp’:‘image/webp’,‘heic’:‘image/heic’,‘heif’:‘image/heif’,
-‘txt’:‘text/plain’};
-return map[ext]||‘application/octet-stream’;
+const ext=file.name.split('.').pop().toLowerCase();
+const map={'pdf':'application/pdf','jpg':'image/jpeg','jpeg':'image/jpeg','png':'image/png',
+'tif':'image/tiff','tiff':'image/tiff','webp':'image/webp','heic':'image/heic','heif':'image/heif',
+'txt':'text/plain'};
+return map[ext]||'application/octet-stream';
 }
-async function isPdfEncrypted(file){if(!file.name.toLowerCase().endsWith(’.pdf’))return false;try{const buf=await file.slice(0,4096).arrayBuffer();const text=new TextDecoder(‘latin1’).decode(buf);return text.includes(’/Encrypt’);}catch(e){return false;}}
+async function isPdfEncrypted(file){if(!file.name.toLowerCase().endsWith('.pdf'))return false;try{const buf=await file.slice(0,4096).arrayBuffer();const text=new TextDecoder('latin1').decode(buf);return text.includes('/Encrypt');}catch(e){return false;}}
 
 let formFile=null;
 async function handleFormFile(files){
 if(!files||files.length===0)return;
 const file=files[0];
-const warnEl=document.getElementById(‘pa_formEncryptWarn’);
-const nameEl=document.getElementById(‘pa_formEncryptName’);
-const listEl=document.getElementById(‘pa_formFileList’);
-const badgeEl=document.getElementById(‘pa_formBadge’);
-warnEl.style.display=‘none’;listEl.innerHTML=’’;formFile=null;
+const warnEl=document.getElementById('pa_formEncryptWarn');
+const nameEl=document.getElementById('pa_formEncryptName');
+const listEl=document.getElementById('pa_formFileList');
+const badgeEl=document.getElementById('pa_formBadge');
+warnEl.style.display='none';listEl.innerHTML='';formFile=null;
 const encrypted=await isPdfEncrypted(file);
-if(encrypted){nameEl.textContent=’”’+file.name+’”’;warnEl.style.display=‘block’;return;}
+if(encrypted){nameEl.textContent='"'+file.name+'"';warnEl.style.display='block';return;}
 formFile=file;
 listEl.innerHTML=`<div class="cat-file-item"><span>📄</span><span class="fn">${file.name}</span><span class="fsz">${fmt(file.size)}</span><button class="fdel" onclick="removeFormFile()">✕</button></div>`;
-badgeEl.textContent=‘✓ CARGADO’;badgeEl.style.background=‘var(--green-bg)’;badgeEl.style.color=‘var(--green)’;
+badgeEl.textContent='✓ CARGADO';badgeEl.style.background='var(--green-bg)';badgeEl.style.color='var(--green)';
 }
 function removeFormFile(){
-formFile=null;document.getElementById(‘pa_formFileList’).innerHTML=’’;
-const b=document.getElementById(‘pa_formBadge’);
-b.textContent=‘OPCIONAL’;b.style.background=‘var(--amber-bg)’;b.style.color=‘var(--amber-d)’;
+formFile=null;document.getElementById('pa_formFileList').innerHTML='';
+const b=document.getElementById('pa_formBadge');
+b.textContent='OPCIONAL';b.style.background='var(--amber-bg)';b.style.color='var(--amber-d)';
 }
-function showFormZone(show){const z=document.getElementById(‘pa_formZone’);if(z)z.style.display=show?‘block’:‘none’;}
+function showFormZone(show){const z=document.getElementById('pa_formZone');if(z)z.style.display=show?'block':'none';}
 
 function addFileToCategory(cat,file){
 // FIX-P06: Validación de tamaño máximo por archivo (20MB)
 const MAX_FILE_MB=20;const MAX_FILE_BYTES=MAX_FILE_MB*1024*1024;
 if(file.size>MAX_FILE_BYTES){
-const zone=document.getElementById(‘paCatZone_’+cat);
-let warnId=‘sizeWarn_’+cat+’*’+Date.now();
-const div=document.createElement(‘div’);div.id=warnId;
-div.style.cssText=‘background:var(--amber-bg);border:1.5px solid #FDE68A;border-radius:9px;padding:10px 14px;font-size:12px;color:#92400E;margin:8px 0;’;
-div.innerHTML=‘⚠️ <strong>”’+file.name+’”</strong> — Archivo demasiado grande (’+(file.size/1048576).toFixed(1)+’ MB).<br><span style="color:var(--slate);">Máximo permitido: ‘+MAX_FILE_MB+’ MB por archivo. Comprima el PDF e intente de nuevo.</span>’;
-if(zone){const body=zone.querySelector(’.cat-body’);if(body)body.appendChild(div);}
+const zone=document.getElementById('paCatZone_'+cat);
+let warnId='sizeWarn_'+cat+'*'+Date.now();
+const div=document.createElement('div');div.id=warnId;
+div.style.cssText='background:var(--amber-bg);border:1.5px solid #FDE68A;border-radius:9px;padding:10px 14px;font-size:12px;color:#92400E;margin:8px 0;';
+div.innerHTML='⚠️ <strong>"'+file.name+'"</strong> — Archivo demasiado grande ('+(file.size/1048576).toFixed(1)+' MB).<br><span style="color:var(--slate);">Máximo permitido: '+MAX_FILE_MB+' MB por archivo. Comprima el PDF e intente de nuevo.</span>';
+if(zone){const body=zone.querySelector('.cat-body');if(body)body.appendChild(div);}
 setTimeout(()=>{const el=document.getElementById(warnId);if(el)el.remove();},10000);
 return;
 }
 isPdfEncrypted(file).then(encrypted=>{
-if(encrypted){const zone=document.getElementById(’paCatZone*’+cat);let warnId=‘encWarn_’+cat;if(!document.getElementById(warnId)){const div=document.createElement(‘div’);div.id=warnId;div.style.cssText=‘background:var(--red-bg);border:1.5px solid #FECACA;border-radius:9px;padding:10px 14px;font-size:12px;color:#991B1B;margin:8px 0;’;div.innerHTML=‘🔒 <strong>”’+file.name+’”</strong> — Este archivo está protegido.<br><span style="color:var(--slate);">Solución: Abre el PDF → Archivo → Imprimir → Guardar como PDF.</span>’;if(zone){const body=zone.querySelector(’.cat-body’);if(body)body.appendChild(div);}setTimeout(()=>{const el=document.getElementById(warnId);if(el)el.remove();},8000);}return;}
+if(encrypted){const zone=document.getElementById('paCatZone*'+cat);let warnId='encWarn_'+cat;if(!document.getElementById(warnId)){const div=document.createElement('div');div.id=warnId;div.style.cssText='background:var(--red-bg);border:1.5px solid #FECACA;border-radius:9px;padding:10px 14px;font-size:12px;color:#991B1B;margin:8px 0;';div.innerHTML='🔒 <strong>"'+file.name+'"</strong> — Este archivo está protegido.<br><span style="color:var(--slate);">Solución: Abre el PDF → Archivo → Imprimir → Guardar como PDF.</span>';if(zone){const body=zone.querySelector('.cat-body');if(body)body.appendChild(div);}setTimeout(()=>{const el=document.getElementById(warnId);if(el)el.remove();},8000);}return;}
 if(!catFiles[cat].find(f=>f.name===file.name))catFiles[cat].push(file);
 renderCatZones();paUpdateDocProgress();
 });
@@ -780,113 +780,113 @@ renderCatZones();paUpdateDocProgress();
 function removeFileFromCategory(cat,idx){catFiles[cat].splice(idx,1);renderCatZones();paUpdateDocProgress();}
 
 function paUpdateDocProgress(){
-const proc=document.getElementById(‘pa_procedure’).value;if(!proc)return;
+const proc=document.getElementById('pa_procedure').value;if(!proc)return;
 const reqCats=getRequiredCats(proc);
 const uploaded=reqCats.filter(c=>{
-if(c===‘TERAPIA’&&terapiaWaiver.active&&terapiaWaiver.reason.trim().length>3)return true;
+if(c==='TERAPIA'&&terapiaWaiver.active&&terapiaWaiver.reason.trim().length>3)return true;
 return catFiles[c].length>0;
 }).length;
 const total=reqCats.length;const pct=total>0?Math.round((uploaded/total)*100):0;
-document.getElementById(‘pa_docProgCount’).textContent=`${uploaded} / ${total}`;
-document.getElementById(‘pa_docProgBar’).style.width=pct+’%’;
-document.getElementById(‘pa_docProgIcon’).textContent=pct===100?‘✅’:pct>0?‘📂’:‘📋’;
+document.getElementById('pa_docProgCount').textContent=`${uploaded} / ${total}`;
+document.getElementById('pa_docProgBar').style.width=pct+'%';
+document.getElementById('pa_docProgIcon').textContent=pct===100?'✅':pct>0?'📂':'📋';
 const missing=reqCats.filter(c=>catFiles[c].length===0);
-const warnEl=document.getElementById(‘pa_hardGate’);
-if(missing.length>0&&uploaded>0){const cats=docCategories[lang];document.getElementById(‘pa_hardGateList’).innerHTML=missing.map(c=>`<li>${cats[c]?.label||c}</li>`).join(’’);warnEl.style.display=‘block’;}
-else if(missing.length===0){warnEl.style.display=‘none’;paBuildConfirmChecklist(proc);}
-else{warnEl.style.display=‘none’;}
+const warnEl=document.getElementById('pa_hardGate');
+if(missing.length>0&&uploaded>0){const cats=docCategories[lang];document.getElementById('pa_hardGateList').innerHTML=missing.map(c=>`<li>${cats[c]?.label||c}</li>`).join('');warnEl.style.display='block';}
+else if(missing.length===0){warnEl.style.display='none';paBuildConfirmChecklist(proc);}
+else{warnEl.style.display='none';}
 }
 
 function paBuildConfirmChecklist(proc){
-const container=document.getElementById(‘pa_confirmBox’);const items=document.getElementById(‘pa_confirmItems’);
+const container=document.getElementById('pa_confirmBox');const items=document.getElementById('pa_confirmItems');
 if(!proc||!docs[proc])return;
-const ci=docs[proc].filter(d=>d.req).map(d=>({label:lang===‘es’?d.es:d.en,desc:lang===‘es’?d.des:d.den}));
-items.innerHTML=ci.map((item,i)=>`<div class="confirm-check-item"><input type="checkbox" id="pacc_${i}"><label for="pacc_${i}"><strong>${item.label}</strong> — ${item.desc}</label></div>`).join(’’);
-container.style.display=‘block’;
+const ci=docs[proc].filter(d=>d.req).map(d=>({label:lang==='es'?d.es:d.en,desc:lang==='es'?d.des:d.den}));
+items.innerHTML=ci.map((item,i)=>`<div class="confirm-check-item"><input type="checkbox" id="pacc_${i}"><label for="pacc_${i}"><strong>${item.label}</strong> — ${item.desc}</label></div>`).join('');
+container.style.display='block';
 }
 
 function renderCatZones(){
-const proc=document.getElementById(‘pa_procedure’).value;const container=document.getElementById(‘pa_catUpload’);
-if(!proc){container.innerHTML=’’;return;}
+const proc=document.getElementById('pa_procedure').value;const container=document.getElementById('pa_catUpload');
+if(!proc){container.innerHTML='';return;}
 const reqCats=getRequiredCats(proc);
-const allCats=[…new Set([…reqCats,…(docCategoryMap[proc]?.map(d=>d.cat)||[]),‘OTROS’])];
+const allCats=[…new Set([…reqCats,…(docCategoryMap[proc]?.map(d=>d.cat)||[]),'OTROS'])];
 const cats=docCategories[lang];
 container.innerHTML=allCats.map(catKey=>{
 const cat=cats[catKey];const isReq=reqCats.includes(catKey);const files=catFiles[catKey];const hasDocs=files.length>0;
-const waiverActive=catKey===‘TERAPIA’&&terapiaWaiver.active;
-const effectiveDone=hasDocs||(catKey===‘TERAPIA’&&waiverActive&&terapiaWaiver.reason.trim().length>3);
-const badgeClass=effectiveDone?‘done’:isReq?‘req’:‘opt’;
-const badgeLabel=effectiveDone?(hasDocs?(lang===‘es’?`${files.length} archivo(s)`:files.length+’ file(s)’):(lang===‘es’?‘✓ No aplica’:‘✓ N/A’)):isReq?(lang===‘es’?‘REQUERIDO’:‘REQUIRED’):(lang===‘es’?‘OPCIONAL’:‘OPTIONAL’);
-const zoneClass=[‘cat-zone’,isReq||hasDocs||waiverActive?‘open’:’’,effectiveDone?‘has-files’:’’].filter(Boolean).join(’ ‘);
-const fileItems=files.map((f,i)=>`<div class="cat-file-item"><span>${fileIcon(f.name)}</span><span class="fn">${f.name}</span><span class="fsz">${fmt(f.size)}</span><button class="fdel" onclick="removeFileFromCategory('${catKey}',${i})">✕</button></div>`).join(’’);
-const waiverBlock=catKey===‘TERAPIA’?` <div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--border);"> <label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:var(--slate);cursor:pointer;margin-bottom:0;"> <input type="checkbox" id="terapia_waiver_chk" ${terapiaWaiver.active?'checked':''} onchange="toggleTerapiaWaiver(this.checked)" style="width:15px;height:15px;accent-color:var(--amber);padding:0;border:none;box-shadow:none;"> <span>${lang==='es'?'La fisioterapia no aplica en este caso':'Physical therapy does not apply in this case'}</span> </label> <div class="waiver-box ${terapiaWaiver.active?'show':''}" id="terapia_waiver_box"> <label>${lang==='es'?'Razón clínica documentada *':'Documented clinical reason *'}</label> <textarea id="terapia_waiver_reason" placeholder="${lang==='es'?'Ej: Fractura aguda de cadera — PT contraindicada.':'E.g.: Acute hip fracture — PT contraindicated.'}" oninput="updateTerapiaWaiverReason(this.value)">${terapiaWaiver.reason}</textarea> <div class="waiver-hint">${lang==='es'?'⚠️ Esta razón aparecerá en el reporte de compliance.':'⚠️ This reason will appear in the compliance report.'}</div> </div> </div>`:’’;
+const waiverActive=catKey==='TERAPIA'&&terapiaWaiver.active;
+const effectiveDone=hasDocs||(catKey==='TERAPIA'&&waiverActive&&terapiaWaiver.reason.trim().length>3);
+const badgeClass=effectiveDone?'done':isReq?'req':'opt';
+const badgeLabel=effectiveDone?(hasDocs?(lang==='es'?`${files.length} archivo(s)`:files.length+' file(s)'):(lang==='es'?'✓ No aplica':'✓ N/A')):isReq?(lang==='es'?'REQUERIDO':'REQUIRED'):(lang==='es'?'OPCIONAL':'OPTIONAL');
+const zoneClass=['cat-zone',isReq||hasDocs||waiverActive?'open':'',effectiveDone?'has-files':''].filter(Boolean).join(' ');
+const fileItems=files.map((f,i)=>`<div class="cat-file-item"><span>${fileIcon(f.name)}</span><span class="fn">${f.name}</span><span class="fsz">${fmt(f.size)}</span><button class="fdel" onclick="removeFileFromCategory('${catKey}',${i})">✕</button></div>`).join('');
+const waiverBlock=catKey==='TERAPIA'?` <div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--border);"> <label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:var(--slate);cursor:pointer;margin-bottom:0;"> <input type="checkbox" id="terapia_waiver_chk" ${terapiaWaiver.active?'checked':''} onchange="toggleTerapiaWaiver(this.checked)" style="width:15px;height:15px;accent-color:var(--amber);padding:0;border:none;box-shadow:none;"> <span>${lang==='es'?'La fisioterapia no aplica en este caso':'Physical therapy does not apply in this case'}</span> </label> <div class="waiver-box ${terapiaWaiver.active?'show':''}" id="terapia_waiver_box"> <label>${lang==='es'?'Razón clínica documentada *':'Documented clinical reason *'}</label> <textarea id="terapia_waiver_reason" placeholder="${lang==='es'?'Ej: Fractura aguda de cadera — PT contraindicada.':'E.g.: Acute hip fracture — PT contraindicated.'}" oninput="updateTerapiaWaiverReason(this.value)">${terapiaWaiver.reason}</textarea> <div class="waiver-hint">${lang==='es'?'⚠️ Esta razón aparecerá en el reporte de compliance.':'⚠️ This reason will appear in the compliance report.'}</div> </div> </div>`:'';
 return`<div class="${zoneClass}" id="paCatZone_${catKey}"><div class="cat-header" onclick="toggleCat('${catKey}')"><span style="font-size:16px;">${cat.icon}</span><span class="cat-title">${cat.label}</span><span class="cat-badge ${badgeClass}">${badgeLabel}</span><span class="cat-chevron">▼</span></div><div class="cat-body"><div class="cat-desc">${cat.desc}</div><div class="mini-upload"><input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.tif,.tiff" onchange="handleCatFiles('${catKey}',this.files);this.value=''"><div class="mini-upload-icon">${cat.icon}</div><div class="mini-upload-text">${lang==='es'?'Clic o arrastre':'Click or drag'} · <strong>PDF, JPG, PNG, TIFF</strong></div></div><div class="cat-files">${fileItems}</div>${waiverBlock}</div></div>`;
-}).join(’’);
+}).join('');
 }
 
-const terapiaWaiver={active:false,reason:’’};
-function toggleTerapiaWaiver(checked){terapiaWaiver.active=checked;if(!checked)terapiaWaiver.reason=’’;renderCatZones();paUpdateDocProgress();}
+const terapiaWaiver={active:false,reason:''};
+function toggleTerapiaWaiver(checked){terapiaWaiver.active=checked;if(!checked)terapiaWaiver.reason='';renderCatZones();paUpdateDocProgress();}
 function updateTerapiaWaiverReason(val){terapiaWaiver.reason=val;paUpdateDocProgress();}
-function toggleCat(k){const z=document.getElementById(‘paCatZone_’+k);if(z)z.classList.toggle(‘open’);}
+function toggleCat(k){const z=document.getElementById('paCatZone_'+k);if(z)z.classList.toggle('open');}
 function handleCatFiles(k,files){Array.from(files).forEach(f=>addFileToCategory(k,f));}
-function paUpdateDocChecklist(){const proc=document.getElementById(‘pa_procedure’).value;renderCatZones();paUpdateDocProgress();showFormZone(!!proc);if(!proc){document.getElementById(‘pa_docProgCount’).textContent=‘0 / 0’;document.getElementById(‘pa_docProgBar’).style.width=‘0%’;document.getElementById(‘pa_confirmBox’).style.display=‘none’;}}
+function paUpdateDocChecklist(){const proc=document.getElementById('pa_procedure').value;renderCatZones();paUpdateDocProgress();showFormZone(!!proc);if(!proc){document.getElementById('pa_docProgCount').textContent='0 / 0';document.getElementById('pa_docProgBar').style.width='0%';document.getElementById('pa_confirmBox').style.display='none';}}
 
 function paUpdateProgress(){
-document.getElementById(‘paProgressFill’).style.width=(paStep/4*100)+’%’;
-document.getElementById(‘pa_stepCount’).textContent=lang===‘es’?`Paso ${paStep} de 4`:`Step ${paStep} of 4`;
-for(let i=1;i<=4;i++){const p=document.getElementById(‘pas’+i);p.className=‘step’;if(i<paStep)p.classList.add(‘done-teal’);else if(i===paStep)p.classList.add(‘active-teal’);}
-document.getElementById(‘pa_btnBack’).classList.toggle(‘invisible’,paStep===1);
-document.getElementById(‘pa_btnNextLabel’).textContent=paStep===4?(lang===‘es’?‘Enviar caso ✓’:‘Submit case ✓’):(lang===‘es’?‘Continuar →’:‘Continue →’);
+document.getElementById('paProgressFill').style.width=(paStep/4*100)+'%';
+document.getElementById('pa_stepCount').textContent=lang==='es'?`Paso ${paStep} de 4`:`Step ${paStep} of 4`;
+for(let i=1;i<=4;i++){const p=document.getElementById('pas'+i);p.className='step';if(i<paStep)p.classList.add('done-teal');else if(i===paStep)p.classList.add('active-teal');}
+document.getElementById('pa_btnBack').classList.toggle('invisible',paStep===1);
+document.getElementById('pa_btnNextLabel').textContent=paStep===4?(lang==='es'?'Enviar caso ✓':'Submit case ✓'):(lang==='es'?'Continuar →':'Continue →');
 }
 
 function paValidate(s){
-const req={1:[‘pa_doctorName’,‘pa_practiceName’,‘pa_contactEmail’,‘pa_insurancePlan’],2:[‘pa_patientInitials’,‘pa_surgeryDate’,‘pa_procedure’,‘pa_analysisType’],3:[],4:[]};
+const req={1:['pa_doctorName','pa_practiceName','pa_contactEmail','pa_insurancePlan'],2:['pa_patientInitials','pa_surgeryDate','pa_procedure','pa_analysisType'],3:[],4:[]};
 let ok=true;
-req[s].forEach(id=>{const el=document.getElementById(id);const em=document.getElementById(‘pa_err-’+id.replace(‘pa_’,’’));if(el)el.classList.remove(‘error’);if(em)em.classList.remove(‘show’);});
+req[s].forEach(id=>{const el=document.getElementById(id);const em=document.getElementById('pa_err-'+id.replace('pa_',''));if(el)el.classList.remove('error');if(em)em.classList.remove('show');});
 req[s].forEach(id=>{
 const el=document.getElementById(id);
-if(!el||!el.value.trim()){if(el)el.classList.add(‘error’);const em=document.getElementById(‘pa_err-’+id.replace(‘pa_’,’’));if(em)em.classList.add(‘show’);ok=false;}
-if(id===‘pa_contactEmail’&&el&&el.value&&!/^[^\s@]+@[^\s@]+.[^\s@]+$/.test(el.value)){el.classList.add(‘error’);document.getElementById(‘pa_err-contactEmail’).classList.add(‘show’);ok=false;}
+if(!el||!el.value.trim()){if(el)el.classList.add('error');const em=document.getElementById('pa_err-'+id.replace('pa_',''));if(em)em.classList.add('show');ok=false;}
+if(id==='pa_contactEmail'&&el&&el.value&&!/^[^\s@]+@[^\s@]+.[^\s@]+$/.test(el.value)){el.classList.add('error');document.getElementById('pa_err-contactEmail').classList.add('show');ok=false;}
 });
-if(s===3){const proc=document.getElementById(‘pa_procedure’).value;if(proc){const reqCats=getRequiredCats(proc);const missing=reqCats.filter(c=>{if(c===‘TERAPIA’&&terapiaWaiver.active&&terapiaWaiver.reason.trim().length>3)return false;return catFiles[c].length===0;});if(missing.length>0){const cats=docCategories[lang];document.getElementById(‘pa_hardGateList’).innerHTML=missing.map(c=>`<li>${cats[c]?.label||c}</li>`).join(’’);document.getElementById(‘pa_hardGate’).style.display=‘block’;document.getElementById(‘pa_hardGate’).scrollIntoView({behavior:‘smooth’,block:‘center’});ok=false;}
-if(terapiaWaiver.active&&terapiaWaiver.reason.trim().length<=3){document.getElementById(‘pa_hardGateList’).innerHTML=`<li>${lang==='es'?'Razón clínica para omitir fisioterapia es requerida':'Clinical reason for omitting physical therapy is required'}</li>`;document.getElementById(‘pa_hardGate’).style.display=‘block’;document.getElementById(‘pa_hardGate’).scrollIntoView({behavior:‘smooth’,block:‘center’});ok=false;}}}
-if(s===4){const h=document.getElementById(‘pa_confirmHipaa’);if(!h.checked){document.getElementById(‘pa_err-confirmHipaa’).classList.add(‘show’);ok=false;}}
+if(s===3){const proc=document.getElementById('pa_procedure').value;if(proc){const reqCats=getRequiredCats(proc);const missing=reqCats.filter(c=>{if(c==='TERAPIA'&&terapiaWaiver.active&&terapiaWaiver.reason.trim().length>3)return false;return catFiles[c].length===0;});if(missing.length>0){const cats=docCategories[lang];document.getElementById('pa_hardGateList').innerHTML=missing.map(c=>`<li>${cats[c]?.label||c}</li>`).join('');document.getElementById('pa_hardGate').style.display='block';document.getElementById('pa_hardGate').scrollIntoView({behavior:'smooth',block:'center'});ok=false;}
+if(terapiaWaiver.active&&terapiaWaiver.reason.trim().length<=3){document.getElementById('pa_hardGateList').innerHTML=`<li>${lang==='es'?'Razón clínica para omitir fisioterapia es requerida':'Clinical reason for omitting physical therapy is required'}</li>`;document.getElementById('pa_hardGate').style.display='block';document.getElementById('pa_hardGate').scrollIntoView({behavior:'smooth',block:'center'});ok=false;}}}
+if(s===4){const h=document.getElementById('pa_confirmHipaa');if(!h.checked){document.getElementById('pa_err-confirmHipaa').classList.add('show');ok=false;}}
 return ok;
 }
 
 function paBuildSummary(){
-const proc=document.getElementById(‘pa_procedure’);const plan=document.getElementById(‘pa_insurancePlan’);const type=document.getElementById(‘pa_analysisType’);const allFiles=getAllFiles();
-const keys=lang===‘es’?[‘Médico’,‘Práctica’,‘Plan MA’,‘Paciente’,‘Procedimiento’,‘Tipo’,‘Fecha’,‘Archivos’]:[‘Physician’,‘Practice’,‘MA Plan’,‘Patient’,‘Procedure’,‘Type’,‘Date’,‘Files’];
-const vals=[document.getElementById(‘pa_doctorName’).value,document.getElementById(‘pa_practiceName’).value,plan.options[plan.selectedIndex]?.text||’—’,document.getElementById(‘pa_patientInitials’).value,proc.options[proc.selectedIndex]?.text.split(’—’)[0].trim()||’—’,type.options[type.selectedIndex]?.text||’—’,document.getElementById(‘pa_surgeryDate’).value||’—’,allFiles.length+(lang===‘es’?’ archivo(s)’:’ file(s)’)];
-document.getElementById(‘pa_summaryBox’).innerHTML=`<div style="border:1.5px solid var(--border);border-radius:11px;overflow:hidden;">${keys.map((k,i)=>`<div style="display:flex;padding:9px 14px;border-bottom:${i<keys.length-1?'1px solid var(--border)':'none'};background:${i%2===0?'var(--light)':'var(--white)'}"><span style="width:120px;font-size:12px;font-weight:600;color:var(--slate);flex-shrink:0;">${k}</span><span style="font-size:12px;color:var(--dark);">${vals[i]}</span></div>`).join('')}</div>`;
+const proc=document.getElementById('pa_procedure');const plan=document.getElementById('pa_insurancePlan');const type=document.getElementById('pa_analysisType');const allFiles=getAllFiles();
+const keys=lang==='es'?['Médico','Práctica','Plan MA','Paciente','Procedimiento','Tipo','Fecha','Archivos']:['Physician','Practice','MA Plan','Patient','Procedure','Type','Date','Files'];
+const vals=[document.getElementById('pa_doctorName').value,document.getElementById('pa_practiceName').value,plan.options[plan.selectedIndex]?.text||'—',document.getElementById('pa_patientInitials').value,proc.options[proc.selectedIndex]?.text.split('—')[0].trim()||'—',type.options[type.selectedIndex]?.text||'—',document.getElementById('pa_surgeryDate').value||'—',allFiles.length+(lang==='es'?' archivo(s)':' file(s)')];
+document.getElementById('pa_summaryBox').innerHTML=`<div style="border:1.5px solid var(--border);border-radius:11px;overflow:hidden;">${keys.map((k,i)=>`<div style="display:flex;padding:9px 14px;border-bottom:${i<keys.length-1?'1px solid var(--border)':'none'};background:${i%2===0?'var(--light)':'var(--white)'}"><span style="width:120px;font-size:12px;font-weight:600;color:var(--slate);flex-shrink:0;">${k}</span><span style="font-size:12px;color:var(--dark);">${vals[i]}</span></div>`).join('')}</div>`;
 }
 
-function paShow(n){for(let i=1;i<=4;i++)document.getElementById(‘pa_s’+i).classList.remove(‘active’);document.getElementById(‘pa_s’+n).classList.add(‘active’);}
+function paShow(n){for(let i=1;i<=4;i++)document.getElementById('pa_s'+i).classList.remove('active');document.getElementById('pa_s'+n).classList.add('active');}
 
-const PA_STATUS_MSGS={es:[‘Verificando documentos del expediente…’,‘Cargando LCD de Palmetto GBA…’,‘Cargando CPB del plan MA…’,‘Analizando criterios clínicos…’,‘Generando reporte de compliance…’,‘Preparando sugerencias de documentación…’,‘Subiendo reporte a Drive…’,‘Enviando notificaciones…’],en:[‘Verifying medical record documents…’,‘Loading Palmetto GBA LCD…’,‘Loading MA plan CPB…’,‘Analyzing clinical criteria…’,‘Generating compliance report…’,‘Preparing documentation suggestions…’,‘Uploading report to Drive…’,‘Sending notifications…’]};
+const PA_STATUS_MSGS={es:['Verificando documentos del expediente…','Cargando LCD de Palmetto GBA…','Cargando CPB del plan MA…','Analizando criterios clínicos…','Generando reporte de compliance…','Preparando sugerencias de documentación…','Subiendo reporte a Drive…','Enviando notificaciones…'],en:['Verifying medical record documents…','Loading Palmetto GBA LCD…','Loading MA plan CPB…','Analyzing clinical criteria…','Generating compliance report…','Preparing documentation suggestions…','Uploading report to Drive…','Sending notifications…']};
 let paMsgIdx=0,paPollInterval=null;
-function paRotateMsg(){const msgs=PA_STATUS_MSGS[lang];paMsgIdx=(paMsgIdx+1)%msgs.length;const el=document.getElementById(‘pa_statusText’);if(el)el.textContent=msgs[paMsgIdx];}
-function paAdvanceTL(s){for(let i=2;i<=s;i++){const d=document.getElementById(‘pa_tl’+i);if(d){d.className=‘tl-dot done-teal’;d.textContent=‘✓’;}}}
+function paRotateMsg(){const msgs=PA_STATUS_MSGS[lang];paMsgIdx=(paMsgIdx+1)%msgs.length;const el=document.getElementById('pa_statusText');if(el)el.textContent=msgs[paMsgIdx];}
+function paAdvanceTL(s){for(let i=2;i<=s;i++){const d=document.getElementById('pa_tl'+i);if(d){d.className='tl-dot done-teal';d.textContent='✓';}}}
 
 async function paSubmit(){
-document.getElementById(‘pa_uploadStatus’).style.display=‘flex’;document.getElementById(‘pa_btnNext’).disabled=true;
-const year=new Date().getFullYear();const proc=document.getElementById(‘pa_procedure’).value;
-const procMap={TKA:‘TKA-27447’,THA:‘THA-27130’,LUMBAR:‘LUMBAR-22612’,CERVICAL:‘CERVICAL-22551’,ARTHROSCOPY:‘ARTHRO-29881’,SHOULDER:‘SHOULDER-23472’};
-const seq=String(Math.floor(Math.random()*900)+100).padStart(3,‘0’);
+document.getElementById('pa_uploadStatus').style.display='flex';document.getElementById('pa_btnNext').disabled=true;
+const year=new Date().getFullYear();const proc=document.getElementById('pa_procedure').value;
+const procMap={TKA:'TKA-27447',THA:'THA-27130',LUMBAR:'LUMBAR-22612',CERVICAL:'CERVICAL-22551',ARTHROSCOPY:'ARTHRO-29881',SHOULDER:'SHOULDER-23472'};
+const seq=String(Math.floor(Math.random()*900)+100).padStart(3,'0');
 const caseId=`VINDICA-${year}-${seq}-${procMap[proc]||'PROC'}`;
-document.getElementById(‘pa_uploadStatus’).style.display=‘none’;
-document.getElementById(‘pa_nav’).style.display=‘none’;
-document.getElementById(‘pa_nav’).nextElementSibling.style.display=‘none’;
-document.getElementById(‘paProgressFill’).style.width=‘100%’;
-for(let i=1;i<=4;i++)document.getElementById(‘pa_s’+i).style.display=‘none’;
-document.getElementById(‘pa_caseNum’).textContent=caseId;
-document.getElementById(‘pa_success’).style.display=’’;document.getElementById(‘pa_success’).classList.add(‘show’);// FIX-Q04
-paMsgIdx=0;document.getElementById(‘pa_statusText’).textContent=PA_STATUS_MSGS[lang][0];
+document.getElementById('pa_uploadStatus').style.display='none';
+document.getElementById('pa_nav').style.display='none';
+document.getElementById('pa_nav').nextElementSibling.style.display='none';
+document.getElementById('paProgressFill').style.width='100%';
+for(let i=1;i<=4;i++)document.getElementById('pa_s'+i).style.display='none';
+document.getElementById('pa_caseNum').textContent=caseId;
+document.getElementById('pa_success').style.display='';document.getElementById('pa_success').classList.add('show');// FIX-Q04
+paMsgIdx=0;document.getElementById('pa_statusText').textContent=PA_STATUS_MSGS[lang][0];
 paPollInterval=setInterval(paRotateMsg,3200);
 
 // Demo mode (placeholder URL)
-if(CF_BASE_URL.includes(‘XXXXXXX’)){
-let step=0;const di=setInterval(()=>{step++;if(step===3)paAdvanceTL(2);if(step===6)paAdvanceTL(3);if(step===9){paAdvanceTL(4);clearInterval(di);clearInterval(paPollInterval);paShowReportReady({decision:‘✅ LISTO PARA SOMETER’,score:92,reportePDF:null,sugerencias:null});}},1100);
+if(CF_BASE_URL.includes('XXXXXXX')){
+let step=0;const di=setInterval(()=>{step++;if(step===3)paAdvanceTL(2);if(step===6)paAdvanceTL(3);if(step===9){paAdvanceTL(4);clearInterval(di);clearInterval(paPollInterval);paShowReportReady({decision:'✅ LISTO PARA SOMETER',score:92,reportePDF:null,sugerencias:null});}},1100);
 return;
 }
 
@@ -895,13 +895,13 @@ try{
 const fileList=[];
 for(const[cat,files]of Object.entries(catFiles)){
 for(const file of files){
-const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(’,’)[1]);r.onerror=rej;r.readAsDataURL(file);});
+const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(file);});
 fileList.push({name:file.name,category:cat,mimeType:getCorrectMimeType(file),base64:b64,driveFileId:null});
 }
 }
 if(formFile){
-const formB64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(’,’)[1]);r.onerror=rej;r.readAsDataURL(formFile);});
-fileList.push({name:formFile.name,category:‘FORMULARIO’,mimeType:getCorrectMimeType(formFile),base64:formB64,driveFileId:null});
+const formB64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(formFile);});
+fileList.push({name:formFile.name,category:'FORMULARIO',mimeType:getCorrectMimeType(formFile),base64:formB64,driveFileId:null});
 }
 
 ```
@@ -939,207 +939,207 @@ paAdvanceTL(2);paStartPolling(jobId,caseId);
 
 }catch(err){
 clearInterval(paPollInterval);
-document.getElementById(‘pa_statusSpinner’).style.display=‘none’;
-document.getElementById(‘pa_statusText’).textContent=lang===‘es’?`Error al enviar: ${err.message}`:`Submit error: ${err.message}`;
+document.getElementById('pa_statusSpinner').style.display='none';
+document.getElementById('pa_statusText').textContent=lang==='es'?`Error al enviar: ${err.message}`:`Submit error: ${err.message}`;
 }
 }
 
 function paStartPolling(jobId,caseId){
-const pollUrl=CF_BASE_URL+’/status/’+jobId;let attempts=0;const maxAttempts=120;
+const pollUrl=CF_BASE_URL+'/status/'+jobId;let attempts=0;const maxAttempts=120;
 const poll=setInterval(async()=>{
-attempts++;if(attempts>maxAttempts){clearInterval(poll);clearInterval(paPollInterval);document.getElementById(‘pa_statusText’).textContent=lang===‘es’?‘Tiempo agotado — revise Drive para el reporte.’:‘Timed out — check Drive for the report.’;return;}
+attempts++;if(attempts>maxAttempts){clearInterval(poll);clearInterval(paPollInterval);document.getElementById('pa_statusText').textContent=lang==='es'?'Tiempo agotado — revise Drive para el reporte.':'Timed out — check Drive for the report.';return;}
 try{
-const r=await fetch(pollUrl,{headers:{‘X-Vindica-Key’:VINDICA_KEY}});if(!r.ok)return;const job=await r.json();
-if(job.status===‘COMPLETE’){clearInterval(poll);clearInterval(paPollInterval);paAdvanceTL(4);paShowReportReady({decision:job.decision,score:job.score_confianza,reportePDF:job.reportePDF,sugerencias:job.sugerencias});}
-else if(job.status===‘CONTENT_VALIDATION_FAILED’){clearInterval(poll);clearInterval(paPollInterval);document.getElementById(‘pa_statusSpinner’).style.display=‘none’;document.getElementById(‘pa_statusText’).textContent=‘Expediente bloqueado.’;paShowContentValidationError(job.conflictos||[]);}
-else if(job.status===‘AGENT2_REJECTED’){clearInterval(poll);clearInterval(paPollInterval);document.getElementById(‘pa_statusSpinner’).style.display=‘none’;document.getElementById(‘pa_statusText’).textContent=lang===‘es’?‘Revisión manual requerida.’:‘Manual review required.’;paShowAgent2Rejected(job.score,job.reason);}
-else if(job.status===‘ERROR’||job.status===‘TIMEOUT’){clearInterval(poll);clearInterval(paPollInterval);document.getElementById(‘pa_statusSpinner’).style.display=‘none’;document.getElementById(‘pa_statusText’).textContent=`Error: ${job.error}`;}
-else if(job.status===‘TRIAGE_FAILED’){clearInterval(poll);clearInterval(paPollInterval);document.getElementById(‘pa_statusSpinner’).style.display=‘none’;document.getElementById(‘pa_statusText’).textContent=lang===‘es’?`Expediente incompleto: ${job.message||'Faltan documentos requeridos. Vuelva al paso 3.'}`:`Incomplete record: ${job.message||'Required documents missing. Return to step 3.'}`;} // FIX-NEW-01 + FIX-Q08
-else if(job.status===‘ALREADY_EXISTS’){clearInterval(poll);clearInterval(paPollInterval);paAdvanceTL(4);paShowReportReady({decision:job.decision||‘✅ REPORTE PREVIO DISPONIBLE’,score:job.score_confianza||null,reportePDF:job.reportePDF,sugerencias:null});} // FIX-NEW-01 + FIX-Q08
-else if(job.status===‘AGENT_1’)paAdvanceTL(2);
-else if(job.status===‘AGENT_3’||job.status===‘GENERATING_FILES’)paAdvanceTL(3);
+const r=await fetch(pollUrl,{headers:{'X-Vindica-Key':VINDICA_KEY}});if(!r.ok)return;const job=await r.json();
+if(job.status==='COMPLETE'){clearInterval(poll);clearInterval(paPollInterval);paAdvanceTL(4);paShowReportReady({decision:job.decision,score:job.score_confianza,reportePDF:job.reportePDF,sugerencias:job.sugerencias});}
+else if(job.status==='CONTENT_VALIDATION_FAILED'){clearInterval(poll);clearInterval(paPollInterval);document.getElementById('pa_statusSpinner').style.display='none';document.getElementById('pa_statusText').textContent='Expediente bloqueado.';paShowContentValidationError(job.conflictos||[]);}
+else if(job.status==='AGENT2_REJECTED'){clearInterval(poll);clearInterval(paPollInterval);document.getElementById('pa_statusSpinner').style.display='none';document.getElementById('pa_statusText').textContent=lang==='es'?'Revisión manual requerida.':'Manual review required.';paShowAgent2Rejected(job.score,job.reason);}
+else if(job.status==='ERROR'||job.status==='TIMEOUT'){clearInterval(poll);clearInterval(paPollInterval);document.getElementById('pa_statusSpinner').style.display='none';document.getElementById('pa_statusText').textContent=`Error: ${job.error}`;}
+else if(job.status==='TRIAGE_FAILED'){clearInterval(poll);clearInterval(paPollInterval);document.getElementById('pa_statusSpinner').style.display='none';document.getElementById('pa_statusText').textContent=lang==='es'?`Expediente incompleto: ${job.message||'Faltan documentos requeridos. Vuelva al paso 3.'}`:`Incomplete record: ${job.message||'Required documents missing. Return to step 3.'}`;} // FIX-NEW-01 + FIX-Q08
+else if(job.status==='ALREADY_EXISTS'){clearInterval(poll);clearInterval(paPollInterval);paAdvanceTL(4);paShowReportReady({decision:job.decision||'✅ REPORTE PREVIO DISPONIBLE',score:job.score_confianza||null,reportePDF:job.reportePDF,sugerencias:null});} // FIX-NEW-01 + FIX-Q08
+else if(job.status==='AGENT_1')paAdvanceTL(2);
+else if(job.status==='AGENT_3'||job.status==='GENERATING_FILES')paAdvanceTL(3);
 }catch(e){}
 },5000);
 }
 
 function paShowContentValidationError(conflictos){
-const panel=document.getElementById(‘pa_contentValAlert’);const list=document.getElementById(‘pa_contentValList’);if(!panel||!list)return;
-const tipoLabels={REGION_ANATOMICA:‘🫀 Región Anatómica’,LATERALIDAD:‘↔️ Lateralidad’,INICIALES:‘👤 Iniciales del Paciente’,PLAN_MEDICO:‘🏥 Plan Médico’,PROCEDIMIENTO:‘🔧 Procedimiento’};
-list.innerHTML=conflictos.map(c=>`<div style="background:#fff;border:1px solid #FECACA;border-radius:9px;padding:11px 14px;"><div style="font-size:11px;font-weight:700;color:var(--red);margin-bottom:4px;">${tipoLabels[c.tipo]||c.tipo}</div><div style="font-size:12px;color:var(--dark);margin-bottom:3px;">${c.mensaje_staff}</div><div style="font-size:11px;color:var(--muted);">📄 ${c.documento}</div></div>`).join(’’);
-panel.style.display=‘block’;panel.scrollIntoView({behavior:‘smooth’,block:‘center’});
+const panel=document.getElementById('pa_contentValAlert');const list=document.getElementById('pa_contentValList');if(!panel||!list)return;
+const tipoLabels={REGION_ANATOMICA:'🫀 Región Anatómica',LATERALIDAD:'↔️ Lateralidad',INICIALES:'👤 Iniciales del Paciente',PLAN_MEDICO:'🏥 Plan Médico',PROCEDIMIENTO:'🔧 Procedimiento'};
+list.innerHTML=conflictos.map(c=>`<div style="background:#fff;border:1px solid #FECACA;border-radius:9px;padding:11px 14px;"><div style="font-size:11px;font-weight:700;color:var(--red);margin-bottom:4px;">${tipoLabels[c.tipo]||c.tipo}</div><div style="font-size:12px;color:var(--dark);margin-bottom:3px;">${c.mensaje_staff}</div><div style="font-size:11px;color:var(--muted);">📄 ${c.documento}</div></div>`).join('');
+panel.style.display='block';panel.scrollIntoView({behavior:'smooth',block:'center'});
 }
 
 function paShowAgent2Rejected(score,reason){
-const panel=document.getElementById(‘pa_agent2RejPanel’);if(!panel)return;
-document.getElementById(‘pa_agent2Score’).textContent=score?`Score ${score}/100`:’’;
-document.getElementById(‘pa_agent2Reason’).textContent=reason||‘El expediente requiere revisión manual por el equipo de Vindica.’;
-panel.style.display=‘block’;panel.scrollIntoView({behavior:‘smooth’,block:‘center’});
+const panel=document.getElementById('pa_agent2RejPanel');if(!panel)return;
+document.getElementById('pa_agent2Score').textContent=score?`Score ${score}/100`:'';
+document.getElementById('pa_agent2Reason').textContent=reason||'El expediente requiere revisión manual por el equipo de Vindica.';
+panel.style.display='block';panel.scrollIntoView({behavior:'smooth',block:'center'});
 }
 function paGoBackToDocuments(){
-document.getElementById(‘pa_contentValAlert’).style.display=‘none’;document.getElementById(‘pa_agent2RejPanel’).style.display=‘none’;document.getElementById(‘pa_success’).classList.remove(‘show’);document.getElementById(‘pa_success’).style.display=’’;// FIX-Q03
+document.getElementById('pa_contentValAlert').style.display='none';document.getElementById('pa_agent2RejPanel').style.display='none';document.getElementById('pa_success').classList.remove('show');document.getElementById('pa_success').style.display='';// FIX-Q03
 // FIX-NEW-03: restore pa_nav + hipaa-footer + re-enable submit btn (hidden by paSubmit)
-document.getElementById(‘pa_nav’).style.display=’’;const _hip=document.getElementById(‘pa_nav’).nextElementSibling;if(_hip)_hip.style.display=’’;
-document.getElementById(‘pa_btnNext’).disabled=false;
+document.getElementById('pa_nav').style.display='';const _hip=document.getElementById('pa_nav').nextElementSibling;if(_hip)_hip.style.display='';
+document.getElementById('pa_btnNext').disabled=false;
 paStep=3;paShow(3);paUpdateProgress();
-const cu=document.getElementById(‘pa_catUpload’);if(cu)cu.scrollIntoView({behavior:‘smooth’,block:‘start’});
+const cu=document.getElementById('pa_catUpload');if(cu)cu.scrollIntoView({behavior:'smooth',block:'start'});
 }
 
 function paShowReportReady({decision,score,reportePDF,sugerencias}){
-document.getElementById(‘pa_statusSpinner’).style.display=‘none’;document.getElementById(‘pa_statusText’).textContent=lang===‘es’?‘Reporte listo.’:‘Report ready.’;document.getElementById(‘pa_phaseReady’).style.display=‘block’;
-if(reportePDF)document.getElementById(‘pa_dlPDF’).href=reportePDF;
-if(sugerencias)document.getElementById(‘pa_dlGhost’).href=sugerencias;else document.getElementById(‘pa_dlGhost’).style.display=‘none’;
-const badge=document.getElementById(‘pa_decisionBadge’);
-const isOK=decision&&(decision.includes(‘LISTO’)||decision.includes(‘READY’)||decision.includes(‘SOMETER’));
-const isWarn=decision&&(decision.includes(‘REVISIÓN’)||decision.includes(‘REVIEW’));
+document.getElementById('pa_statusSpinner').style.display='none';document.getElementById('pa_statusText').textContent=lang==='es'?'Reporte listo.':'Report ready.';document.getElementById('pa_phaseReady').style.display='block';
+if(reportePDF)document.getElementById('pa_dlPDF').href=reportePDF;
+if(sugerencias)document.getElementById('pa_dlGhost').href=sugerencias;else document.getElementById('pa_dlGhost').style.display='none';
+const badge=document.getElementById('pa_decisionBadge');
+const isOK=decision&&(decision.includes('LISTO')||decision.includes('READY')||decision.includes('SOMETER'));
+const isWarn=decision&&(decision.includes('REVISIÓN')||decision.includes('REVIEW'));
 badge.style.cssText=`display:inline-block;padding:8px 18px;border-radius:11px;font-size:13px;font-weight:700;${isOK?'background:#ECFDF5;color:#065F46;border:1.5px solid #A7F3D0;':isWarn?'background:#FFFBEB;color:#92400E;border:1.5px solid #FDE68A;':'background:#FEF2F2;color:#991B1B;border:1.5px solid #FECACA;'}`;
-badge.textContent=decision||(score>=90?‘✅ LISTO PARA SOMETER’:score>=75?‘⚠️ EN REVISIÓN’:‘❌ NO SOMETER’);
+badge.textContent=decision||(score>=90?'✅ LISTO PARA SOMETER':score>=75?'⚠️ EN REVISIÓN':'❌ NO SOMETER');
 if(score)badge.textContent+=` · Score ${score}/100`;
 }
 
-function paNext(){if(!paValidate(paStep))return;if(paStep===3)paBuildSummary();if(paStep<4){paStep++;paShow(paStep);paUpdateProgress();window.scrollTo({top:0,behavior:‘smooth’});}else paSubmit();}
-function paPrev(){if(paStep>1){paStep--;paShow(paStep);paUpdateProgress();window.scrollTo({top:0,behavior:‘smooth’});}}
+function paNext(){if(!paValidate(paStep))return;if(paStep===3)paBuildSummary();if(paStep<4){paStep++;paShow(paStep);paUpdateProgress();window.scrollTo({top:0,behavior:'smooth'});}else paSubmit();}
+function paPrev(){if(paStep>1){paStep--;paShow(paStep);paUpdateProgress();window.scrollTo({top:0,behavior:'smooth'});}}
 function paReset(){
-paStep=1;Object.keys(catFiles).forEach(k=>catFiles[k]=[]);paMsgIdx=0;formFile=null;terapiaWaiver.active=false;terapiaWaiver.reason=’’;
+paStep=1;Object.keys(catFiles).forEach(k=>catFiles[k]=[]);paMsgIdx=0;formFile=null;terapiaWaiver.active=false;terapiaWaiver.reason='';
 if(paPollInterval){clearInterval(paPollInterval);paPollInterval=null;}
-document.getElementById(‘pa_nav’).style.display=’’;const hip=document.getElementById(‘pa_nav’).nextElementSibling;if(hip)hip.style.display=’’;
-document.getElementById(‘pa_success’).classList.remove(‘show’);document.getElementById(‘pa_uploadStatus’).style.display=‘none’;document.getElementById(‘pa_btnNext’).disabled=false;document.getElementById(‘pa_phaseReady’).style.display=‘none’;document.getElementById(‘pa_hardGate’).style.display=‘none’;document.getElementById(‘pa_confirmBox’).style.display=‘none’;document.getElementById(‘pa_catUpload’).innerHTML=’’;document.getElementById(‘pa_docProgCount’).textContent=‘0 / 0’;document.getElementById(‘pa_docProgBar’).style.width=‘0%’;
-for(let i=2;i<=4;i++){const d=document.getElementById(‘pa_tl’+i);if(d){d.className=‘tl-dot pending’;d.textContent=i===2?‘🔍’:i===3?‘📋’:‘📁’;}}
-[‘pa_doctorName’,‘pa_practiceName’,‘pa_contactEmail’,‘pa_contactPhone’,‘pa_insurancePlan’,‘pa_patientInitials’,‘pa_surgeryDate’,‘pa_procedure’,‘pa_laterality’,‘pa_analysisType’,‘pa_notes’].forEach(id=>{const el=document.getElementById(id);if(el)el.value=’’;});
-document.getElementById(‘pa_confirmHipaa’).checked=false;
-for(let i=1;i<=4;i++)document.getElementById(‘pa_s’+i).style.display=’’;
+document.getElementById('pa_nav').style.display='';const hip=document.getElementById('pa_nav').nextElementSibling;if(hip)hip.style.display='';
+document.getElementById('pa_success').classList.remove('show');document.getElementById('pa_uploadStatus').style.display='none';document.getElementById('pa_btnNext').disabled=false;document.getElementById('pa_phaseReady').style.display='none';document.getElementById('pa_hardGate').style.display='none';document.getElementById('pa_confirmBox').style.display='none';document.getElementById('pa_catUpload').innerHTML='';document.getElementById('pa_docProgCount').textContent='0 / 0';document.getElementById('pa_docProgBar').style.width='0%';
+for(let i=2;i<=4;i++){const d=document.getElementById('pa_tl'+i);if(d){d.className='tl-dot pending';d.textContent=i===2?'🔍':i===3?'📋':'📁';}}
+['pa_doctorName','pa_practiceName','pa_contactEmail','pa_contactPhone','pa_insurancePlan','pa_patientInitials','pa_surgeryDate','pa_procedure','pa_laterality','pa_analysisType','pa_notes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+document.getElementById('pa_confirmHipaa').checked=false;
+for(let i=1;i<=4;i++)document.getElementById('pa_s'+i).style.display='';
 paUpdateDocChecklist();paShow(1);paUpdateProgress();
 }
 paUpdateProgress();
 
 // ── APPEALS ──────────────────────────────────────────────────────────────────
-const AP_CF_URL=CF_BASE_URL+’/analyzeDenial’;
+const AP_CF_URL=CF_BASE_URL+'/analyzeDenial';
 let apStep=1,apDenialFile=null;
 
 function apUpdateProgress(){
-document.getElementById(‘apProgressFill’).style.width=(apStep/3*100)+’%’;
-document.getElementById(‘ap_stepCount’).textContent=lang===‘es’?`Paso ${apStep} de 3`:`Step ${apStep} of 3`;
-for(let i=1;i<=3;i++){const p=document.getElementById(‘aps’+i);p.className=‘step’;if(i<apStep)p.classList.add(‘done-violet’);else if(i===apStep)p.classList.add(‘active-violet’);}
-document.getElementById(‘ap_btnBack’).classList.toggle(‘invisible’,apStep===1);
-document.getElementById(‘ap_btnNextLabel’).textContent=apStep===3?(lang===‘es’?‘Generar Refutación ✓’:‘Generate Refutation ✓’):(lang===‘es’?‘Continuar →’:‘Continue →’);
+document.getElementById('apProgressFill').style.width=(apStep/3*100)+'%';
+document.getElementById('ap_stepCount').textContent=lang==='es'?`Paso ${apStep} de 3`:`Step ${apStep} of 3`;
+for(let i=1;i<=3;i++){const p=document.getElementById('aps'+i);p.className='step';if(i<apStep)p.classList.add('done-violet');else if(i===apStep)p.classList.add('active-violet');}
+document.getElementById('ap_btnBack').classList.toggle('invisible',apStep===1);
+document.getElementById('ap_btnNextLabel').textContent=apStep===3?(lang==='es'?'Generar Refutación ✓':'Generate Refutation ✓'):(lang==='es'?'Continuar →':'Continue →');
 }
 
 function apCaseIdCheck(){
-const val=document.getElementById(‘ap_caseId’).value.trim();const statusEl=document.getElementById(‘ap_caseIdStatus’);
-const pattern=/^VINDICA-\d{4}-\d{3}-[A-Z]+-\d{5}$/;if(!val){statusEl.style.display=‘none’;return;}
-if(pattern.test(val)){statusEl.style.display=‘block’;statusEl.style.cssText=‘display:block;padding:9px 12px;border-radius:9px;font-size:12px;margin-bottom:14px;background:var(--green-bg);border:1.5px solid #A7F3D0;color:#065F46;’;statusEl.textContent=’✅ Formato válido — ’+val;}
-else{statusEl.style.display=‘block’;statusEl.style.cssText=‘display:block;padding:9px 12px;border-radius:9px;font-size:12px;margin-bottom:14px;background:var(--amber-bg);border:1.5px solid #FDE68A;color:var(--amber-d);’;statusEl.textContent=lang===‘es’?‘⚠️ Formato esperado: VINDICA-AAAA-NNN-PROC-CPT’:‘⚠️ Expected format: VINDICA-YYYY-NNN-PROC-CPT’;}
+const val=document.getElementById('ap_caseId').value.trim();const statusEl=document.getElementById('ap_caseIdStatus');
+const pattern=/^VINDICA-\d{4}-\d{3}-[A-Z]+-\d{5}$/;if(!val){statusEl.style.display='none';return;}
+if(pattern.test(val)){statusEl.style.display='block';statusEl.style.cssText='display:block;padding:9px 12px;border-radius:9px;font-size:12px;margin-bottom:14px;background:var(--green-bg);border:1.5px solid #A7F3D0;color:#065F46;';statusEl.textContent='✅ Formato válido — '+val;}
+else{statusEl.style.display='block';statusEl.style.cssText='display:block;padding:9px 12px;border-radius:9px;font-size:12px;margin-bottom:14px;background:var(--amber-bg);border:1.5px solid #FDE68A;color:var(--amber-d);';statusEl.textContent=lang==='es'?'⚠️ Formato esperado: VINDICA-AAAA-NNN-PROC-CPT':'⚠️ Expected format: VINDICA-YYYY-NNN-PROC-CPT';}
 }
 
-function apHandleDenialFile(file){if(!file)return;apDenialFile=file;document.getElementById(‘ap_denialZone’).classList.add(‘has-file’);document.getElementById(‘ap_denialFileName’).textContent=file.name;document.getElementById(‘ap_denialFileReady’).classList.add(‘show’);}
-function apRemoveDenialFile(){apDenialFile=null;document.getElementById(‘ap_denialZone’).classList.remove(‘has-file’);document.getElementById(‘ap_denialFileReady’).classList.remove(‘show’);}
+function apHandleDenialFile(file){if(!file)return;apDenialFile=file;document.getElementById('ap_denialZone').classList.add('has-file');document.getElementById('ap_denialFileName').textContent=file.name;document.getElementById('ap_denialFileReady').classList.add('show');}
+function apRemoveDenialFile(){apDenialFile=null;document.getElementById('ap_denialZone').classList.remove('has-file');document.getElementById('ap_denialFileReady').classList.remove('show');}
 
 function apValidate(s){
 let ok=true;
 if(s===1){
-const caseId=document.getElementById(‘ap_caseId’).value.trim();const email=document.getElementById(‘ap_email’).value.trim();
-const caseErr=document.getElementById(‘ap_err-caseId’);const emailErr=document.getElementById(‘ap_err-email’);const denialErr=document.getElementById(‘ap_err-denial’);
-if(!caseId){caseErr.style.display=‘block’;ok=false;}else caseErr.style.display=‘none’;
-if(!email||!/^[^\s@]+@[^\s@]+.[^\s@]+$/.test(email)){emailErr.style.display=‘block’;ok=false;}else emailErr.style.display=‘none’;
-if(!apDenialFile){denialErr.style.display=‘block’;ok=false;}else denialErr.style.display=‘none’;
+const caseId=document.getElementById('ap_caseId').value.trim();const email=document.getElementById('ap_email').value.trim();
+const caseErr=document.getElementById('ap_err-caseId');const emailErr=document.getElementById('ap_err-email');const denialErr=document.getElementById('ap_err-denial');
+if(!caseId){caseErr.style.display='block';ok=false;}else caseErr.style.display='none';
+if(!email||!/^[^\s@]+@[^\s@]+.[^\s@]+$/.test(email)){emailErr.style.display='block';ok=false;}else emailErr.style.display='none';
+if(!apDenialFile){denialErr.style.display='block';ok=false;}else denialErr.style.display='none';
 }
 return ok;
 }
 
 function apRunTripleVerification(){
-const caseId=document.getElementById(‘ap_caseId’).value.trim();const isValidFormat=/^VINDICA-\d{4}-\d{3}-[A-Z]+-\d{5}$/.test(caseId);
-const setV=(n,status,msg)=>{const el=document.getElementById(‘ap_v’+n);const msgEl=document.getElementById(‘ap_v’+n+‘msg’);const icon=document.getElementById(‘ap_v’+n+‘icon’);el.className=’verify-badge ’+status;if(msgEl)msgEl.textContent=msg;if(icon)icon.textContent=status===‘pass’?‘✅’:status===‘warn’?‘⚠️’:status===‘fail’?‘❌’:‘⏳’;};
-setV(1,‘pending’,lang===‘es’?‘Verificando que el caso existe en Drive…’:‘Verifying case exists in Drive…’);
-setV(2,‘pending’,lang===‘es’?‘Comparando nombre en carta con expediente original…’:‘Comparing name in denial letter with original record…’);
-setV(3,‘pending’,lang===‘es’?‘Verificando CPT en la carta contra caso original…’:‘Verifying CPT in denial letter against original case…’);
-document.getElementById(‘ap_verifyError’).style.display=‘none’;document.getElementById(‘ap_verifyOK’).style.display=‘none’;
+const caseId=document.getElementById('ap_caseId').value.trim();const isValidFormat=/^VINDICA-\d{4}-\d{3}-[A-Z]+-\d{5}$/.test(caseId);
+const setV=(n,status,msg)=>{const el=document.getElementById('ap_v'+n);const msgEl=document.getElementById('ap_v'+n+'msg');const icon=document.getElementById('ap_v'+n+'icon');el.className='verify-badge '+status;if(msgEl)msgEl.textContent=msg;if(icon)icon.textContent=status==='pass'?'✅':status==='warn'?'⚠️':status==='fail'?'❌':'⏳';};
+setV(1,'pending',lang==='es'?'Verificando que el caso existe en Drive…':'Verifying case exists in Drive…');
+setV(2,'pending',lang==='es'?'Comparando nombre en carta con expediente original…':'Comparing name in denial letter with original record…');
+setV(3,'pending',lang==='es'?'Verificando CPT en la carta contra caso original…':'Verifying CPT in denial letter against original case…');
+document.getElementById('ap_verifyError').style.display='none';document.getElementById('ap_verifyOK').style.display='none';
 if(!isValidFormat){
-setTimeout(()=>{setV(1,‘fail’,`El Vindica Case ID "${caseId}" no tiene el formato correcto.`);document.getElementById(‘ap_verifyError’).style.display=‘block’;document.getElementById(‘ap_verifyErrorTitle’).textContent=‘⛔ V1 Fallida — Case ID no válido’;document.getElementById(‘ap_verifyErrorBody’).textContent=`Formato esperado: VINDICA-AAAA-NNN-PROC-CPT.`;document.getElementById(‘ap_btnNext’).disabled=true;},800);
+setTimeout(()=>{setV(1,'fail',`El Vindica Case ID "${caseId}" no tiene el formato correcto.`);document.getElementById('ap_verifyError').style.display='block';document.getElementById('ap_verifyErrorTitle').textContent='⛔ V1 Fallida — Case ID no válido';document.getElementById('ap_verifyErrorBody').textContent=`Formato esperado: VINDICA-AAAA-NNN-PROC-CPT.`;document.getElementById('ap_btnNext').disabled=true;},800);
 return false;
 }
-document.getElementById(‘ap_btnNext’).disabled=true;
-setTimeout(()=>{setV(1,‘pass’,`Caso ${caseId} encontrado en Drive.`);setTimeout(()=>{setV(2,‘pass’,‘Nombre del paciente en carta coincide con expediente original.’);setTimeout(()=>{setV(3,‘pass’,‘CPT en carta coincide con procedimiento del caso original.’);document.getElementById(‘ap_verifyOK’).style.display=‘block’;document.getElementById(‘ap_verifyOKDetail’).textContent=`Caso ${caseId} — Identidad y procedimiento verificados.`;document.getElementById(‘ap_btnNext’).disabled=false;apBuildSummary();},900);},900);},800);
+document.getElementById('ap_btnNext').disabled=true;
+setTimeout(()=>{setV(1,'pass',`Caso ${caseId} encontrado en Drive.`);setTimeout(()=>{setV(2,'pass','Nombre del paciente en carta coincide con expediente original.');setTimeout(()=>{setV(3,'pass','CPT en carta coincide con procedimiento del caso original.');document.getElementById('ap_verifyOK').style.display='block';document.getElementById('ap_verifyOKDetail').textContent=`Caso ${caseId} — Identidad y procedimiento verificados.`;document.getElementById('ap_btnNext').disabled=false;apBuildSummary();},900);},900);},800);
 return true;
 }
 
 function apBuildSummary(){
-const caseId=document.getElementById(‘ap_caseId’).value.trim();const email=document.getElementById(‘ap_email’).value.trim();
-const proc=caseId.split(’-’)[3]||’—’;const cpt=caseId.split(’-’)[4]||’—’;
-const procNames={TKA:‘Total Knee Arthroplasty’,THA:‘Total Hip Arthroplasty’,LUMBAR:‘Lumbar Fusion’,CERVICAL:‘Cervical Fusion’,ARTHRO:‘Knee Arthroscopy’,SHOULDER:‘Shoulder Replacement’};
-document.getElementById(‘ap_summaryContent’).innerHTML=`<div style="display:grid;gap:4px;"><div><strong style="color:var(--violet-d);">Case ID:</strong> ${caseId}</div><div><strong style="color:var(--violet-d);">${lang==='es'?'Procedimiento':'Procedure'}:</strong> ${procNames[proc]||proc} (CPT ${cpt})</div><div><strong style="color:var(--violet-d);">Email:</strong> ${email}</div><div><strong style="color:var(--violet-d);">${lang==='es'?'Carta de denegación':'Denial letter'}:</strong> ${apDenialFile?.name||'—'}</div></div>`;
+const caseId=document.getElementById('ap_caseId').value.trim();const email=document.getElementById('ap_email').value.trim();
+const proc=caseId.split('-')[3]||'—';const cpt=caseId.split('-')[4]||'—';
+const procNames={TKA:'Total Knee Arthroplasty',THA:'Total Hip Arthroplasty',LUMBAR:'Lumbar Fusion',CERVICAL:'Cervical Fusion',ARTHRO:'Knee Arthroscopy',SHOULDER:'Shoulder Replacement'};
+document.getElementById('ap_summaryContent').innerHTML=`<div style="display:grid;gap:4px;"><div><strong style="color:var(--violet-d);">Case ID:</strong> ${caseId}</div><div><strong style="color:var(--violet-d);">${lang==='es'?'Procedimiento':'Procedure'}:</strong> ${procNames[proc]||proc} (CPT ${cpt})</div><div><strong style="color:var(--violet-d);">Email:</strong> ${email}</div><div><strong style="color:var(--violet-d);">${lang==='es'?'Carta de denegación':'Denial letter'}:</strong> ${apDenialFile?.name||'—'}</div></div>`;
 }
 
-const AP_STATUS_MSGS={es:[‘Leyendo carta de denegación…’,‘Extrayendo razones de denegación del plan…’,‘Comparando contra análisis original de Vindica…’,‘Identificando criterios refutables…’,‘Redactando Refutación de Hallazgos…’,‘Generando Carta de Apelación…’,‘Subiendo documentos a Drive…’,‘Notificando a la práctica…’],en:[‘Reading denial letter…’,‘Extracting plan denial reasons…’,‘Comparing against original Vindica analysis…’,‘Identifying refutable criteria…’,‘Drafting Refutation of Findings…’,‘Generating Appeal Letter…’,‘Uploading documents to Drive…’,‘Notifying practice…’]};
+const AP_STATUS_MSGS={es:['Leyendo carta de denegación…','Extrayendo razones de denegación del plan…','Comparando contra análisis original de Vindica…','Identificando criterios refutables…','Redactando Refutación de Hallazgos…','Generando Carta de Apelación…','Subiendo documentos a Drive…','Notificando a la práctica…'],en:['Reading denial letter…','Extracting plan denial reasons…','Comparing against original Vindica analysis…','Identifying refutable criteria…','Drafting Refutation of Findings…','Generating Appeal Letter…','Uploading documents to Drive…','Notifying practice…']};
 let apMsgIdx=0,apPollInterval=null;
-function apRotateMsg(){const msgs=AP_STATUS_MSGS[lang];apMsgIdx=(apMsgIdx+1)%msgs.length;const el=document.getElementById(‘ap_statusText’);if(el)el.textContent=msgs[apMsgIdx];}
+function apRotateMsg(){const msgs=AP_STATUS_MSGS[lang];apMsgIdx=(apMsgIdx+1)%msgs.length;const el=document.getElementById('ap_statusText');if(el)el.textContent=msgs[apMsgIdx];}
 
 async function apSubmitRefutacion(){
-const caseId=document.getElementById(‘ap_caseId’).value.trim();
-document.getElementById(‘ap_submitStatus’).style.display=‘flex’;document.getElementById(‘ap_btnNext’).disabled=true;
-apMsgIdx=0;document.getElementById(‘ap_statusText’).textContent=AP_STATUS_MSGS[lang][0];apPollInterval=setInterval(apRotateMsg,2800);
-if(CF_BASE_URL.includes(‘XXXXXXX’)){let step=0;const di=setInterval(()=>{step++;if(step===8){clearInterval(di);clearInterval(apPollInterval);apShowSuccess(caseId,‘✅ APELAR_COMPLETO — 3 de 3 razones refutables’);}},900);return;}
+const caseId=document.getElementById('ap_caseId').value.trim();
+document.getElementById('ap_submitStatus').style.display='flex';document.getElementById('ap_btnNext').disabled=true;
+apMsgIdx=0;document.getElementById('ap_statusText').textContent=AP_STATUS_MSGS[lang][0];apPollInterval=setInterval(apRotateMsg,2800);
+if(CF_BASE_URL.includes('XXXXXXX')){let step=0;const di=setInterval(()=>{step++;if(step===8){clearInterval(di);clearInterval(apPollInterval);apShowSuccess(caseId,'✅ APELAR_COMPLETO — 3 de 3 razones refutables');}},900);return;}
 try{
-let denialBase64=null,denialMimeType=‘application/pdf’;
-if(apDenialFile){denialBase64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(’,’)[1]);r.onerror=rej;r.readAsDataURL(apDenialFile);});denialMimeType=getCorrectMimeType(apDenialFile);} // FIX-Q06 + FIX-NEW-07: } moved out of comment
+let denialBase64=null,denialMimeType='application/pdf';
+if(apDenialFile){denialBase64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(apDenialFile);});denialMimeType=getCorrectMimeType(apDenialFile);} // FIX-Q06 + FIX-NEW-07: } moved out of comment
 const resp=await fetch(AP_CF_URL,{
-method:‘POST’,
-headers:{‘Content-Type’:‘application/json’,‘X-Vindica-Key’:VINDICA_KEY},
+method:'POST',
+headers:{'Content-Type':'application/json','X-Vindica-Key':VINDICA_KEY},
 // FIX-L01: denialLetterName usado correctamente con el nombre real del archivo
 body:JSON.stringify({
 vindicaCaseId:      caseId,
 denialLetterBase64: denialBase64,
 denialLetterMime:   denialMimeType,
-denialLetterName:   apDenialFile?.name||‘carta_denegacion.pdf’,
-email:              document.getElementById(‘ap_email’).value,
+denialLetterName:   apDenialFile?.name||'carta_denegacion.pdf',
+email:              document.getElementById('ap_email').value,
 }),
 });
 if(!resp.ok)throw new Error(`HTTP ${resp.status}`);
 const{jobId}=await resp.json();apStartPolling(jobId,caseId);
-}catch(err){clearInterval(apPollInterval);document.getElementById(‘ap_submitStatus’).style.display=‘none’;document.getElementById(‘ap_btnNext’).disabled=false;alert(`Error: ${err.message}`);}
+}catch(err){clearInterval(apPollInterval);document.getElementById('ap_submitStatus').style.display='none';document.getElementById('ap_btnNext').disabled=false;alert(`Error: ${err.message}`);}
 }
 
 function apStartPolling(jobId,caseId){
-const pollUrl=CF_BASE_URL+’/status/’+jobId;let attempts=0;const maxAttempts=120;
+const pollUrl=CF_BASE_URL+'/status/'+jobId;let attempts=0;const maxAttempts=120;
 const poll=setInterval(async()=>{
-attempts++;if(attempts>maxAttempts){clearInterval(poll);clearInterval(apPollInterval);document.getElementById(‘ap_statusText’).textContent=‘Tiempo agotado — revise Drive.’;return;}
+attempts++;if(attempts>maxAttempts){clearInterval(poll);clearInterval(apPollInterval);document.getElementById('ap_statusText').textContent='Tiempo agotado — revise Drive.';return;}
 try{
-const r=await fetch(pollUrl,{headers:{‘X-Vindica-Key’:VINDICA_KEY}});if(!r.ok)return;const job=await r.json();
-if(job.status===‘COMPLETE’){clearInterval(poll);clearInterval(apPollInterval);apShowSuccess(caseId,job.recomendacion,job.tipo_carta);}
-else if(job.status===‘ERROR’||job.status===‘TIMEOUT’){clearInterval(poll);clearInterval(apPollInterval);document.getElementById(‘ap_submitStatus’).style.display=‘none’;document.getElementById(‘ap_btnNext’).disabled=false;document.getElementById(‘ap_statusText’).textContent=job.error||‘Error desconocido’;}
-else if(job.status===‘TRIPLE_VERIFICATION_FAILED’){clearInterval(poll);clearInterval(apPollInterval);document.getElementById(‘ap_submitStatus’).style.display=‘none’;document.getElementById(‘ap_btnNext’).disabled=false;const errs=(job.errors||[]).map(e=>e.detalle||e.verificacion).join(’ · ’);document.getElementById(‘ap_statusText’).textContent=lang===‘es’?`⛔ Verificación fallida: ${errs||'La carta no corresponde al caso original.'}`:`⛔ Verification failed: ${errs||'Denial letter does not match the original case.'}`;}// FIX-NEW-04
+const r=await fetch(pollUrl,{headers:{'X-Vindica-Key':VINDICA_KEY}});if(!r.ok)return;const job=await r.json();
+if(job.status==='COMPLETE'){clearInterval(poll);clearInterval(apPollInterval);apShowSuccess(caseId,job.recomendacion,job.tipo_carta);}
+else if(job.status==='ERROR'||job.status==='TIMEOUT'){clearInterval(poll);clearInterval(apPollInterval);document.getElementById('ap_submitStatus').style.display='none';document.getElementById('ap_btnNext').disabled=false;document.getElementById('ap_statusText').textContent=job.error||'Error desconocido';}
+else if(job.status==='TRIPLE_VERIFICATION_FAILED'){clearInterval(poll);clearInterval(apPollInterval);document.getElementById('ap_submitStatus').style.display='none';document.getElementById('ap_btnNext').disabled=false;const errs=(job.errors||[]).map(e=>e.detalle||e.verificacion).join(' · ');document.getElementById('ap_statusText').textContent=lang==='es'?`⛔ Verificación fallida: ${errs||'La carta no corresponde al caso original.'}`:`⛔ Verification failed: ${errs||'Denial letter does not match the original case.'}`;}// FIX-NEW-04
 }catch(e){}
 },5000);
 }
 
 function apShowSuccess(caseId,recomendacion,tipoCarta){
-document.getElementById(‘ap_nav’).style.display=‘none’;const hip=document.getElementById(‘ap_nav’).nextElementSibling;if(hip)hip.style.display=‘none’;
-document.getElementById(‘apProgressFill’).style.width=‘100%’;
-for(let i=1;i<=3;i++)document.getElementById(‘ap_s’+i).style.display=‘none’;
-document.getElementById(‘ap_caseNumDisplay’).textContent=caseId;
-const recEl=document.getElementById(‘ap_recomendacion’);if(recomendacion)recEl.textContent=recomendacion;if(tipoCarta)recEl.textContent+=` · ${tipoCarta}`;
-document.getElementById(‘ap_success’).classList.add(‘show’);
+document.getElementById('ap_nav').style.display='none';const hip=document.getElementById('ap_nav').nextElementSibling;if(hip)hip.style.display='none';
+document.getElementById('apProgressFill').style.width='100%';
+for(let i=1;i<=3;i++)document.getElementById('ap_s'+i).style.display='none';
+document.getElementById('ap_caseNumDisplay').textContent=caseId;
+const recEl=document.getElementById('ap_recomendacion');if(recomendacion)recEl.textContent=recomendacion;if(tipoCarta)recEl.textContent+=` · ${tipoCarta}`;
+document.getElementById('ap_success').classList.add('show');
 }
 
-function apShow(n){for(let i=1;i<=3;i++)document.getElementById(‘ap_s’+i).classList.remove(‘active’);document.getElementById(‘ap_s’+n).classList.add(‘active’);}
+function apShow(n){for(let i=1;i<=3;i++)document.getElementById('ap_s'+i).classList.remove('active');document.getElementById('ap_s'+n).classList.add('active');}
 
 function apNext(){
 if(!apValidate(apStep))return;
-if(apStep===1){apStep++;apShow(apStep);apUpdateProgress();window.scrollTo({top:0,behavior:‘smooth’});setTimeout(apRunTripleVerification,400);}
-else if(apStep===2){const allPass=[…document.querySelectorAll(’.verify-badge.pass’)].length>=3;if(!allPass)return;apStep++;apShow(apStep);apUpdateProgress();window.scrollTo({top:0,behavior:‘smooth’});}
+if(apStep===1){apStep++;apShow(apStep);apUpdateProgress();window.scrollTo({top:0,behavior:'smooth'});setTimeout(apRunTripleVerification,400);}
+else if(apStep===2){const allPass=[…document.querySelectorAll('.verify-badge.pass')].length>=3;if(!allPass)return;apStep++;apShow(apStep);apUpdateProgress();window.scrollTo({top:0,behavior:'smooth'});}
 else if(apStep===3)apSubmitRefutacion();
 }
 
-function apPrev(){if(apStep>1){apStep--;apShow(apStep);apUpdateProgress();window.scrollTo({top:0,behavior:‘smooth’});}}
+function apPrev(){if(apStep>1){apStep--;apShow(apStep);apUpdateProgress();window.scrollTo({top:0,behavior:'smooth'});}}
 
 function apReset(){
 apStep=1;apDenialFile=null;apMsgIdx=0;
 if(apPollInterval){clearInterval(apPollInterval);apPollInterval=null;}
-document.getElementById(‘ap_nav’).style.display=’’;const hip=document.getElementById(‘ap_nav’).nextElementSibling;if(hip)hip.style.display=’’;
-document.getElementById(‘ap_success’).classList.remove(‘show’);document.getElementById(‘ap_success’).style.display=’’;for(let i=1;i<=3;i++)document.getElementById(‘ap_s’+i).style.display=’’;// FIX-Q05: clear inline styles set by apShowSuccess
-document.getElementById(‘ap_submitStatus’).style.display=‘none’;document.getElementById(‘ap_btnNext’).disabled=false;
-document.getElementById(‘ap_caseId’).value=’’;document.getElementById(‘ap_email’).value=’’;document.getElementById(‘ap_caseIdStatus’).style.display=‘none’;
-apRemoveDenialFile();document.getElementById(‘ap_verifyError’).style.display=‘none’;document.getElementById(‘ap_verifyOK’).style.display=‘none’;
-[‘ap_v1’,‘ap_v2’,‘ap_v3’].forEach(id=>{const el=document.getElementById(id);if(el)el.className=‘verify-badge pending’;const msg=document.getElementById(id+‘msg’);if(msg)msg.textContent=lang===‘es’?‘Verificando…’:‘Verifying…’;const icon=document.getElementById(id+‘icon’);if(icon)icon.textContent=‘⏳’;});
-document.getElementById(‘ap_verifyError’).style.display=‘none’;document.getElementById(‘ap_verifyOK’).style.display=‘none’;
+document.getElementById('ap_nav').style.display='';const hip=document.getElementById('ap_nav').nextElementSibling;if(hip)hip.style.display='';
+document.getElementById('ap_success').classList.remove('show');document.getElementById('ap_success').style.display='';for(let i=1;i<=3;i++)document.getElementById('ap_s'+i).style.display='';// FIX-Q05: clear inline styles set by apShowSuccess
+document.getElementById('ap_submitStatus').style.display='none';document.getElementById('ap_btnNext').disabled=false;
+document.getElementById('ap_caseId').value='';document.getElementById('ap_email').value='';document.getElementById('ap_caseIdStatus').style.display='none';
+apRemoveDenialFile();document.getElementById('ap_verifyError').style.display='none';document.getElementById('ap_verifyOK').style.display='none';
+['ap_v1','ap_v2','ap_v3'].forEach(id=>{const el=document.getElementById(id);if(el)el.className='verify-badge pending';const msg=document.getElementById(id+'msg');if(msg)msg.textContent=lang==='es'?'Verificando…':'Verifying…';const icon=document.getElementById(id+'icon');if(icon)icon.textContent='⏳';});
+document.getElementById('ap_verifyError').style.display='none';document.getElementById('ap_verifyOK').style.display='none';
 apUpdateProgress();
 }
 apUpdateProgress();
