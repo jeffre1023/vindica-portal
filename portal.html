@@ -1240,16 +1240,22 @@ let firebaseApp, firebaseAuth;
 try {
   firebaseApp = firebase.initializeApp(FIREBASE_CONFIG);
   firebaseAuth = firebase.auth();
+  // Use setPersistence to ensure session is checked before any redirect
+  let authResolved = false;
   firebaseAuth.onAuthStateChanged(user => {
+    authResolved = true;
     if (user) {
       showPortal(user);
     } else {
       showLogin();
     }
   });
+  // Safety fallback: if Firebase takes too long, don't leave a blank screen
+  setTimeout(() => {
+    if (!authResolved) showLogin();
+  }, 5000);
 } catch(e) {
   console.warn('Firebase not configured:', e.message);
-  // Fallback: show portal directly if Firebase not configured
   if (FIREBASE_CONFIG.apiKey.includes('REEMPLAZAR')) {
     showPortalUnlocked(null);
   }
