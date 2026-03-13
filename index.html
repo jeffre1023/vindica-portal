@@ -749,12 +749,12 @@ const encrypted=await isPdfEncrypted(file);
 if(encrypted){nameEl.textContent=’”’+file.name+’”’;warnEl.style.display=‘block’;return;}
 formFile=file;
 listEl.innerHTML=`<div class="cat-file-item"><span>📄</span><span class="fn">${file.name}</span><span class="fsz">${fmt(file.size)}</span><button class="fdel" onclick="removeFormFile()">✕</button></div>`;
-badgeEl.textContent=‘✓ CARGADO’;badgeEl.style.background=‘var(–green-bg)’;badgeEl.style.color=‘var(–green)’;
+badgeEl.textContent=‘✓ CARGADO’;badgeEl.style.background=‘var(--green-bg)’;badgeEl.style.color=‘var(--green)’;
 }
 function removeFormFile(){
 formFile=null;document.getElementById(‘pa_formFileList’).innerHTML=’’;
 const b=document.getElementById(‘pa_formBadge’);
-b.textContent=‘OPCIONAL’;b.style.background=‘var(–amber-bg)’;b.style.color=‘var(–amber-d)’;
+b.textContent=‘OPCIONAL’;b.style.background=‘var(--amber-bg)’;b.style.color=‘var(--amber-d)’;
 }
 function showFormZone(show){const z=document.getElementById(‘pa_formZone’);if(z)z.style.display=show?‘block’:‘none’;}
 
@@ -765,14 +765,14 @@ if(file.size>MAX_FILE_BYTES){
 const zone=document.getElementById(‘paCatZone_’+cat);
 let warnId=‘sizeWarn_’+cat+’*’+Date.now();
 const div=document.createElement(‘div’);div.id=warnId;
-div.style.cssText=‘background:var(–amber-bg);border:1.5px solid #FDE68A;border-radius:9px;padding:10px 14px;font-size:12px;color:#92400E;margin:8px 0;’;
+div.style.cssText=‘background:var(--amber-bg);border:1.5px solid #FDE68A;border-radius:9px;padding:10px 14px;font-size:12px;color:#92400E;margin:8px 0;’;
 div.innerHTML=‘⚠️ <strong>”’+file.name+’”</strong> — Archivo demasiado grande (’+(file.size/1048576).toFixed(1)+’ MB).<br><span style="color:var(--slate);">Máximo permitido: ‘+MAX_FILE_MB+’ MB por archivo. Comprima el PDF e intente de nuevo.</span>’;
 if(zone){const body=zone.querySelector(’.cat-body’);if(body)body.appendChild(div);}
 setTimeout(()=>{const el=document.getElementById(warnId);if(el)el.remove();},10000);
 return;
 }
 isPdfEncrypted(file).then(encrypted=>{
-if(encrypted){const zone=document.getElementById(’paCatZone*’+cat);let warnId=‘encWarn_’+cat;if(!document.getElementById(warnId)){const div=document.createElement(‘div’);div.id=warnId;div.style.cssText=‘background:var(–red-bg);border:1.5px solid #FECACA;border-radius:9px;padding:10px 14px;font-size:12px;color:#991B1B;margin:8px 0;’;div.innerHTML=‘🔒 <strong>”’+file.name+’”</strong> — Este archivo está protegido.<br><span style="color:var(--slate);">Solución: Abre el PDF → Archivo → Imprimir → Guardar como PDF.</span>’;if(zone){const body=zone.querySelector(’.cat-body’);if(body)body.appendChild(div);}setTimeout(()=>{const el=document.getElementById(warnId);if(el)el.remove();},8000);}return;}
+if(encrypted){const zone=document.getElementById(’paCatZone*’+cat);let warnId=‘encWarn_’+cat;if(!document.getElementById(warnId)){const div=document.createElement(‘div’);div.id=warnId;div.style.cssText=‘background:var(--red-bg);border:1.5px solid #FECACA;border-radius:9px;padding:10px 14px;font-size:12px;color:#991B1B;margin:8px 0;’;div.innerHTML=‘🔒 <strong>”’+file.name+’”</strong> — Este archivo está protegido.<br><span style="color:var(--slate);">Solución: Abre el PDF → Archivo → Imprimir → Guardar como PDF.</span>’;if(zone){const body=zone.querySelector(’.cat-body’);if(body)body.appendChild(div);}setTimeout(()=>{const el=document.getElementById(warnId);if(el)el.remove();},8000);}return;}
 if(!catFiles[cat].find(f=>f.name===file.name))catFiles[cat].push(file);
 renderCatZones();paUpdateDocProgress();
 });
@@ -997,7 +997,7 @@ if(score)badge.textContent+=` · Score ${score}/100`;
 }
 
 function paNext(){if(!paValidate(paStep))return;if(paStep===3)paBuildSummary();if(paStep<4){paStep++;paShow(paStep);paUpdateProgress();window.scrollTo({top:0,behavior:‘smooth’});}else paSubmit();}
-function paPrev(){if(paStep>1){paStep–;paShow(paStep);paUpdateProgress();window.scrollTo({top:0,behavior:‘smooth’});}}
+function paPrev(){if(paStep>1){paStep--;paShow(paStep);paUpdateProgress();window.scrollTo({top:0,behavior:‘smooth’});}}
 function paReset(){
 paStep=1;Object.keys(catFiles).forEach(k=>catFiles[k]=[]);paMsgIdx=0;formFile=null;terapiaWaiver.active=false;terapiaWaiver.reason=’’;
 if(paPollInterval){clearInterval(paPollInterval);paPollInterval=null;}
@@ -1026,8 +1026,8 @@ document.getElementById(‘ap_btnNextLabel’).textContent=apStep===3?(lang===�
 function apCaseIdCheck(){
 const val=document.getElementById(‘ap_caseId’).value.trim();const statusEl=document.getElementById(‘ap_caseIdStatus’);
 const pattern=/^VINDICA-\d{4}-\d{3}-[A-Z]+-\d{5}$/;if(!val){statusEl.style.display=‘none’;return;}
-if(pattern.test(val)){statusEl.style.display=‘block’;statusEl.style.cssText=‘display:block;padding:9px 12px;border-radius:9px;font-size:12px;margin-bottom:14px;background:var(–green-bg);border:1.5px solid #A7F3D0;color:#065F46;’;statusEl.textContent=’✅ Formato válido — ’+val;}
-else{statusEl.style.display=‘block’;statusEl.style.cssText=‘display:block;padding:9px 12px;border-radius:9px;font-size:12px;margin-bottom:14px;background:var(–amber-bg);border:1.5px solid #FDE68A;color:var(–amber-d);’;statusEl.textContent=lang===‘es’?‘⚠️ Formato esperado: VINDICA-AAAA-NNN-PROC-CPT’:‘⚠️ Expected format: VINDICA-YYYY-NNN-PROC-CPT’;}
+if(pattern.test(val)){statusEl.style.display=‘block’;statusEl.style.cssText=‘display:block;padding:9px 12px;border-radius:9px;font-size:12px;margin-bottom:14px;background:var(--green-bg);border:1.5px solid #A7F3D0;color:#065F46;’;statusEl.textContent=’✅ Formato válido — ’+val;}
+else{statusEl.style.display=‘block’;statusEl.style.cssText=‘display:block;padding:9px 12px;border-radius:9px;font-size:12px;margin-bottom:14px;background:var(--amber-bg);border:1.5px solid #FDE68A;color:var(--amber-d);’;statusEl.textContent=lang===‘es’?‘⚠️ Formato esperado: VINDICA-AAAA-NNN-PROC-CPT’:‘⚠️ Expected format: VINDICA-YYYY-NNN-PROC-CPT’;}
 }
 
 function apHandleDenialFile(file){if(!file)return;apDenialFile=file;document.getElementById(‘ap_denialZone’).classList.add(‘has-file’);document.getElementById(‘ap_denialFileName’).textContent=file.name;document.getElementById(‘ap_denialFileReady’).classList.add(‘show’);}
@@ -1128,7 +1128,7 @@ else if(apStep===2){const allPass=[…document.querySelectorAll(’.verify-badge
 else if(apStep===3)apSubmitRefutacion();
 }
 
-function apPrev(){if(apStep>1){apStep–;apShow(apStep);apUpdateProgress();window.scrollTo({top:0,behavior:‘smooth’});}}
+function apPrev(){if(apStep>1){apStep--;apShow(apStep);apUpdateProgress();window.scrollTo({top:0,behavior:‘smooth’});}}
 
 function apReset(){
 apStep=1;apDenialFile=null;apMsgIdx=0;
