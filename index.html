@@ -672,10 +672,11 @@
 
   // ── AUTH STATE — redirige si ya hay sesión activa ──────────────────────────
   // Si el usuario ya está autenticado, lo manda directo al portal.
-  // Cambia 'Vindica_Portal_V4_9_2.html' por el nombre real de tu archivo.
+  // Flag para evitar loop: si venimos de portal.html no redirigir de vuelta
+  const cameFromPortal = document.referrer.includes('portal.html');
   auth.onAuthStateChanged(user => {
-    if (user) {
-      window.location.href = 'index.html';
+    if (user && !cameFromPortal) {
+      window.location.href = 'portal.html';
     }
   });
 
