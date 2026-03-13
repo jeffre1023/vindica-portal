@@ -718,7 +718,7 @@ function getRequiredCats(proc){
 if(!proc||!docCategoryMap[proc])return[];
 const s=new Set();
 docCategoryMap[proc].forEach(d=>{if(d.req)s.add(d.cat);});
-return[…s];
+return[...s];
 }
 const catFiles={NOTAS:[],IMAGEN:[],TERAPIA:[],LABS:[],OTROS:[]};
 const fmt=b=>b<1024?b+' B':b<1048576?(b/1024).toFixed(0)+' KB':(b/1048576).toFixed(1)+' MB';
@@ -809,7 +809,7 @@ function renderCatZones(){
 const proc=document.getElementById('pa_procedure').value;const container=document.getElementById('pa_catUpload');
 if(!proc){container.innerHTML='';return;}
 const reqCats=getRequiredCats(proc);
-const allCats=[…new Set([…reqCats,…(docCategoryMap[proc]?.map(d=>d.cat)||[]),'OTROS'])];
+const allCats=[...new Set([...reqCats,...(docCategoryMap[proc]?.map(d=>d.cat)||[]),'OTROS'])];
 const cats=docCategories[lang];
 container.innerHTML=allCats.map(catKey=>{
 const cat=cats[catKey];const isReq=reqCats.includes(catKey);const files=catFiles[catKey];const hasDocs=files.length>0;
@@ -863,7 +863,7 @@ document.getElementById('pa_summaryBox').innerHTML=`<div style="border:1.5px sol
 
 function paShow(n){for(let i=1;i<=4;i++)document.getElementById('pa_s'+i).classList.remove('active');document.getElementById('pa_s'+n).classList.add('active');}
 
-const PA_STATUS_MSGS={es:['Verificando documentos del expediente…','Cargando LCD de Palmetto GBA…','Cargando CPB del plan MA…','Analizando criterios clínicos…','Generando reporte de compliance…','Preparando sugerencias de documentación…','Subiendo reporte a Drive…','Enviando notificaciones…'],en:['Verifying medical record documents…','Loading Palmetto GBA LCD…','Loading MA plan CPB…','Analyzing clinical criteria…','Generating compliance report…','Preparing documentation suggestions…','Uploading report to Drive…','Sending notifications…']};
+const PA_STATUS_MSGS={es:['Verificando documentos del expediente...','Cargando LCD de Palmetto GBA...','Cargando CPB del plan MA...','Analizando criterios clínicos...','Generando reporte de compliance...','Preparando sugerencias de documentación...','Subiendo reporte a Drive...','Enviando notificaciones...'],en:['Verifying medical record documents...','Loading Palmetto GBA LCD...','Loading MA plan CPB...','Analyzing clinical criteria...','Generating compliance report...','Preparing documentation suggestions...','Uploading report to Drive...','Sending notifications...']};
 let paMsgIdx=0,paPollInterval=null;
 function paRotateMsg(){const msgs=PA_STATUS_MSGS[lang];paMsgIdx=(paMsgIdx+1)%msgs.length;const el=document.getElementById('pa_statusText');if(el)el.textContent=msgs[paMsgIdx];}
 function paAdvanceTL(s){for(let i=2;i<=s;i++){const d=document.getElementById('pa_tl'+i);if(d){d.className='tl-dot done-teal';d.textContent='✓';}}}
@@ -904,7 +904,6 @@ const formB64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()
 fileList.push({name:formFile.name,category:'FORMULARIO',mimeType:getCorrectMimeType(formFile),base64:formB64,driveFileId:null});
 }
 
-```
 // ── FIX-B01: payload con nombres de campo compatibles con CF v4.8 ──────
 // CF v4.9+ espera: procedure, plan, doctor, practice, contactEmail,
 //                  patientInitials, analysisType, surgeryDate, terapiaWaiver,
@@ -935,7 +934,6 @@ const resp=await fetch(PA_CF_URL,{
 if(!resp.ok)throw new Error(`HTTP ${resp.status}`);
 const{jobId}=await resp.json();
 paAdvanceTL(2);paStartPolling(jobId,caseId);
-```
 
 }catch(err){
 clearInterval(paPollInterval);
@@ -1048,9 +1046,9 @@ return ok;
 function apRunTripleVerification(){
 const caseId=document.getElementById('ap_caseId').value.trim();const isValidFormat=/^VINDICA-\d{4}-\d{3}-[A-Z]+-\d{5}$/.test(caseId);
 const setV=(n,status,msg)=>{const el=document.getElementById('ap_v'+n);const msgEl=document.getElementById('ap_v'+n+'msg');const icon=document.getElementById('ap_v'+n+'icon');el.className='verify-badge '+status;if(msgEl)msgEl.textContent=msg;if(icon)icon.textContent=status==='pass'?'✅':status==='warn'?'⚠️':status==='fail'?'❌':'⏳';};
-setV(1,'pending',lang==='es'?'Verificando que el caso existe en Drive…':'Verifying case exists in Drive…');
-setV(2,'pending',lang==='es'?'Comparando nombre en carta con expediente original…':'Comparing name in denial letter with original record…');
-setV(3,'pending',lang==='es'?'Verificando CPT en la carta contra caso original…':'Verifying CPT in denial letter against original case…');
+setV(1,'pending',lang==='es'?'Verificando que el caso existe en Drive...':'Verifying case exists in Drive...');
+setV(2,'pending',lang==='es'?'Comparando nombre en carta con expediente original...':'Comparing name in denial letter with original record...');
+setV(3,'pending',lang==='es'?'Verificando CPT en la carta contra caso original...':'Verifying CPT in denial letter against original case...');
 document.getElementById('ap_verifyError').style.display='none';document.getElementById('ap_verifyOK').style.display='none';
 if(!isValidFormat){
 setTimeout(()=>{setV(1,'fail',`El Vindica Case ID "${caseId}" no tiene el formato correcto.`);document.getElementById('ap_verifyError').style.display='block';document.getElementById('ap_verifyErrorTitle').textContent='⛔ V1 Fallida — Case ID no válido';document.getElementById('ap_verifyErrorBody').textContent=`Formato esperado: VINDICA-AAAA-NNN-PROC-CPT.`;document.getElementById('ap_btnNext').disabled=true;},800);
@@ -1068,7 +1066,7 @@ const procNames={TKA:'Total Knee Arthroplasty',THA:'Total Hip Arthroplasty',LUMB
 document.getElementById('ap_summaryContent').innerHTML=`<div style="display:grid;gap:4px;"><div><strong style="color:var(--violet-d);">Case ID:</strong> ${caseId}</div><div><strong style="color:var(--violet-d);">${lang==='es'?'Procedimiento':'Procedure'}:</strong> ${procNames[proc]||proc} (CPT ${cpt})</div><div><strong style="color:var(--violet-d);">Email:</strong> ${email}</div><div><strong style="color:var(--violet-d);">${lang==='es'?'Carta de denegación':'Denial letter'}:</strong> ${apDenialFile?.name||'—'}</div></div>`;
 }
 
-const AP_STATUS_MSGS={es:['Leyendo carta de denegación…','Extrayendo razones de denegación del plan…','Comparando contra análisis original de Vindica…','Identificando criterios refutables…','Redactando Refutación de Hallazgos…','Generando Carta de Apelación…','Subiendo documentos a Drive…','Notificando a la práctica…'],en:['Reading denial letter…','Extracting plan denial reasons…','Comparing against original Vindica analysis…','Identifying refutable criteria…','Drafting Refutation of Findings…','Generating Appeal Letter…','Uploading documents to Drive…','Notifying practice…']};
+const AP_STATUS_MSGS={es:['Leyendo carta de denegación...','Extrayendo razones de denegación del plan...','Comparando contra análisis original de Vindica...','Identificando criterios refutables...','Redactando Refutación de Hallazgos...','Generando Carta de Apelación...','Subiendo documentos a Drive...','Notificando a la práctica...'],en:['Reading denial letter...','Extracting plan denial reasons...','Comparing against original Vindica analysis...','Identifying refutable criteria...','Drafting Refutation of Findings...','Generating Appeal Letter...','Uploading documents to Drive...','Notifying practice...']};
 let apMsgIdx=0,apPollInterval=null;
 function apRotateMsg(){const msgs=AP_STATUS_MSGS[lang];apMsgIdx=(apMsgIdx+1)%msgs.length;const el=document.getElementById('ap_statusText');if(el)el.textContent=msgs[apMsgIdx];}
 
@@ -1124,7 +1122,7 @@ function apShow(n){for(let i=1;i<=3;i++)document.getElementById('ap_s'+i).classL
 function apNext(){
 if(!apValidate(apStep))return;
 if(apStep===1){apStep++;apShow(apStep);apUpdateProgress();window.scrollTo({top:0,behavior:'smooth'});setTimeout(apRunTripleVerification,400);}
-else if(apStep===2){const allPass=[…document.querySelectorAll('.verify-badge.pass')].length>=3;if(!allPass)return;apStep++;apShow(apStep);apUpdateProgress();window.scrollTo({top:0,behavior:'smooth'});}
+else if(apStep===2){const allPass=[...document.querySelectorAll('.verify-badge.pass')].length>=3;if(!allPass)return;apStep++;apShow(apStep);apUpdateProgress();window.scrollTo({top:0,behavior:'smooth'});}
 else if(apStep===3)apSubmitRefutacion();
 }
 
@@ -1138,7 +1136,7 @@ document.getElementById('ap_success').classList.remove('show');document.getEleme
 document.getElementById('ap_submitStatus').style.display='none';document.getElementById('ap_btnNext').disabled=false;
 document.getElementById('ap_caseId').value='';document.getElementById('ap_email').value='';document.getElementById('ap_caseIdStatus').style.display='none';
 apRemoveDenialFile();document.getElementById('ap_verifyError').style.display='none';document.getElementById('ap_verifyOK').style.display='none';
-['ap_v1','ap_v2','ap_v3'].forEach(id=>{const el=document.getElementById(id);if(el)el.className='verify-badge pending';const msg=document.getElementById(id+'msg');if(msg)msg.textContent=lang==='es'?'Verificando…':'Verifying…';const icon=document.getElementById(id+'icon');if(icon)icon.textContent='⏳';});
+['ap_v1','ap_v2','ap_v3'].forEach(id=>{const el=document.getElementById(id);if(el)el.className='verify-badge pending';const msg=document.getElementById(id+'msg');if(msg)msg.textContent=lang==='es'?'Verificando...':'Verifying...';const icon=document.getElementById(id+'icon');if(icon)icon.textContent='⏳';});
 document.getElementById('ap_verifyError').style.display='none';document.getElementById('ap_verifyOK').style.display='none';
 apUpdateProgress();
 }
