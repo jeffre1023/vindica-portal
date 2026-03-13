@@ -3,6 +3,10 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+  <!-- Firebase Auth -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vindica Health — Portal Clínico v4.9.2</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -47,10 +51,16 @@ background-size:40px 40px;z-index:0;}
 .sla-time{font-size:15px;font-weight:600;color:#14B8A6;}
 .sla-label{font-size:11px;color:#94A3B8;margin-top:1px;}
 .sla-div{width:1px;height:32px;background:rgba(13,148,136,.22);}
-.split{display:grid;grid-template-columns:1fr 1fr;gap:22px;animation:fadeUp .6s .12s ease both;align-items:stretch;}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:22px;animation:fadeUp .6s .12s ease both;align-items:start;}
 .split > div{display:flex;flex-direction:column;}
 .split > div .card{flex:1;display:flex;flex-direction:column;}
-@media(max-width:860px){.split{grid-template-columns:1fr;}}
+.split > div:nth-child(1){order:1;}
+.split > div:nth-child(2){order:2;}
+@media(max-width:860px){
+  .split{grid-template-columns:1fr;}
+  .split > div:nth-child(1){order:1;}
+  .split > div:nth-child(2){order:2;}
+}
 .panel-label{display:flex;align-items:center;gap:12px;margin-bottom:14px;padding:10px 16px;background:rgba(255,255,255,.06);border-radius:10px;border:1px solid rgba(255,255,255,.1);}
 .panel-label-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;}
 .panel-label-text{font-size:13px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:#fff;opacity:.95;}
@@ -189,14 +199,92 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 .waiver-box textarea:focus{border-color:var(--amber);box-shadow:0 0 0 3px rgba(245,158,11,.1);}
 .waiver-box .waiver-hint{font-size:11px;color:#78350F;margin-top:5px;line-height:1.5;}
 .doc-prog-wrap{background:var(--light);border:1.5px solid var(--border);border-radius:11px;padding:12px 14px;margin-bottom:16px;display:flex;align-items:center;gap:12px;}
+
+  /* ── LOGIN OVERLAY ─────────────────────────────────────────── */
+  .login-overlay{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;
+    background:radial-gradient(ellipse 70% 60% at 5% 15%,rgba(13,148,136,.18) 0%,transparent 55%),
+    radial-gradient(ellipse 50% 70% at 95% 85%,rgba(124,58,237,.14) 0%,transparent 55%),
+    linear-gradient(160deg,#0F172A 0%,#1E293B 50%,#0F172A 100%);}
+  .login-overlay.hidden{display:none;}
+  .login-card{background:rgba(255,255,255,.04);border:1.5px solid rgba(13,148,136,.25);border-radius:24px;padding:44px 40px;
+    width:100%;max-width:420px;backdrop-filter:blur(12px);box-shadow:0 24px 64px rgba(0,0,0,.4);}
+  .login-logo{display:flex;align-items:center;gap:12px;justify-content:center;margin-bottom:32px;}
+  .login-logo-icon{width:48px;height:48px;background:linear-gradient(135deg,#0F766E,#14B8A6);border-radius:14px;
+    display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 0 28px rgba(13,148,136,.45);}
+  .login-logo-text{font-family:'DM Serif Display',serif;font-size:24px;color:#fff;}
+  .login-logo-text span{color:#14B8A6;}
+  .login-title{text-align:center;color:#fff;font-size:20px;font-weight:600;margin-bottom:6px;}
+  .login-sub{text-align:center;color:#94A3B8;font-size:13px;margin-bottom:32px;}
+  .login-field{margin-bottom:16px;}
+  .login-field label{display:block;font-size:12px;font-weight:600;color:#94A3B8;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;}
+  .login-field input{width:100%;padding:12px 16px;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.12);
+    border-radius:10px;color:#fff;font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:border-color .2s;}
+  .login-field input:focus{border-color:rgba(13,148,136,.6);background:rgba(13,148,136,.06);}
+  .login-field input::placeholder{color:#475569;}
+  .login-btn{width:100%;padding:14px;background:linear-gradient(135deg,#0F766E,#14B8A6);border:none;border-radius:12px;
+    color:#fff;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;cursor:pointer;margin-top:8px;
+    transition:opacity .2s;letter-spacing:.2px;}
+  .login-btn:hover{opacity:.9;}
+  .login-btn:disabled{opacity:.5;cursor:not-allowed;}
+  .login-error{background:rgba(239,68,68,.1);border:1.5px solid rgba(239,68,68,.3);border-radius:10px;
+    padding:10px 14px;color:#FCA5A5;font-size:13px;margin-top:12px;display:none;}
+  .login-error.show{display:block;}
+  .login-footer{text-align:center;color:#475569;font-size:11px;margin-top:24px;}
+  .login-loading{display:none;text-align:center;color:#14B8A6;font-size:13px;margin-top:12px;}
+  .login-loading.show{display:block;}
+  /* Portal locked state */
+  .portal-locked .card input,.portal-locked .card select,.portal-locked .card textarea,
+  .portal-locked .card button:not(.lang-btn){pointer-events:none;opacity:.45;}
+  .portal-locked .card{position:relative;}
+  /* User bar */
+  .user-bar{display:flex;align-items:center;justify-content:flex-end;gap:12px;margin-bottom:12px;}
+  .user-badge{display:flex;align-items:center;gap:8px;padding:6px 14px;border-radius:100px;
+    background:rgba(13,148,136,.1);border:1px solid rgba(13,148,136,.25);color:#fff;font-size:12px;}
+  .user-badge span{color:#14B8A6;font-weight:600;}
+  .logout-btn{padding:6px 14px;border-radius:100px;border:1px solid rgba(239,68,68,.3);
+    background:rgba(239,68,68,.08);color:#FCA5A5;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;
+    transition:all .2s;}
+  .logout-btn:hover{background:rgba(239,68,68,.15);}
+
 </style>
 </head>
 <body>
+
+<!-- LOGIN OVERLAY -->
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-logo-icon">⚕</div>
+      <div class="login-logo-text">Vindica<span>Health</span></div>
+    </div>
+    <div class="login-title">Acceso al Portal Clínico</div>
+    <div class="login-sub">Ingresa tus credenciales para continuar</div>
+    <div class="login-field">
+      <label>Email</label>
+      <input type="email" id="loginEmail" placeholder="doctor@practica.com" autocomplete="email">
+    </div>
+    <div class="login-field">
+      <label>Contraseña</label>
+      <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="login-btn" id="loginBtn" onclick="doLogin()">Entrar al Portal</button>
+    <div class="login-loading" id="loginLoading">Verificando credenciales...</div>
+    <div class="login-error" id="loginError"></div>
+    <div class="login-footer">🔒 HIPAA Compliant · BAA activo · Acceso solo para personal autorizado</div>
+  </div>
+</div>
+
 <div class="bg-layer"></div>
 <div class="grid-overlay"></div>
 <div class="outer">
 
-  <div class="lang-bar">
+  
+<div class="user-bar" id="userBar" style="display:none;">
+  <div class="user-badge">👤 <span id="userEmail"></span></div>
+  <button class="logout-btn" onclick="doLogout()">Cerrar sesión</button>
+</div>
+
+<div class="lang-bar">
     <button class="lang-btn" onclick="toggleLang()">
       <span id="langFlag">🇺🇸</span>
       <span id="langBtnLabel">Switch to English</span>
@@ -238,7 +326,6 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 
   <div class="split">
 
-```
 <!-- LEFT: PRE-AUTORIZACIÓN -->
 <div>
   <div class="panel-label">
@@ -633,7 +720,6 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
     </div>
   </div>
 </div>
-```
 
   </div><!-- /split -->
 </div><!-- /outer -->
@@ -654,7 +740,7 @@ paUpdateProgress();apUpdateProgress();paUpdateDocChecklist();
 
 // ── PLACEHOLDERS — reemplazar antes de deploy ────────────────────
 const CF_BASE_URL='https://vindica-cf-v4-10-5-82635207094.us-east1.run.app';
-const VINDICA_KEY='REEMPLAZAR-CON-TU-VINDICA-API-KEY';
+const VINDICA_KEY='Vind!ca2026$ecure';
 // ────────────────────────────────────────────────────────────────
 
 const PA_CF_URL=CF_BASE_URL+'/analyzeCase';
@@ -1141,6 +1227,97 @@ document.getElementById('ap_verifyError').style.display='none';document.getEleme
 apUpdateProgress();
 }
 apUpdateProgress();
+
+// ── FIREBASE AUTH ─────────────────────────────────────────────
+// CONFIGURACIÓN FIREBASE — llenar con valores de Firebase Console
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBKmZkxsdP1p0uxKvmSJBYlQPiRPC0eXJ4",
+  authDomain: "vindica-production.firebaseapp.com",
+  projectId: "vindica-production",
+};
+
+let firebaseApp, firebaseAuth;
+try {
+  firebaseApp = firebase.initializeApp(FIREBASE_CONFIG);
+  firebaseAuth = firebase.auth();
+  firebaseAuth.onAuthStateChanged(user => {
+    if (user) {
+      showPortal(user);
+    } else {
+      showLogin();
+    }
+  });
+} catch(e) {
+  console.warn('Firebase not configured:', e.message);
+  // Fallback: show portal directly if Firebase not configured
+  if (FIREBASE_CONFIG.apiKey.includes('REEMPLAZAR')) {
+    showPortalUnlocked(null);
+  }
+}
+
+function showLogin() {
+  window.location.href = 'index.html';
+}
+
+function showPortal(user) {
+  document.getElementById('loginOverlay').classList.add('hidden');
+  document.getElementById('userBar').style.display = 'flex';
+  document.getElementById('userEmail').textContent = user.email;
+  document.querySelector('.outer').classList.remove('portal-locked');
+}
+
+function showPortalUnlocked(user) {
+  document.getElementById('loginOverlay').classList.add('hidden');
+  document.querySelector('.outer').classList.remove('portal-locked');
+}
+
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass = document.getElementById('loginPassword').value;
+  const btn = document.getElementById('loginBtn');
+  const err = document.getElementById('loginError');
+  const loading = document.getElementById('loginLoading');
+
+  err.classList.remove('show');
+  if (!email || !pass) {
+    err.textContent = 'Por favor ingresa email y contraseña.';
+    err.classList.add('show');
+    return;
+  }
+
+  btn.disabled = true;
+  loading.classList.add('show');
+
+  try {
+    await firebaseAuth.signInWithEmailAndPassword(email, pass);
+    // onAuthStateChanged handles the rest
+  } catch(e) {
+    loading.classList.remove('show');
+    btn.disabled = false;
+    const msgs = {
+      'auth/user-not-found': 'No existe una cuenta con ese email.',
+      'auth/wrong-password': 'Contraseña incorrecta.',
+      'auth/invalid-email': 'Email no válido.',
+      'auth/too-many-requests': 'Demasiados intentos. Intenta más tarde.',
+      'auth/invalid-credential': 'Email o contraseña incorrectos.',
+    };
+    err.textContent = msgs[e.code] || 'Error al iniciar sesión. Verifica tus credenciales.';
+    err.classList.add('show');
+  }
+}
+
+async function doLogout() {
+  await firebaseAuth.signOut();
+}
+
+// Allow Enter key on password field
+document.getElementById('loginPassword').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLogin();
+});
+document.getElementById('loginEmail').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('loginPassword').focus();
+});
+
 </script>
 
 </body>
