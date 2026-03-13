@@ -778,7 +778,7 @@
     setLoading('btn-login', true);
     try {
       await auth.signInWithEmailAndPassword(email, password);
-      // onAuthStateChanged se encarga de la redirección
+      window.location.href = 'portal.html';
     } catch (err) {
       showAlert('alert-login', 'error', friendlyError(err.code));
       setLoading('btn-login', false);
@@ -803,9 +803,8 @@
     setLoading('btn-register', true);
     try {
       const cred = await auth.createUserWithEmailAndPassword(email, password);
-      // Guardar displayName en el perfil
       await cred.user.updateProfile({ displayName: name });
-      // onAuthStateChanged redirige automáticamente
+      window.location.href = 'portal.html';
     } catch (err) {
       showAlert('alert-register', 'error', friendlyError(err.code));
       setLoading('btn-register', false);
