@@ -248,12 +248,11 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 
 
 /* ══ RESULTS PANEL ══════════════════════════════════════════════════════════ */
-.rp-overlay{position:fixed;inset:0;z-index:99990;background:rgba(10,14,26,.97);
+.rp-overlay{position:fixed;inset:0;z-index:99990;background:rgba(10,14,26,.98);
   display:none;overflow-y:auto;padding:0;}
 .rp-overlay.show{display:block;}
-.rp-wrap{max-width:1000px;margin:0 auto;padding:24px 20px 80px;}
+.rp-wrap{max-width:1020px;margin:0 auto;padding:24px 20px 80px;}
 
-/* Top bar */
 .rp-topbar{display:flex;align-items:center;justify-content:space-between;
   padding:16px 0 20px;border-bottom:1px solid rgba(255,255,255,.06);margin-bottom:28px;flex-wrap:wrap;gap:12px;}
 .rp-logo{display:flex;align-items:center;gap:10px;}
@@ -269,20 +268,20 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 .rp-btn-close{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#94A3B8;}
 .rp-btn-close:hover{background:rgba(255,255,255,.12);color:#fff;}
 
-/* Hero */
+/* HERO */
 .rp-hero{display:grid;grid-template-columns:1fr auto;gap:24px;align-items:start;
   background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);
-  border-radius:20px;padding:24px;margin-bottom:20px;}
+  border-radius:20px;padding:24px;margin-bottom:16px;}
 @media(max-width:600px){.rp-hero{grid-template-columns:1fr;}}
 .rp-procedure{font-family:'DM Serif Display',serif;font-size:24px;color:#F8FAFC;
   letter-spacing:-.3px;margin-bottom:10px;}
 .rp-semaforo{display:inline-flex;align-items:center;gap:8px;padding:6px 16px;
-  border-radius:100px;font-size:12px;font-weight:700;letter-spacing:.8px;margin-bottom:14px;}
+  border-radius:100px;font-size:12px;font-weight:700;letter-spacing:.8px;margin-bottom:12px;}
 .rps-verde{background:rgba(16,185,129,.15);border:1.5px solid rgba(16,185,129,.4);color:#34D399;}
 .rps-amarillo{background:rgba(245,158,11,.15);border:1.5px solid rgba(245,158,11,.4);color:#FCD34D;}
 .rps-rojo{background:rgba(239,68,68,.15);border:1.5px solid rgba(239,68,68,.4);color:#FCA5A5;}
-.rp-decision{font-size:14px;font-weight:600;color:#E2E8F0;margin-bottom:14px;}
-.rp-meta{display:flex;flex-wrap:wrap;gap:14px;}
+.rp-decision{font-size:14px;font-weight:600;color:#E2E8F0;margin-bottom:14px;line-height:1.4;}
+.rp-meta{display:flex;flex-wrap:wrap;gap:10px;}
 .rp-meta-chip{display:flex;align-items:center;gap:6px;font-size:12px;color:#64748B;
   background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);
   border-radius:100px;padding:4px 12px;}
@@ -295,19 +294,38 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 .rp-score-sub{font-size:10px;color:#334155;margin-top:6px;line-height:1.4;max-width:140px;}
 .score-c-verde{color:#34D399;}.score-c-amarillo{color:#FCD34D;}.score-c-rojo{color:#FCA5A5;}
 
-/* Summary */
+/* SUMMARY */
 .rp-summary{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);
-  border-radius:14px;padding:16px 18px;margin-bottom:20px;}
+  border-radius:14px;padding:16px 18px;margin-bottom:16px;}
 .rp-summary p{font-size:13px;color:#CBD5E1;line-height:1.7;}
 
-/* Section */
-.rp-section{margin-bottom:24px;}
-.rp-section-hdr{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+/* SECTION */
+.rp-section{margin-bottom:22px;}
+.rp-section-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
 .rp-section-hdr-line{flex:1;height:1px;background:rgba(255,255,255,.06);}
 .rp-section-title{font-size:10px;font-weight:700;letter-spacing:1.6px;
   text-transform:uppercase;color:#475569;white-space:nowrap;}
 
-/* Criterios */
+/* ALERTAS TECNICAS */
+.rp-alert{display:flex;gap:14px;padding:14px 16px;border-radius:14px;margin-bottom:10px;
+  border:1px solid;transition:all .2s;}
+.rp-alert:hover{filter:brightness(1.05);}
+.rp-alert-alto{background:rgba(239,68,68,.07);border-color:rgba(239,68,68,.2);}
+.rp-alert-medio{background:rgba(245,158,11,.07);border-color:rgba(245,158,11,.2);}
+.rp-alert-bajo{background:rgba(16,185,129,.05);border-color:rgba(16,185,129,.15);}
+.rp-alert-icon{font-size:18px;flex-shrink:0;padding-top:2px;}
+.rp-alert-badge{padding:3px 9px;border-radius:100px;font-size:10px;font-weight:700;
+  white-space:nowrap;align-self:flex-start;flex-shrink:0;margin-top:2px;}
+.rab-alto{background:rgba(239,68,68,.15);color:#FCA5A5;border:1px solid rgba(239,68,68,.25);}
+.rab-medio{background:rgba(245,158,11,.12);color:#FCD34D;border:1px solid rgba(245,158,11,.22);}
+.rab-bajo{background:rgba(16,185,129,.1);color:#86EFAC;border:1px solid rgba(16,185,129,.2);}
+.rp-alert-content{flex:1;}
+.rp-alert-title{font-size:13px;font-weight:700;color:#E2E8F0;margin-bottom:5px;}
+.rp-alert-desc{font-size:12px;color:#94A3B8;line-height:1.5;margin-bottom:6px;}
+.rp-alert-action{font-size:12px;color:#64748B;font-style:italic;line-height:1.4;
+  border-left:2px solid rgba(255,255,255,.1);padding-left:10px;}
+
+/* CRITERIOS */
 .rp-criterio{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);
   border-radius:14px;padding:16px 18px;margin-bottom:10px;transition:border-color .2s;}
 .rp-criterio:hover{border-color:rgba(255,255,255,.14);}
@@ -326,8 +344,8 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
   background:rgba(255,255,255,.02);border-radius:8px;padding:8px 12px;margin-top:8px;
   border-left:2px solid rgba(124,58,237,.4);}
 
-/* CPT / ICD */
-.rp-codes-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:4px;}
+/* CPT/ICD */
+.rp-codes-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
 @media(max-width:550px){.rp-codes-grid{grid-template-columns:1fr;}}
 .rp-code-box{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);
   border-radius:14px;padding:16px 18px;}
@@ -341,27 +359,23 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 .rp-code-desc{font-size:11px;color:#475569;line-height:1.4;}
 .rp-code-nota{font-size:11px;color:#64748B;margin-top:6px;font-style:italic;}
 
-/* Sugerencias */
+/* SUGERENCIAS */
 .rp-sug{display:flex;gap:14px;padding:14px 16px;background:rgba(255,255,255,.03);
-  border:1px solid rgba(255,255,255,.07);border-radius:14px;margin-bottom:10px;
-  transition:border-color .2s;}
-.rp-sug:hover{border-color:rgba(255,255,255,.14);}
+  border:1px solid rgba(255,255,255,.07);border-radius:14px;margin-bottom:10px;}
 .rp-sug-left{display:flex;flex-direction:column;align-items:center;gap:8px;flex-shrink:0;padding-top:2px;}
-.rp-sug-priority{padding:4px 10px;border-radius:100px;font-size:10px;font-weight:700;
-  white-space:nowrap;letter-spacing:.5px;}
+.rp-sug-priority{padding:4px 10px;border-radius:100px;font-size:10px;font-weight:700;white-space:nowrap;}
 .rsp-alta{background:rgba(239,68,68,.12);color:#FCA5A5;border:1px solid rgba(239,68,68,.2);}
 .rsp-media{background:rgba(245,158,11,.1);color:#FCD34D;border:1px solid rgba(245,158,11,.2);}
 .rsp-baja{background:rgba(16,185,129,.1);color:#86EFAC;border:1px solid rgba(16,185,129,.18);}
-.rp-sug-num{font-family:'DM Serif Display',serif;font-size:18px;color:#1E293B;
-  background:rgba(255,255,255,.06);width:28px;height:28px;border-radius:50%;
+.rp-sug-num{font-family:'DM Serif Display',serif;font-size:16px;color:#475569;
+  background:rgba(255,255,255,.05);width:28px;height:28px;border-radius:50%;
   display:flex;align-items:center;justify-content:center;}
 .rp-sug-right{flex:1;}
-.rp-sug-role{font-size:10px;color:#475569;font-weight:700;text-transform:uppercase;
-  letter-spacing:.8px;margin-bottom:5px;}
-.rp-sug-text{font-size:13px;color:#E2E8F0;line-height:1.6;margin-bottom:6px;}
+.rp-sug-role{font-size:10px;color:#475569;font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px;}
+.rp-sug-text{font-size:13px;color:#E2E8F0;line-height:1.6;margin-bottom:4px;}
 .rp-sug-razon{font-size:11px;color:#475569;line-height:1.4;font-style:italic;}
 
-/* Fundamento */
+/* FUNDAMENTO */
 .rp-fundamento{background:rgba(13,148,136,.06);border:1px solid rgba(13,148,136,.2);
   border-radius:14px;padding:16px 18px;margin-bottom:10px;}
 .rp-fundamento-decl{font-size:13px;font-weight:600;color:#14B8A6;margin-bottom:12px;}
@@ -372,19 +386,17 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 .rp-evidencia-cita{font-size:12px;color:#CBD5E1;font-style:italic;line-height:1.6;margin-bottom:4px;}
 .rp-evidencia-doc{font-size:10px;color:#334155;}
 
-/* Documentos faltantes */
+/* DOCS FALTANTES */
 .rp-docfalt{display:flex;gap:12px;padding:12px 14px;background:rgba(239,68,68,.06);
   border:1px solid rgba(239,68,68,.15);border-radius:12px;margin-bottom:8px;}
-.rp-docfalt-icon{font-size:18px;flex-shrink:0;padding-top:2px;}
 .rp-docfalt-doc{font-size:13px;font-weight:600;color:#FCA5A5;margin-bottom:4px;}
 .rp-docfalt-quien{font-size:11px;color:#64748B;margin-bottom:3px;}
 .rp-docfalt-como{font-size:11px;color:#94A3B8;font-style:italic;}
 
-/* Drive notice */
+/* DRIVE NOTICE */
 .rp-drive-notice{display:flex;align-items:center;gap:14px;background:rgba(13,148,136,.08);
   border:1.5px solid rgba(13,148,136,.3);border-radius:14px;padding:16px 20px;margin-bottom:20px;}
 .rp-drive-icon{font-size:28px;flex-shrink:0;}
-.rp-drive-text{flex:1;}
 .rp-drive-title{font-size:13px;font-weight:700;color:#14B8A6;margin-bottom:3px;}
 .rp-drive-sub{font-size:12px;color:#475569;}
 .rp-drive-link{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;
@@ -392,22 +404,20 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
   color:#14B8A6;font-size:12px;font-weight:600;text-decoration:none;transition:all .2s;flex-shrink:0;}
 .rp-drive-link:hover{background:rgba(13,148,136,.25);}
 
-/* Disclaimer */
+/* DISCLAIMER */
 .rp-disclaimer{text-align:center;font-size:10px;color:#1E3A5F;line-height:1.6;
   padding:16px;border-top:1px solid rgba(255,255,255,.04);margin-top:8px;}
 
-/* Print */
 @media print{
-  .rp-topbar-right,.rp-btn{display:none!important;}
-  .rp-overlay{background:#fff!important;color:#000!important;}
-  .rp-hero,.rp-criterio,.rp-sug,.rp-code-box,.rp-fundamento,.rp-docfalt,.rp-summary,.rp-drive-notice{
-    background:#F8FAFC!important;border:1px solid #E2E8F0!important;color:#000!important;}
-  .rp-procedure,.rp-criterio-name,.rp-sug-text,.rp-evidencia-cita,.rp-decision{color:#000!important;}
+  body>*:not(.rp-overlay){display:none!important;}
+  .rp-overlay{position:static!important;display:block!important;background:#fff!important;}
+  .rp-topbar-right{display:none!important;}
+  .rp-hero,.rp-criterio,.rp-sug,.rp-code-box,.rp-fundamento,.rp-docfalt,.rp-summary,.rp-drive-notice,.rp-alert{
+    background:#F8FAFC!important;border:1px solid #E2E8F0!important;}
+  .rp-procedure,.rp-criterio-name,.rp-sug-text,.rp-evidencia-cita,.rp-decision,
+  .rp-alert-title,.rp-alert-desc{color:#0F172A!important;}
   .rp-score-num,.rp-code-val{color:#0F172A!important;}
   .score-c-verde,.score-c-amarillo,.score-c-rojo{color:#0F172A!important;}
-  .rp-criterio-evidence{border-color:#0D9488!important;}
-  body > *:not(.rp-overlay){display:none!important;}
-  .rp-overlay{position:static!important;display:block!important;}
 }
 
 </style>
@@ -1200,7 +1210,7 @@ try{
 const r=await fetch(pollUrl,{headers:{'X-Vindica-Key':VINDICA_KEY}});if(!r.ok)return;const job=await r.json();
 if(job.status==='COMPLETE'){clearInterval(poll);clearInterval(paPollInterval);paAdvanceTL(4);paShowReportReady({decision:job.decision,score:job.score_confianza,reportePDF:job.reportePDF,sugerencias:job.sugerencias,jobData:job});}
 else if(job.status==='CONTENT_VALIDATION_FAILED'){clearInterval(poll);clearInterval(paPollInterval);document.getElementById('pa_statusSpinner').style.display='none';document.getElementById('pa_statusText').textContent='Expediente bloqueado.';paShowContentValidationError(job.conflictos||[]);}
-else if(job.status==='AGENT2_REJECTED'){clearInterval(poll);clearInterval(paPollInterval);document.getElementById('pa_statusSpinner').style.display='none';document.getElementById('pa_statusText').textContent=lang==='es'?'Revisión manual requerida.':'Manual review required.';paShowAgent2Rejected(job.score,job.reason);}
+else if(job.status==='AGENT2_REJECTED'){clearInterval(poll);clearInterval(paPollInterval);document.getElementById('pa_statusSpinner').style.display='none';document.getElementById('pa_statusText').textContent=lang==='es'?'Revisión manual requerida.':'Manual review required.';paShowAgent2Rejected(job.score,job.reason);const caseId2=document.getElementById('pa_caseNum').textContent;rpShow({caseId:caseId2,decision:job.reason||'EN REVISION — QC REQUERIDO',score:job.score||0,reportePDF:job.reportePDF||'',jobData:job,procedure:document.getElementById('pa_procedure').value,plan:document.getElementById('pa_insurancePlan').value,patientInitials:document.getElementById('pa_patientInitials').value,doctor:document.getElementById('pa_doctorName').value,practice:document.getElementById('pa_practiceName').value,laterality:document.getElementById('pa_laterality').value});}
 else if(job.status==='ERROR'||job.status==='TIMEOUT'){clearInterval(poll);clearInterval(paPollInterval);document.getElementById('pa_statusSpinner').style.display='none';document.getElementById('pa_statusText').textContent=`Error: ${job.error}`;}
 else if(job.status==='TRIAGE_FAILED'){clearInterval(poll);clearInterval(paPollInterval);document.getElementById('pa_statusSpinner').style.display='none';document.getElementById('pa_statusText').textContent=lang==='es'?`Expediente incompleto: ${job.message||'Faltan documentos requeridos. Vuelva al paso 3.'}`:`Incomplete record: ${job.message||'Required documents missing. Return to step 3.'}`;} // FIX-NEW-01 + FIX-Q08
 else if(job.status==='ALREADY_EXISTS'){clearInterval(poll);clearInterval(paPollInterval);paAdvanceTL(4);paShowReportReady({decision:job.decision||'✅ REPORTE PREVIO DISPONIBLE',score:job.score_confianza||null,reportePDF:job.reportePDF,sugerencias:null});} // FIX-NEW-01 + FIX-Q08
@@ -1496,7 +1506,6 @@ document.getElementById('loginEmail').addEventListener('keydown', e => {
 </script>
 
 
-<!-- ══ RESULTS PANEL ══════════════════════════════════════════════════════ -->
 <div class="rp-overlay" id="rpOverlay">
   <div class="rp-wrap">
     <div class="rp-topbar">
@@ -1510,7 +1519,7 @@ document.getElementById('loginEmail').addEventListener('keydown', e => {
         <button class="rp-btn rp-btn-close" onclick="rpClose()">✕ Cerrar</button>
       </div>
     </div>
-    <div id="rp_content"><!-- filled by JS --></div>
+    <div id="rp_content"></div>
   </div>
 </div>
 
