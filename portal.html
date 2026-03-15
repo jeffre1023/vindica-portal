@@ -937,7 +937,7 @@ function paBuildSummary() {
     allFiles.length + ' archivo(s)',
   ];
   const keys = ['Médico', 'Práctica', 'Plan MA', 'Paciente', 'Procedimiento', 'CPT', 'ICD-10', 'Fecha cirugía', 'Archivos'];
-  document.getElementById('pa_summaryBox').innerHTML = `<div style="border:1.5px solid var(--border);border-radius:11px;overflow:hidden;">${keys.map((k, i) => `<div style="display:flex;padding:9px 14px;border-bottom:${i < keys.length - 1 ? '1px solid var(--border)' : 'none'};background:${i % 2 === 0 ? 'var(--light)' : 'var(--white)')"><span style="width:120px;font-size:12px;font-weight:600;color:var(--slate);flex-shrink:0;">${k}</span><span style="font-size:12px;color:var(--dark);">${vals[i]}</span></div>`).join('')}</div>`;
+  document.getElementById('pa_summaryBox').innerHTML = `<div style="border:1.5px solid var(--border);border-radius:11px;overflow:hidden;">${keys.map((k, i) => `<div style="display:flex;padding:9px 14px;border-bottom:${i < keys.length - 1 ? '1px solid var(--border)' : 'none'};background:${i % 2 === 0 ? 'var(--light)' : 'var(--white)'}"><span style="width:120px;font-size:12px;font-weight:600;color:var(--slate);flex-shrink:0;">${k}</span><span style="font-size:12px;color:var(--dark);">${vals[i]}</span></div>`).join('')}</div>`;
 }
 
 function paShow(n) { for (let i = 1; i <= 4; i++) document.getElementById('pa_s' + i).classList.remove('active'); document.getElementById('pa_s' + n).classList.add('active'); }
@@ -1321,7 +1321,7 @@ let firebaseAuth;
 try {
   firebase.initializeApp(FIREBASE_CONFIG);
   firebaseAuth = firebase.auth();
- firebaseAuth.onAuthStateChanged(user => {
+  firebaseAuth.onAuthStateChanged(user => {
     if (user) {
       document.getElementById('loginOverlay').classList.add('hidden');
       document.getElementById('userBar').style.display = 'flex';
