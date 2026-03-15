@@ -1327,8 +1327,9 @@ try {
       document.getElementById('userBar').style.display = 'flex';
       document.getElementById('userEmail').textContent = user.email;
       document.querySelector('.outer').classList.remove('portal-locked');
+    } else {
+      window.location.href = 'index.html';
     }
-    // Si no hay sesión, el index.html ya maneja el login — no redirigir
   });
 } catch (e) {
   console.warn('Firebase error:', e.message);
