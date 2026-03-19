@@ -1329,25 +1329,16 @@ function paShowReportReady({decision,score,reportePDF,sugerencias,jobData}){
   document.getElementById('pa_statusSpinner').style.display='none';
   document.getElementById('pa_statusText').textContent='Reporte listo.';
   document.getElementById('pa_phaseReady').style.display='block';
-  // PDF: convertir base64 a Blob URL para descarga (evitar URI Too Long)
-  if(reportePDF){
-    try{
-      const byteChars=atob(reportePDF);
-      const byteArr=new Uint8Array(byteChars.length);
-      for(let i=0;i<byteChars.length;i++)byteArr[i]=byteChars.charCodeAt(i);
-      const blob=new Blob([byteArr],{type:'application/pdf'});
-      const blobUrl=URL.createObjectURL(blob);
-      const dlLink=document.getElementById('pa_dlPDF');
-      dlLink.href=blobUrl;
-      dlLink.setAttribute('download','Vindica_Reporte.pdf');
-    }catch(e){
-      // Fallback: si es URL de Drive, usar directamente
-      document.getElementById('pa_dlPDF').href=reportePDF;
-    }
+  // PDF link: usar Drive URL directamente
+  const pdfUrl = reportePDF || (jobData&&jobData.driveUrl) || null;
+  if(pdfUrl){
+    document.getElementById('pa_dlPDF').href=pdfUrl;
+    document.getElementById('pa_dlPDF').target='_blank';
   }
-  // Drive URL para segundo botón
-  if(jobData&&jobData.driveUrl){
-    document.getElementById('pa_dlGhost').href=jobData.driveUrl;
+  // Segundo botón: mismo Drive URL
+  if(pdfUrl){
+    document.getElementById('pa_dlGhost').href=pdfUrl;
+    document.getElementById('pa_dlGhost').target='_blank';
     document.getElementById('pa_dlGhost').style.display='';
   } else {
     document.getElementById('pa_dlGhost').style.display='none';
