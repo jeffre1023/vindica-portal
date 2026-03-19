@@ -899,7 +899,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
     <!-- Header -->
     <div style="background:linear-gradient(135deg,#92400E,#F59E0B);padding:18px 24px;">
       <div style="font-family:'DM Serif Display',serif;font-size:18px;color:#fff;" data-es="Brief de Pre-Autorización" data-en="Pre-Authorization Brief">Brief de Pre-Autorización</div>
-      <div style="font-size:12px;color:rgba(255,255,255,.8);margin-top:4px;" data-es="Genera un checklist de documentación requerida para el cirujano — sin Gemini, instantáneo." data-en="Generate a documentation checklist for the surgeon — no Gemini, instant.">Genera un checklist de documentación requerida para el cirujano — sin Gemini, instantáneo.</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.8);margin-top:4px;" data-es="Genera un checklist de documentación requerida para el cirujano antes de someter el caso." data-en="Generate a documentation checklist for the surgeon before submitting the case.">Genera un checklist de documentación requerida para el cirujano antes de someter el caso.</div>
     </div>
 
     <!-- Form -->
@@ -955,6 +955,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
         <div style="display:flex;gap:8px;">
           <button onclick="imprimirBrief()" style="padding:8px 16px;border:1.5px solid var(--amber);border-radius:8px;background:var(--amber-bg);color:#92400E;font-size:12px;font-weight:600;cursor:pointer;" data-es="Imprimir" data-en="Print">🖨 Imprimir</button>
           <button onclick="copiarBrief()" style="padding:8px 16px;border:1.5px solid var(--border);border-radius:8px;background:#fff;color:var(--slate);font-size:12px;font-weight:600;cursor:pointer;" data-es="Copiar" data-en="Copy">📋 Copiar</button>
+          <button onclick="resetBrief()" style="padding:8px 16px;border:1.5px solid var(--red);border-radius:8px;background:var(--red-bg);color:var(--red);font-size:12px;font-weight:600;cursor:pointer;" data-es="Nuevo Brief" data-en="New Brief">↺ Nuevo Brief</button>
         </div>
       </div>
       <div id="briefContent" style="background:var(--light);border:1px solid var(--border);border-radius:12px;padding:20px;font-size:13px;line-height:1.7;white-space:pre-wrap;font-family:'DM Sans',monospace;max-height:600px;overflow-y:auto;color:var(--dark);"></div>
@@ -1653,6 +1654,15 @@ function copiarBrief() {
     btn.textContent = '✅ Copiado';
     setTimeout(() => { btn.textContent = orig; }, 2000);
   });
+}
+
+function resetBrief() {
+  document.getElementById('briefResult').style.display = 'none';
+  document.getElementById('briefLoading').style.display = 'none';
+  document.getElementById('briefContent').textContent = '';
+  document.getElementById('brief_icd10').value = '';
+  document.querySelectorAll('#briefComorbChecks input').forEach(c => { c.checked = false; });
+  _lastBriefText = '';
 }
 
 </script>
