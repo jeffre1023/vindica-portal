@@ -1324,11 +1324,22 @@ function paShowReportReady({decision,score,reportePDF,sugerencias,jobData}){
   document.getElementById('pa_statusSpinner').style.display='none';
   document.getElementById('pa_statusText').textContent='Reporte listo.';
   document.getElementById('pa_phaseReady').style.display='block';
-  // PDF: abrir en Drive (nueva pestaña)
-  const pdfUrl = reportePDF || (jobData&&jobData.driveUrl) || null;
-  if(pdfUrl){
-    document.getElementById('pa_dlPDF').href=pdfUrl;
-    document.getElementById('pa_dlPDF').target='_blank';
+  // PDF: abrir en nueva pestaña del browser
+  const pdfB64 = (jobData&&jobData.pdfBase64) || null;
+  const driveUrl = reportePDF || (jobData&&jobData.driveUrl) || null;
+  const dlLink = document.getElementById('pa_dlPDF');
+  if(pdfB64){
+    // Convertir base64 a Blob URL → abre PDF nativo en browser
+    try{
+      const raw=atob(pdfB64);const arr=new Uint8Array(raw.length);
+      for(let i=0;i<raw.length;i++)arr[i]=raw.charCodeAt(i);
+      const blob=new Blob([arr],{type:'application/pdf'});
+      dlLink.href=URL.createObjectURL(blob);
+      dlLink.target='_blank';
+    }catch(e){ if(driveUrl) dlLink.href=driveUrl; }
+  } else if(driveUrl){
+    dlLink.href=driveUrl;
+    dlLink.target='_blank';
   }
   const badge=document.getElementById('pa_decisionBadge');
   const isOK=decision&&(decision.includes('LISTO')||decision.includes('SOMETER'));
