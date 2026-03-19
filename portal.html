@@ -1624,7 +1624,50 @@ async function generarBrief() {
     const data = await resp.json();
 
     _lastBriefText = data.texto || '';
-    document.getElementById('briefContent').textContent = _lastBriefText;
+    // Render HTML estructurado con 2 columnas
+    const el = document.getElementById('briefContent');
+    let html = '';
+    for (const sec of (data.brief || [])) {
+      html += `<div style="font-weight:700;font-size:14px;color:#92400E;border-bottom:2px solid #F59E0B;padding-bottom:6px;margin:18px 0 10px;">${sec.titulo}</div>`;
+      if (sec.contenido) {
+        html += `<div style="margin-bottom:12px;">${sec.contenido.map(l=>`<div>${l}</div>`).join('')}</div>`;
+      }
+      if (sec.comorbilidades) {
+        for (const c of sec.comorbilidades) {
+          html += `<div style="border:1px solid var(--border);border-radius:10px;margin-bottom:14px;overflow:hidden;">`;
+          // Header
+          html += `<div style="background:var(--amber-bg);padding:10px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">`;
+          html += `<span style="font-weight:700;font-size:13px;color:#92400E;">${c.nombre}</span>`;
+          if (c.umbral) html += `<span style="font-size:11px;color:var(--slate);background:#fff;padding:2px 8px;border-radius:4px;border:1px solid var(--border);">${c.umbral}</span>`;
+          html += `</div>`;
+          if (c.clearance) html += `<div style="background:#FEF2F2;padding:6px 14px;font-size:12px;color:#EF4444;font-weight:600;border-bottom:1px solid var(--border);">⚠ Clearance ${c.clearance} REQUERIDO</div>`;
+          // Two columns
+          html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:0;">`;
+          // Left: requisitos
+          html += `<div style="padding:12px 14px;border-right:1px solid var(--border);">`;
+          html += `<div style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Documentar en nota</div>`;
+          (c.requiere||[]).forEach((r,i)=>{
+            html += `<div style="font-size:12px;margin-bottom:4px;color:var(--dark);">${i+1}. ${r}</div>`;
+          });
+          html += `<div style="margin-top:10px;padding-top:8px;border-top:1px dashed var(--border);font-size:11px;font-weight:600;color:var(--slate);">Verificación A57765:</div>`;
+          ['Evaluación preoperatoria','Riesgo quirúrgico','Estado de control','Riesgo/beneficio','Plan perioperatorio'].forEach(e=>{
+            html += `<div style="font-size:11px;color:var(--muted);">☐ ${e}</div>`;
+          });
+          html += `</div>`;
+          // Right: ejemplo
+          html += `<div style="padding:12px 14px;background:#FFFBEB;">`;
+          html += `<div style="font-size:11px;font-weight:700;color:#92400E;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Ejemplo de nota</div>`;
+          if (c.ejemplo) {
+            html += `<div style="font-size:11.5px;color:#78350F;line-height:1.6;font-style:italic;">${c.ejemplo}</div>`;
+          } else {
+            html += `<div style="font-size:11.5px;color:var(--muted);font-style:italic;">Documentar evaluación riesgo/beneficio según A57765 FCSO.</div>`;
+          }
+          html += `</div>`;
+          html += `</div></div>`; // close grid + card
+        }
+      }
+    }
+    el.innerHTML = html;
 
     loading.style.display = 'none';
     result.style.display = 'block';
