@@ -733,15 +733,10 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
       <div id="pa_phaseReady" style="display:none;">
         <div style="background:var(--green-bg);border:1.5px solid #A7F3D0;border-radius:14px;padding:16px 20px;margin:0 auto 16px;max-width:380px;">
           <div style="font-size:12px;font-weight:600;color:#065F46;margin-bottom:12px;">✅ Reporte listo</div>
-          <a id="pa_dlPDF" href="#" target="_blank" style="display:flex;align-items:center;gap:9px;background:#fff;border:1.5px solid #A7F3D0;border-radius:9px;padding:10px 14px;text-decoration:none;margin-bottom:7px;">
+          <a id="pa_dlPDF" href="#" target="_blank" style="display:flex;align-items:center;gap:9px;background:#fff;border:1.5px solid #A7F3D0;border-radius:9px;padding:10px 14px;text-decoration:none;">
             <span style="font-size:18px;">📄</span>
-            <div><div style="font-size:12px;font-weight:600;color:var(--dark);">Reporte de Compliance (PDF)</div><div style="font-size:11px;color:var(--muted);">Semáforo, criterios, acciones</div></div>
-            <span style="margin-left:auto;font-size:11px;font-weight:600;color:var(--teal);">Descargar</span>
-          </a>
-          <a id="pa_dlGhost" href="#" target="_blank" style="display:flex;align-items:center;gap:9px;background:#fff;border:1.5px solid #A7F3D0;border-radius:9px;padding:10px 14px;text-decoration:none;">
-            <span style="font-size:18px;">✍️</span>
-            <div><div style="font-size:12px;font-weight:600;color:var(--dark);">Sugerencias de Documentación (TXT)</div><div style="font-size:11px;color:var(--muted);">Lista de elementos a documentar para el médico</div></div>
-            <span style="margin-left:auto;font-size:11px;font-weight:600;color:var(--teal);">Descargar</span>
+            <div><div style="font-size:12px;font-weight:600;color:var(--dark);" data-es="Ver Reporte de Pre-Autorización" data-en="View Pre-Authorization Report">Ver Reporte de Pre-Autorización</div><div style="font-size:11px;color:var(--muted);" data-es="Se abre en nueva pestaña · Copia guardada en Drive" data-en="Opens in new tab · Copy saved to Drive">Se abre en nueva pestaña · Copia guardada en Drive</div></div>
+            <span style="margin-left:auto;font-size:11px;font-weight:600;color:var(--teal);">Ver PDF →</span>
           </a>
         </div>
         <div id="pa_decisionBadge" style="display:inline-block;padding:8px 20px;border-radius:11px;font-size:14px;font-weight:700;margin-bottom:16px;"></div>
@@ -1329,19 +1324,11 @@ function paShowReportReady({decision,score,reportePDF,sugerencias,jobData}){
   document.getElementById('pa_statusSpinner').style.display='none';
   document.getElementById('pa_statusText').textContent='Reporte listo.';
   document.getElementById('pa_phaseReady').style.display='block';
-  // PDF link: usar Drive URL directamente
+  // PDF: abrir en Drive (nueva pestaña)
   const pdfUrl = reportePDF || (jobData&&jobData.driveUrl) || null;
   if(pdfUrl){
     document.getElementById('pa_dlPDF').href=pdfUrl;
     document.getElementById('pa_dlPDF').target='_blank';
-  }
-  // Segundo botón: mismo Drive URL
-  if(pdfUrl){
-    document.getElementById('pa_dlGhost').href=pdfUrl;
-    document.getElementById('pa_dlGhost').target='_blank';
-    document.getElementById('pa_dlGhost').style.display='';
-  } else {
-    document.getElementById('pa_dlGhost').style.display='none';
   }
   const badge=document.getElementById('pa_decisionBadge');
   const isOK=decision&&(decision.includes('LISTO')||decision.includes('SOMETER'));
