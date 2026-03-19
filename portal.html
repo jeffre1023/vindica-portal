@@ -1329,9 +1329,29 @@ function paShowReportReady({decision,score,reportePDF,sugerencias,jobData}){
   document.getElementById('pa_statusSpinner').style.display='none';
   document.getElementById('pa_statusText').textContent='Reporte listo.';
   document.getElementById('pa_phaseReady').style.display='block';
-  if(reportePDF)document.getElementById('pa_dlPDF').href=reportePDF;
-  if(sugerencias)document.getElementById('pa_dlGhost').href=sugerencias;
-  else document.getElementById('pa_dlGhost').style.display='none';
+  // PDF: convertir base64 a Blob URL para descarga (evitar URI Too Long)
+  if(reportePDF){
+    try{
+      const byteChars=atob(reportePDF);
+      const byteArr=new Uint8Array(byteChars.length);
+      for(let i=0;i<byteChars.length;i++)byteArr[i]=byteChars.charCodeAt(i);
+      const blob=new Blob([byteArr],{type:'application/pdf'});
+      const blobUrl=URL.createObjectURL(blob);
+      const dlLink=document.getElementById('pa_dlPDF');
+      dlLink.href=blobUrl;
+      dlLink.setAttribute('download','Vindica_Reporte.pdf');
+    }catch(e){
+      // Fallback: si es URL de Drive, usar directamente
+      document.getElementById('pa_dlPDF').href=reportePDF;
+    }
+  }
+  // Drive URL para segundo botón
+  if(jobData&&jobData.driveUrl){
+    document.getElementById('pa_dlGhost').href=jobData.driveUrl;
+    document.getElementById('pa_dlGhost').style.display='';
+  } else {
+    document.getElementById('pa_dlGhost').style.display='none';
+  }
   const badge=document.getElementById('pa_decisionBadge');
   const isOK=decision&&(decision.includes('LISTO')||decision.includes('SOMETER'));
   const isWarn=decision&&(decision.includes('REVISION')||decision.includes('REVISIÓN'));
