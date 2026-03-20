@@ -135,7 +135,11 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 .rpt-sec-badge.err{background:var(--red-bg);color:#991B1B;}
 .rpt-sec-body{padding:0 24px 18px;display:none;}
 .rpt-section.open .rpt-sec-body{display:block;}
-.rpt-plantilla{background:var(--teal-bg);border:1.5px solid var(--teal-bd);border-radius:10px;padding:14px 16px;margin-top:8px;font-size:12px;line-height:1.7;color:var(--dark);white-space:pre-wrap;font-family:'DM Sans',sans-serif;}
+.rpt-plantilla{background:var(--teal-bg);border:1.5px solid var(--teal-bd);border-radius:10px;padding:14px 16px;margin-top:8px;font-size:12.5px;line-height:1.75;color:var(--dark);font-family:'DM Sans',sans-serif;}
+.rpt-plantilla p{margin:0 0 10px;}
+.rpt-plantilla p:last-child{margin-bottom:0;}
+.rpt-plantilla .blank{display:inline;background:#fff;border:1.5px dashed var(--teal);border-radius:4px;padding:1px 8px;font-weight:600;color:var(--teal-d);font-size:11.5px;white-space:nowrap;}
+.rpt-plantilla .norma{display:block;margin-top:10px;padding-top:8px;border-top:1px solid var(--teal-bd);font-size:11px;color:var(--teal-d);font-weight:600;}
 .rpt-plantilla-label{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--teal-d);margin-bottom:6px;}
 .rpt-faltantes{background:var(--amber-bg);border:1.5px solid #FDE68A;border-radius:10px;padding:10px 14px;margin-top:8px;font-size:11px;color:var(--amber-d);}
 .rpt-comor{border:1.5px solid var(--border);border-radius:11px;margin-bottom:10px;overflow:hidden;}
@@ -152,40 +156,13 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 .hipaa-badge{display:inline-flex;align-items:center;gap:4px;background:var(--green-bg);border:1px solid #A7F3D0;border-radius:100px;padding:3px 9px;font-size:10px;font-weight:600;color:#065F46;}
 .hipaa-footer span{font-size:11px;color:var(--muted);}
 
-/* Login overlay — same as portal.html */
-.login-overlay{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;
-  background:radial-gradient(ellipse 70% 60% at 5% 15%,rgba(13,148,136,.18) 0%,transparent 55%),
-  linear-gradient(160deg,#0F172A 0%,#1E293B 50%,#0F172A 100%);}
-.login-overlay.hidden{display:none;}
-.login-card{background:rgba(255,255,255,.04);border:1.5px solid rgba(13,148,136,.25);border-radius:24px;padding:44px 40px;width:100%;max-width:420px;backdrop-filter:blur(12px);}
-.login-logo{display:flex;align-items:center;gap:12px;justify-content:center;margin-bottom:32px;}
-.login-logo-icon{width:48px;height:48px;background:linear-gradient(135deg,#0F766E,#14B8A6);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;}
-.login-logo-text{font-family:'DM Serif Display',serif;font-size:24px;color:#fff;}
-.login-logo-text span{color:#14B8A6;}
-.login-field{margin-bottom:16px;}
-.login-field label{display:block;font-size:12px;font-weight:600;color:#94A3B8;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;}
-.login-field input{width:100%;padding:12px 16px;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.12);border-radius:10px;color:#fff;font-family:'DM Sans',sans-serif;font-size:14px;outline:none;}
-.login-field input:focus{border-color:rgba(13,148,136,.6);}
-.login-btn{width:100%;padding:14px;background:linear-gradient(135deg,#0F766E,#14B8A6);border:none;border-radius:12px;color:#fff;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;cursor:pointer;margin-top:8px;}
-.login-btn:disabled{opacity:.5;cursor:not-allowed;}
-.login-error{background:rgba(239,68,68,.1);border:1.5px solid rgba(239,68,68,.3);border-radius:10px;padding:10px 14px;color:#FCA5A5;font-size:13px;margin-top:12px;display:none;}
-.login-error.show{display:block;}
 </style>
 </head>
 <body>
 <div class="bg-layer"></div>
 <div class="grid-overlay"></div>
 
-<!-- LOGIN -->
-<div class="login-overlay" id="loginOverlay">
-  <div class="login-card">
-    <div class="login-logo"><div class="login-logo-icon"><img src="logo.png" alt="V" style="width:32px;height:32px;border-radius:6px;"></div><div class="login-logo-text">Vindica<span>Health</span></div></div>
-    <div class="login-field"><label>Email</label><input type="text" id="loginEmail" placeholder="usuario@practica.com"></div>
-    <div class="login-field"><label>Password</label><input type="password" id="loginPass" placeholder="********" onkeydown="if(event.key==='Enter')doLogin()"></div>
-    <button class="login-btn" onclick="doLogin()">Acceder</button>
-    <div class="login-error" id="loginError"></div>
-  </div>
-</div>
+<!-- Auth redirect — uses same login as index.html -->
 
 <div class="outer" id="mainApp" style="display:none;">
   <div class="user-bar">
@@ -198,7 +175,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
   <div class="header">
     <div class="logo-mark"><div class="logo-icon"><img src="logo.png" alt="V" style="width:30px;height:30px;border-radius:6px;"></div><div class="logo-text">Vindica<span>Health</span></div></div>
     <h1>Brief Builder v5</h1>
-    <p>Genera el brief pre-autorizacion paso a paso. Gemini extrae, Node.js decide.</p>
+    <p>Genera el brief de pre-autorizacion paso a paso conforme a LCD L33618 y A57765 FCSO.</p>
   </div>
 
   <div class="card">
@@ -329,25 +306,13 @@ const auth = firebase.auth();
 
 auth.onAuthStateChanged(user => {
   if (user) {
-    document.getElementById('loginOverlay').classList.add('hidden');
     document.getElementById('mainApp').style.display = '';
     document.getElementById('userEmail').textContent = user.email;
   } else {
-    document.getElementById('loginOverlay').classList.remove('hidden');
-    document.getElementById('mainApp').style.display = 'none';
+    window.location.href = 'index.html';
   }
 });
 
-function doLogin() {
-  const e = document.getElementById('loginEmail').value.trim();
-  const p = document.getElementById('loginPass').value;
-  const err = document.getElementById('loginError');
-  err.classList.remove('show');
-  auth.signInWithEmailAndPassword(e, p).catch(ex => {
-    err.textContent = 'Error: ' + ex.message;
-    err.classList.add('show');
-  });
-}
 function doLogout() { auth.signOut(); }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -487,7 +452,7 @@ async function runStep0() {
 
 // ════════════════════════════════════════════════════════════════════════════
 // STEP 1: Radiologia
-// ════════════════════════════════════════════════════════════════════════════
+// ════════════════════════════════��═══���═══════════════════════════════════════
 async function runStep1() {
   if (files[1].length === 0) throw new Error('Suba al menos un archivo de imagen');
   const archivos = [];
@@ -505,7 +470,7 @@ async function runStep1() {
   let html = `<div class="badge ${d.cumple_lcd ? 'badge-ok' : 'badge-warn'}">${d.cumple_lcd ? 'Cumple LCD L33618' : 'Requiere concatenacion'}</div>`;
   if (d.terminos_encontrados.length) html += `<div class="badge badge-info">Terminos LCD: ${d.terminos_encontrados.join(', ')}</div>`;
   if (d.terminos_rechazados_encontrados.length) html += `<div class="badge badge-warn">Terminos vagos: ${d.terminos_rechazados_encontrados.join(', ')}</div>`;
-  html += `<div class="result-box"><h4>Plantilla para el cirujano:</h4><pre>${d.plantilla_cirujano}</pre></div>`;
+  html += `<div class="result-box"><h4>Plantilla para el cirujano:</h4><div class="rpt-plantilla">${formatPlantilla(d.plantilla_cirujano)}</div></div>`;
   el.innerHTML = html;
   unlock(2);
 }
@@ -528,8 +493,8 @@ async function runStep2() {
 
   let html = `<div class="badge ${d.cumple_90_dias ? 'badge-ok' : 'badge-warn'}">${d.duracion_total_dias} dias documentados ${d.cumple_90_dias ? '(cumple >= 90)' : '(requiere >= 90)'}</div>`;
   if (d.inyecciones_detectadas && !d.inyecciones_cuentan) html += `<div class="badge badge-warn">Inyecciones detectadas — NO cuentan para THA</div>`;
-  html += `<div class="result-box"><h4>Plantilla terapia:</h4><pre>${d.plantilla_terapia}</pre></div>`;
-  if (d.plantilla_adls) html += `<div class="result-box"><h4>Plantilla ADLs:</h4><pre>${d.plantilla_adls}</pre></div>`;
+  html += `<div class="result-box"><h4>Plantilla terapia:</h4><div class="rpt-plantilla">${formatPlantilla(d.plantilla_terapia)}</div></div>`;
+  if (d.plantilla_adls) html += `<div class="result-box"><h4>Plantilla ADLs:</h4><div class="rpt-plantilla">${formatPlantilla(d.plantilla_adls)}</div></div>`;
   el.innerHTML = html;
   unlock(3);
 }
@@ -570,7 +535,7 @@ async function runStep3() {
 
   if (Object.keys(d.plantillas_por_comorbilidad).length) {
     for (const [id, plantilla] of Object.entries(d.plantillas_por_comorbilidad)) {
-      html += `<div class="result-box"><h4>${id}:</h4><pre>${plantilla}</pre></div>`;
+      html += `<div class="result-box"><h4>${id}:</h4><div class="rpt-plantilla">${formatPlantilla(plantilla)}</div></div>`;
     }
   }
 
@@ -660,7 +625,7 @@ async function runStep4() {
           </div>
           <div class="rpt-comor-body">
             <div class="rpt-plantilla-label">INCLUIR EN SU NOTA:</div>
-            <div class="rpt-plantilla">${escapeHtml(c.plantilla)}</div>`;
+            <div class="rpt-plantilla">${formatPlantilla(c.plantilla)}</div>`;
         if (c.elementos_faltantes && c.elementos_faltantes.length > 0) {
           html += `<div class="rpt-faltantes">Elementos faltantes: ${c.elementos_faltantes.join(', ')}</div>`;
         }
@@ -692,7 +657,7 @@ async function runStep4() {
 
     if (sec.plantilla) {
       html += `<div class="rpt-plantilla-label">INCLUIR EN SU NOTA:</div>
-        <div class="rpt-plantilla">${escapeHtml(sec.plantilla)}</div>`;
+        <div class="rpt-plantilla">${formatPlantilla(sec.plantilla)}</div>`;
     }
 
     if (sec.elementos_faltantes && sec.elementos_faltantes.length > 0) {
@@ -738,6 +703,25 @@ async function runStep4() {
 
 function escapeHtml(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function formatPlantilla(text) {
+  let safe = escapeHtml(text);
+  // Convert [blanks] to styled spans
+  safe = safe.replace(/\[([^\]]+)\]/g, '<span class="blank">$1</span>');
+  // Split into paragraphs on double newlines
+  const paragraphs = safe.split(/\n{2,}/);
+  let html = '';
+  for (const p of paragraphs) {
+    const trimmed = p.replace(/\n/g, ' ').trim();
+    if (!trimmed) continue;
+    if (/^Norma:/i.test(trimmed)) {
+      html += `<span class="norma">${trimmed}</span>`;
+    } else {
+      html += `<p>${trimmed}</p>`;
+    }
+  }
+  return html;
 }
 
 function printBrief() {
