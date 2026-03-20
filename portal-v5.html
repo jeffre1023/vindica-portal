@@ -822,6 +822,9 @@ async function runStep4() {
     <button class="btn btn-primary" onclick="printBrief()">Imprimir</button>
     <button class="btn btn-ghost" onclick="downloadBrief()">Descargar TXT</button>
     <button class="btn btn-ghost" onclick="copyBrief()">Copiar al portapapeles</button>
+  </div>
+  <div style="text-align:center;margin-top:20px;padding-top:16px;border-top:1.5px solid var(--border);">
+    <button class="btn btn-primary" style="padding:14px 32px;font-size:14px;" onclick="nuevoCaso()">Nuevo Caso &rarr;</button>
   </div>`;
 
   el.innerHTML = html;
@@ -899,6 +902,26 @@ function downloadBrief() {
   a.href = URL.createObjectURL(blob);
   a.download = `vindica_brief_${document.getElementById('f_icd10').value}_${new Date().toISOString().split('T')[0]}.txt`;
   a.click();
+}
+
+function nuevoCaso() {
+  // Reset state
+  step = 0;
+  maxUnlocked.length = 0;
+  maxUnlocked.push(0);
+  files[1] = []; files[2] = []; files[3] = [];
+  for (const k in results) delete results[k];
+  // Reset form
+  document.getElementById('f_cpt').value = '';
+  document.getElementById('f_icd10').value = '';
+  document.getElementById('f_plan').value = '';
+  document.querySelectorAll('#comorGrid input').forEach(c => { c.checked = false; c.closest('.comor-item').classList.remove('selected'); });
+  document.querySelectorAll('input[name="admision"]').forEach(r => { r.checked = false; r.closest('.comor-item').classList.remove('selected'); });
+  // Reset result areas and file lists
+  for (let i = 0; i <= 4; i++) { const el = document.getElementById('r' + i); if (el) { el.style.display = 'none'; el.innerHTML = ''; } }
+  for (let i = 1; i <= 3; i++) { const el = document.getElementById('fl' + i); if (el) el.innerHTML = ''; }
+  updateUI();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function copyBrief() {
