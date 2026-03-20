@@ -1,1748 +1,936 @@
 <!DOCTYPE html>
-
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-  <!-- Firebase Auth -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vindica Health — Portal Clínico v4.9.2</title>
+<title>Vindica Health — Brief Builder v5</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --teal:#0D9488;--teal-l:#14B8A6;--teal-d:#0F766E;
-    --teal-bg:#F0FDFA;--teal-bd:#99F6E4;
-    --dark:#0F172A;--mid:#1E293B;--slate:#475569;
-    --muted:#94A3B8;--light:#F8FAFC;--white:#FFFFFF;
-    --border:#E2E8F0;
-    --amber:#F59E0B;--amber-bg:#FFFBEB;--amber-d:#92400E;
-    --red:#EF4444;--red-bg:#FEF2F2;
-    --green:#10B981;--green-bg:#ECFDF5;
-    --violet:#7C3AED;--violet-bg:#F5F3FF;--violet-bd:#DDD6FE;
-    --violet-l:#8B5CF6;--violet-d:#6D28D9;
-  }
-  *{margin:0;padding:0;box-sizing:border-box;}
-  body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--dark);min-height:100vh;overflow-x:hidden;}
+:root {
+  --teal:#0D9488;--teal-l:#14B8A6;--teal-d:#0F766E;
+  --teal-bg:#F0FDFA;--teal-bd:#99F6E4;
+  --dark:#0F172A;--mid:#1E293B;--slate:#475569;
+  --muted:#94A3B8;--light:#F8FAFC;--white:#FFFFFF;
+  --border:#E2E8F0;
+  --amber:#F59E0B;--amber-bg:#FFFBEB;--amber-d:#92400E;
+  --red:#EF4444;--red-bg:#FEF2F2;
+  --green:#10B981;--green-bg:#ECFDF5;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--dark);min-height:100vh;}
 .bg-layer{position:fixed;inset:0;background:
-radial-gradient(ellipse 70% 60% at 5% 15%,rgba(13,148,136,.16) 0%,transparent 55%),
-radial-gradient(ellipse 50% 70% at 95% 85%,rgba(124,58,237,.12) 0%,transparent 55%),
-radial-gradient(ellipse 60% 50% at 50% 50%,rgba(20,184,166,.06) 0%,transparent 60%),
-linear-gradient(160deg,#0F172A 0%,#1E293B 50%,#0F172A 100%);z-index:0;}
+  radial-gradient(ellipse 70% 60% at 5% 15%,rgba(13,148,136,.16) 0%,transparent 55%),
+  radial-gradient(ellipse 50% 70% at 95% 85%,rgba(13,148,136,.08) 0%,transparent 55%),
+  linear-gradient(160deg,#0F172A 0%,#1E293B 50%,#0F172A 100%);z-index:0;}
 .grid-overlay{position:fixed;inset:0;background-image:
-linear-gradient(rgba(13,148,136,.03) 1px,transparent 1px),
-linear-gradient(90deg,rgba(13,148,136,.03) 1px,transparent 1px);
-background-size:40px 40px;z-index:0;}
-.outer{position:relative;z-index:1;max-width:1320px;margin:0 auto;padding:28px 20px 80px;}
-.lang-bar{display:flex;justify-content:flex-end;margin-bottom:16px;}
-.lang-btn{display:inline-flex;align-items:center;gap:8px;padding:8px 16px;border-radius:100px;border:1.5px solid rgba(13,148,136,.35);background:rgba(13,148,136,.08);color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;}
-.lang-btn:hover{background:rgba(13,148,136,.18);border-color:rgba(13,148,136,.6);}
-.header{text-align:center;margin-bottom:28px;animation:fadeUp .6s ease both;}
+  linear-gradient(rgba(13,148,136,.03) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(13,148,136,.03) 1px,transparent 1px);
+  background-size:40px 40px;z-index:0;}
+.outer{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:28px 20px 80px;}
+.header{text-align:center;margin-bottom:28px;}
 .logo-mark{display:inline-flex;align-items:center;gap:12px;margin-bottom:14px;}
 .logo-icon{width:42px;height:42px;background:linear-gradient(135deg,#0F766E,#14B8A6);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 0 28px rgba(13,148,136,.45);}
 .logo-text{font-family:'DM Serif Display',serif;font-size:22px;color:#fff;}
 .logo-text span{color:#14B8A6;}
-.header h1{font-family:'DM Serif Display',serif;font-size:clamp(22px,3.5vw,30px);color:#fff;line-height:1.2;margin-bottom:8px;letter-spacing:-.5px;}
-.header p{color:#94A3B8;font-size:14px;font-weight:300;}
-.header-divider{width:60px;height:3px;background:linear-gradient(90deg,var(--teal),transparent);margin:14px auto 0;border-radius:2px;}
-.sla-row{display:flex;align-items:center;justify-content:center;gap:18px;flex-wrap:wrap;background:rgba(13,148,136,.07);border:1px solid rgba(13,148,136,.18);border-radius:14px;padding:13px 20px;margin-bottom:24px;animation:fadeUp .6s .08s ease both;}
-.sla-item{text-align:center;}
-.sla-time{font-size:15px;font-weight:600;color:#14B8A6;}
-.sla-label{font-size:11px;color:#94A3B8;margin-top:1px;}
-.sla-div{width:1px;height:32px;background:rgba(13,148,136,.22);}
-.split{display:grid;grid-template-columns:1fr 1fr;gap:22px;animation:fadeUp .6s .12s ease both;align-items:start;}
-.split > div{display:flex;flex-direction:column;}
-.split > div .card{flex:1;display:flex;flex-direction:column;}
-.split > div:nth-child(1){order:1;}
-.split > div:nth-child(2){order:2;}
-@media(max-width:860px){
-  .split{grid-template-columns:1fr;}
-  .split > div:nth-child(1){order:1;}
-  .split > div:nth-child(2){order:2;}
-}
-.panel-label{display:flex;align-items:center;gap:12px;margin-bottom:14px;padding:10px 16px;background:rgba(255,255,255,.06);border-radius:10px;border:1px solid rgba(255,255,255,.1);}
-.panel-label-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;}
-.panel-label-text{font-size:13px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:#fff;opacity:.95;}
-.card{background:rgba(255,255,255,.97);border-radius:20px;overflow:hidden;box-shadow:0 4px 6px rgba(0,0,0,.25),0 20px 60px rgba(0,0,0,.35),0 0 0 1px rgba(255,255,255,.06);}
+.header h1{font-family:'DM Serif Display',serif;font-size:24px;color:#fff;margin-bottom:6px;}
+.header p{color:#94A3B8;font-size:13px;}
+.user-bar{display:flex;align-items:center;justify-content:flex-end;gap:12px;margin-bottom:12px;}
+.user-badge{display:flex;align-items:center;gap:8px;padding:6px 14px;border-radius:100px;background:rgba(13,148,136,.1);border:1px solid rgba(13,148,136,.25);color:#fff;font-size:12px;}
+.user-badge span{color:#14B8A6;font-weight:600;}
+.logout-btn{padding:6px 14px;border-radius:100px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.08);color:#FCA5A5;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.back-link{display:inline-flex;align-items:center;gap:6px;color:var(--teal-l);font-size:13px;text-decoration:none;margin-bottom:16px;}
+.back-link:hover{text-decoration:underline;}
+
+.card{background:rgba(255,255,255,.97);border-radius:20px;overflow:hidden;box-shadow:0 4px 6px rgba(0,0,0,.25),0 20px 60px rgba(0,0,0,.35);}
 .progress-bar{height:4px;background:var(--border);}
-.progress-fill{height:100%;border-radius:2px;transition:width .5s cubic-bezier(.4,0,.2,1);width:25%;}
-.pf-teal{background:linear-gradient(90deg,var(--teal-d),var(--teal-l));}
-.pf-violet{background:linear-gradient(90deg,var(--violet-d),var(--violet-l));}
-.progress-steps{display:flex;justify-content:space-between;padding:12px 20px;background:var(--light);border-bottom:1px solid var(--border);}
-.step{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);font-weight:500;transition:color .3s;}
-.step.active-teal{color:var(--teal-d);}
-.step.done-teal{color:var(--teal);}
-.step.active-violet{color:var(--violet-d);}
-.step.done-violet{color:var(--violet);}
-.step-num{width:20px;height:20px;border-radius:50%;border:2px solid currentColor;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;transition:all .3s;flex-shrink:0;}
-.step.active-teal .step-num,.step.done-teal .step-num{background:var(--teal);border-color:var(--teal);color:#fff;}
-.step.active-violet .step-num,.step.done-violet .step-num{background:var(--violet);border-color:var(--violet);color:#fff;}
-.step-label{display:none;}
-@media(min-width:600px){.step-label{display:inline;}}
-.form-section{padding:22px 22px 0;display:none;}
-.form-section.active{display:block;}
-.section-tag-teal{display:inline-block;font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--teal);background:var(--teal-bg);padding:3px 9px;border-radius:100px;margin-bottom:8px;}
-.section-tag-violet{display:inline-block;font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--violet);background:var(--violet-bg);padding:3px 9px;border-radius:100px;margin-bottom:8px;}
-.section-title{font-family:'DM Serif Display',serif;font-size:19px;color:var(--dark);letter-spacing:-.3px;margin-bottom:5px;}
-.section-desc{font-size:12px;color:var(--slate);line-height:1.6;margin-bottom:18px;}
-.field-grid{display:grid;gap:14px;margin-bottom:14px;}
-.field-grid.cols-2{grid-template-columns:1fr 1fr;}
-@media(max-width:500px){.field-grid.cols-2{grid-template-columns:1fr;}}
-.field{display:flex;flex-direction:column;gap:5px;}
+.progress-fill{height:100%;border-radius:2px;transition:width .5s;background:linear-gradient(90deg,var(--teal-d),var(--teal-l));}
+.steps-row{display:flex;justify-content:space-between;padding:12px 20px;background:var(--light);border-bottom:1px solid var(--border);flex-wrap:wrap;gap:4px;}
+.step{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);font-weight:500;transition:color .3s;cursor:pointer;}
+.step.active{color:var(--teal-d);font-weight:700;}
+.step.done{color:var(--teal);}
+.step.locked{opacity:.4;cursor:not-allowed;}
+.step-num{width:20px;height:20px;border-radius:50%;border:2px solid currentColor;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;}
+.step.active .step-num,.step.done .step-num{background:var(--teal);border-color:var(--teal);color:#fff;}
+
+.panel{display:none;padding:24px;}
+.panel.active{display:block;}
+.panel-tag{display:inline-block;font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--teal);background:var(--teal-bg);padding:3px 9px;border-radius:100px;margin-bottom:8px;}
+.panel-title{font-family:'DM Serif Display',serif;font-size:19px;color:var(--dark);margin-bottom:5px;}
+.panel-desc{font-size:12px;color:var(--slate);line-height:1.6;margin-bottom:18px;}
+
+.field{display:flex;flex-direction:column;gap:5px;margin-bottom:14px;}
 .field label{font-size:12px;font-weight:600;color:var(--dark);}
 .field label .req{color:var(--teal);margin-left:2px;}
-.field label .req-v{color:var(--violet);margin-left:2px;}
-.field label .hint{font-weight:400;color:var(--muted);font-size:11px;margin-left:3px;}
-input[type=text],input[type=date],input[type=email],select,textarea{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:9px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--dark);background:var(--white);transition:border-color .2s,box-shadow .2s;outline:none;appearance:none;}
-input:focus,select:focus,textarea:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,.1);}
-.violet-focus:focus{border-color:var(--violet)!important;box-shadow:0 0 0 3px rgba(124,58,237,.1)!important;}
-input.error,select.error{border-color:var(--red);box-shadow:0 0 0 3px rgba(239,68,68,.08);}
-.error-msg{font-size:11px;color:var(--red);display:none;}
-.error-msg.show{display:block;}
-textarea{resize:vertical;min-height:70px;}
+input,select{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:9px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--dark);background:var(--white);outline:none;appearance:none;}
+input:focus,select:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,.1);}
 select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 11px center;padding-right:34px;cursor:pointer;}
-.note-box{background:var(--amber-bg);border:1.5px solid #FDE68A;border-radius:11px;padding:11px 13px;margin-bottom:16px;display:flex;gap:9px;align-items:flex-start;}
-.note-box p{font-size:12px;color:#78350F;line-height:1.5;}
-.info-box{background:var(--teal-bg);border:1.5px solid var(--teal-bd);border-radius:11px;padding:11px 13px;margin-bottom:16px;display:flex;gap:9px;align-items:flex-start;}
-.info-box p{font-size:12px;color:#134E4A;line-height:1.5;}
-.info-box-violet{background:var(--violet-bg);border:1.5px solid var(--violet-bd);border-radius:11px;padding:11px 13px;margin-bottom:16px;display:flex;gap:9px;align-items:flex-start;}
-.info-box-violet p{font-size:12px;color:#4C1D95;line-height:1.5;}
-.cat-zone{border:1.5px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:10px;transition:border-color .2s;}
-.cat-zone.has-files{border-color:var(--teal);}
-.cat-header{display:flex;align-items:center;gap:9px;padding:10px 14px;background:var(--light);border-bottom:1px solid var(--border);cursor:pointer;user-select:none;}
-.cat-zone.has-files .cat-header{background:var(--teal-bg);border-bottom-color:var(--teal-bd);}
-.cat-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:100px;letter-spacing:.5px;text-transform:uppercase;}
-.cat-badge.req{background:#FEF2F2;color:var(--red);}
-.cat-badge.opt{background:var(--amber-bg);color:var(--amber-d);}
-.cat-badge.done{background:var(--green-bg);color:#065F46;}
-.cat-title{font-size:12px;font-weight:700;color:var(--dark);flex:1;}
-.cat-chevron{font-size:11px;color:var(--muted);transition:transform .2s;}
-.cat-zone.open .cat-chevron{transform:rotate(180deg);}
-.cat-body{display:none;padding:12px 14px;}
-.cat-zone.open .cat-body{display:block;}
-.cat-desc{font-size:11px;color:var(--slate);margin-bottom:10px;line-height:1.5;}
-.mini-upload{border:1.5px dashed var(--border);border-radius:9px;padding:13px;text-align:center;cursor:pointer;position:relative;background:var(--white);transition:all .2s;margin-bottom:8px;}
-.mini-upload:hover{border-color:var(--teal);background:var(--teal-bg);}
-.mini-upload input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;padding:0;border:none;box-shadow:none;}
-.mini-upload-icon{font-size:18px;margin-bottom:4px;}
-.mini-upload-text{font-size:11px;color:var(--muted);}
-.mini-upload-text strong{color:var(--teal);}
-.cat-files{display:flex;flex-direction:column;gap:5px;}
-.cat-file-item{display:flex;align-items:center;gap:8px;background:var(--green-bg);border:1px solid #A7F3D0;border-radius:7px;padding:7px 10px;font-size:11px;}
-.cat-file-item .fn{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dark);font-weight:500;}
-.cat-file-item .fsz{color:var(--muted);white-space:nowrap;}
-.cat-file-item .fdel{background:none;border:none;cursor:pointer;color:var(--muted);border-radius:5px;padding:1px 5px;transition:all .15s;font-size:13px;}
-.cat-file-item .fdel:hover{background:#FEE2E2;color:var(--red);}
-.denial-upload-zone{border:2px dashed var(--violet-bd);border-radius:13px;padding:24px 18px;text-align:center;cursor:pointer;transition:all .2s;background:var(--white);margin-bottom:14px;position:relative;}
-.denial-upload-zone:hover,.denial-upload-zone.has-file{border-color:var(--violet);background:var(--violet-bg);}
-.denial-upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;padding:0;border:none;box-shadow:none;}
-.denial-upload-icon{font-size:28px;margin-bottom:8px;}
-.denial-upload-title{font-size:13px;font-weight:600;color:var(--dark);margin-bottom:4px;}
-.denial-upload-sub{font-size:11px;color:var(--muted);}
-.denial-file-ready{display:none;align-items:center;gap:10px;background:var(--violet-bg);border:1.5px solid var(--violet-bd);border-radius:10px;padding:10px 14px;margin-bottom:14px;}
-.denial-file-ready.show{display:flex;}
-.denial-file-ready span{flex:1;font-size:12px;font-weight:600;color:var(--violet-d);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.denial-file-ready button{background:none;border:none;cursor:pointer;color:var(--muted);font-size:14px;}
-.verify-badge{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:9px;font-size:12px;font-weight:600;margin-bottom:6px;}
-.verify-badge.pass{background:var(--green-bg);color:#065F46;}
-.verify-badge.warn{background:var(--amber-bg);color:var(--amber-d);}
-.verify-badge.fail{background:var(--red-bg);color:#991B1B;}
-.verify-badge.pending{background:var(--light);color:var(--muted);}
-.form-nav{display:flex;justify-content:space-between;align-items:center;padding:16px 22px 22px;border-top:1px solid var(--border);margin-top:auto;}
-.btn{display:inline-flex;align-items:center;gap:7px;padding:10px 20px;border-radius:9px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;border:none;outline:none;}
-.btn-primary-teal{background:linear-gradient(135deg,var(--teal-d),var(--teal));color:#fff;box-shadow:0 4px 14px rgba(13,148,136,.35);}
-.btn-primary-teal:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(13,148,136,.45);}
-.btn-primary-violet{background:linear-gradient(135deg,var(--violet-d),var(--violet-l));color:#fff;box-shadow:0 4px 14px rgba(124,58,237,.35);}
-.btn-primary-violet:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(124,58,237,.45);}
-.btn:active{transform:translateY(0);}
+.cols-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+@media(max-width:500px){.cols-2{grid-template-columns:1fr;}}
+
+.badge{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:9px;font-size:12px;font-weight:600;margin-bottom:6px;}
+.badge-ok{background:var(--green-bg);color:#065F46;border:1px solid #A7F3D0;}
+.badge-warn{background:var(--amber-bg);color:var(--amber-d);border:1px solid #FDE68A;}
+.badge-err{background:var(--red-bg);color:#991B1B;border:1px solid #FECACA;}
+.badge-info{background:var(--teal-bg);color:var(--teal-d);border:1px solid var(--teal-bd);}
+
+.result-box{background:var(--light);border:1.5px solid var(--border);border-radius:11px;padding:14px;margin-bottom:14px;}
+.result-box h4{font-size:13px;font-weight:700;color:var(--dark);margin-bottom:6px;}
+.result-box pre{font-size:11px;color:var(--slate);white-space:pre-wrap;word-break:break-word;line-height:1.6;font-family:'DM Sans',sans-serif;}
+
+.upload-zone{border:2px dashed var(--border);border-radius:12px;padding:20px;text-align:center;cursor:pointer;transition:all .2s;position:relative;margin-bottom:10px;}
+.upload-zone:hover{border-color:var(--teal);background:var(--teal-bg);}
+.upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.upload-zone-text{font-size:12px;color:var(--muted);}
+.upload-zone-text strong{color:var(--teal);}
+.file-list{display:flex;flex-direction:column;gap:5px;margin-bottom:14px;}
+.file-item{display:flex;align-items:center;gap:8px;background:var(--green-bg);border:1px solid #A7F3D0;border-radius:7px;padding:7px 10px;font-size:11px;}
+.file-item .fn{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dark);font-weight:500;}
+.file-item .fdel{background:none;border:none;cursor:pointer;color:var(--muted);font-size:13px;}
+.file-item .fdel:hover{color:var(--red);}
+
+.nav-bar{display:flex;justify-content:space-between;align-items:center;padding:16px 24px;border-top:1px solid var(--border);}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:10px 20px;border-radius:9px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;border:none;}
+.btn-primary{background:linear-gradient(135deg,var(--teal-d),var(--teal));color:#fff;box-shadow:0 4px 14px rgba(13,148,136,.35);}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(13,148,136,.45);}
 .btn-ghost{background:transparent;color:var(--slate);border:1.5px solid var(--border);}
-.btn-ghost:hover{background:var(--light);border-color:var(--muted);color:var(--dark);}
-.btn-ghost.invisible{visibility:hidden;}
+.btn-ghost:hover{background:var(--light);}
 .btn:disabled{opacity:.5;cursor:not-allowed;transform:none;}
-.success-screen{padding:36px 22px;text-align:center;display:none;}
-.success-screen.show{display:block;}
-.success-icon{width:68px;height:68px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:30px;margin:0 auto 16px;animation:bounceIn .6s cubic-bezier(.34,1.56,.64,1) both;}
-.success-icon.teal{background:var(--green-bg);border:3px solid #A7F3D0;}
-.success-icon.violet{background:var(--violet-bg);border:3px solid var(--violet-bd);}
-.success-screen h2{font-family:'DM Serif Display',serif;font-size:21px;color:var(--dark);margin-bottom:8px;}
-.success-screen p{color:var(--slate);font-size:13px;line-height:1.6;max-width:360px;margin:0 auto 16px;}
-.case-number{display:inline-block;font-family:'DM Serif Display',serif;font-size:16px;color:var(--teal);background:var(--teal-bg);border:1.5px solid var(--teal-bd);padding:8px 20px;border-radius:11px;margin-bottom:20px;letter-spacing:.5px;}
-.case-number.violet{color:var(--violet);background:var(--violet-bg);border-color:var(--violet-bd);}
-.delivery-timeline{display:flex;justify-content:center;gap:0;max-width:380px;margin:0 auto 22px;}
-.tl-step{flex:1;text-align:center;position:relative;}
-.tl-step:not(:last-child)::after{content:'';position:absolute;top:14px;right:-50%;width:100%;height:2px;background:var(--border);z-index:0;}
-.tl-dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;margin:0 auto 6px;position:relative;z-index:1;}
-.tl-dot.done-teal{background:var(--teal);color:#fff;}
-.tl-dot.done-violet{background:var(--violet);color:#fff;}
-.tl-dot.pending{background:var(--light);border:2px solid var(--border);color:var(--muted);}
-.spinner{width:14px;height:14px;border:2px solid var(--teal-bd);border-top-color:var(--teal);border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0;}
-.spinner.violet{border-color:var(--violet-bd);border-top-color:var(--violet);}
-.hard-gate{display:none;background:#FEF2F2;border:1.5px solid #FECACA;border-left:4px solid #DC2626;border-radius:11px;padding:12px 14px;margin-bottom:16px;}
-.hard-gate-title{font-size:12px;font-weight:700;color:#991B1B;margin-bottom:4px;}
-.hard-gate-body{font-size:12px;color:#7F1D1D;}
-.hard-gate-list{margin:6px 0 0 14px;font-size:11px;color:#991B1B;}
-.confirm-check-item{display:flex;align-items:flex-start;gap:9px;padding:8px 0;border-bottom:1px solid var(--teal-bd);}
-.confirm-check-item:last-child{border-bottom:none;}
-.confirm-check-item input[type=checkbox]{width:15px;height:15px;min-width:15px;accent-color:var(--teal);cursor:pointer;margin-top:1px;padding:0;border:none;box-shadow:none;}
-.confirm-check-item label{font-size:12px;color:var(--dark);line-height:1.4;cursor:pointer;}
-.hipaa-footer{text-align:center;padding:13px 20px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;}
+.btn-hidden{visibility:hidden;}
+
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--teal-bd);border-top-color:var(--teal);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
+
+.comor-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;}
+@media(max-width:500px){.comor-grid{grid-template-columns:1fr;}}
+.comor-item{display:flex;align-items:center;gap:8px;padding:9px 12px;border:1.5px solid var(--border);border-radius:9px;cursor:pointer;transition:all .2s;font-size:12px;font-weight:500;color:var(--dark);}
+.comor-item:hover{border-color:var(--teal);background:var(--teal-bg);}
+.comor-item.selected{border-color:var(--teal);background:var(--teal-bg);color:var(--teal-d);font-weight:700;}
+.comor-item input{display:none;}
+
+.brief-doc{background:#fff;border:2px solid var(--border);border-radius:12px;padding:24px;margin:14px 0;font-size:12px;line-height:1.7;color:var(--dark);font-family:'DM Sans',monospace;white-space:pre-wrap;max-height:500px;overflow-y:auto;}
+
+/* Report styled view */
+.rpt{background:#fff;border-radius:16px;border:2px solid var(--border);overflow:hidden;margin:14px 0;}
+.rpt-header{background:var(--dark);color:#fff;padding:20px 24px;display:flex;align-items:center;gap:14px;}
+.rpt-header-logo{width:40px;height:40px;background:linear-gradient(135deg,#0F766E,#14B8A6);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;flex-shrink:0;}
+.rpt-header-text h2{font-family:'DM Serif Display',serif;font-size:18px;margin-bottom:2px;}
+.rpt-header-text p{font-size:11px;color:#94A3B8;}
+.rpt-meta{display:flex;flex-wrap:wrap;gap:10px;padding:14px 24px;background:var(--light);border-bottom:1px solid var(--border);font-size:12px;color:var(--slate);}
+.rpt-meta strong{color:var(--dark);}
+.rpt-section{border-bottom:1px solid var(--border);padding:0;}
+.rpt-section:last-child{border-bottom:none;}
+.rpt-sec-head{display:flex;align-items:center;gap:10px;padding:14px 24px;cursor:pointer;user-select:none;}
+.rpt-sec-icon{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff;flex-shrink:0;}
+.rpt-sec-icon.ok{background:var(--green);}
+.rpt-sec-icon.warn{background:var(--amber);}
+.rpt-sec-icon.err{background:var(--red);}
+.rpt-sec-icon.info{background:var(--teal);}
+.rpt-sec-title{flex:1;font-size:13px;font-weight:700;color:var(--dark);}
+.rpt-sec-badge{font-size:10px;font-weight:700;padding:3px 10px;border-radius:100px;letter-spacing:.5px;}
+.rpt-sec-badge.ok{background:var(--green-bg);color:#065F46;}
+.rpt-sec-badge.warn{background:var(--amber-bg);color:var(--amber-d);}
+.rpt-sec-badge.err{background:var(--red-bg);color:#991B1B;}
+.rpt-sec-body{padding:0 24px 18px;display:none;}
+.rpt-section.open .rpt-sec-body{display:block;}
+.rpt-plantilla{background:var(--teal-bg);border:1.5px solid var(--teal-bd);border-radius:10px;padding:14px 16px;margin-top:8px;font-size:12.5px;line-height:1.75;color:var(--dark);font-family:'DM Sans',sans-serif;}
+.rpt-plantilla p{margin:0 0 10px;}
+.rpt-plantilla p:last-child{margin-bottom:0;}
+.rpt-plantilla .blank{display:inline;background:#fff;border:1.5px dashed var(--teal);border-radius:4px;padding:1px 8px;font-weight:600;color:var(--teal-d);font-size:11.5px;white-space:nowrap;}
+.rpt-plantilla .norma{display:block;margin-top:10px;padding-top:8px;border-top:1px solid var(--teal-bd);font-size:11px;color:var(--teal-d);font-weight:600;}
+.rpt-plantilla-label{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--teal-d);margin-bottom:6px;}
+.rpt-faltantes{background:var(--amber-bg);border:1.5px solid #FDE68A;border-radius:10px;padding:10px 14px;margin-top:8px;font-size:11px;color:var(--amber-d);}
+.rpt-comor{border:1.5px solid var(--border);border-radius:11px;margin-bottom:10px;overflow:hidden;}
+.rpt-comor-head{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--light);border-bottom:1px solid var(--border);cursor:pointer;}
+.rpt-comor-head .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.rpt-comor-head .dot.ok{background:var(--green);}
+.rpt-comor-head .dot.warn{background:var(--amber);}
+.rpt-comor-head h5{flex:1;font-size:12px;font-weight:700;color:var(--dark);}
+.rpt-comor-body{padding:12px 14px;display:none;}
+.rpt-comor.open .rpt-comor-body{display:block;}
+.rpt-footer{padding:14px 24px;background:var(--light);border-top:1px solid var(--border);font-size:11px;color:var(--muted);line-height:1.6;}
+
+.hipaa-footer{text-align:center;padding:13px 20px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:center;gap:8px;}
 .hipaa-badge{display:inline-flex;align-items:center;gap:4px;background:var(--green-bg);border:1px solid #A7F3D0;border-radius:100px;padding:3px 9px;font-size:10px;font-weight:600;color:#065F46;}
 .hipaa-footer span{font-size:11px;color:var(--muted);}
-@keyframes fadeUp{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
-@keyframes bounceIn{from{opacity:0;transform:scale(.5);}to{opacity:1;transform:scale(1);}}
-@keyframes spin{to{transform:rotate(360deg);}}
-.waiver-box{background:#FFFBEB;border:1.5px solid #FDE68A;border-radius:11px;padding:13px 15px;margin-top:10px;display:none;}
-.waiver-box.show{display:block;}
-.waiver-box label{font-size:12px;font-weight:600;color:#92400E;display:block;margin-bottom:6px;}
-.waiver-box textarea{min-height:56px;font-size:12px;border-color:#FDE68A;}
-.waiver-box textarea:focus{border-color:var(--amber);box-shadow:0 0 0 3px rgba(245,158,11,.1);}
-.waiver-box .waiver-hint{font-size:11px;color:#78350F;margin-top:5px;line-height:1.5;}
-.doc-prog-wrap{background:var(--light);border:1.5px solid var(--border);border-radius:11px;padding:12px 14px;margin-bottom:16px;display:flex;align-items:center;gap:12px;}
 
-  /* ── LOGIN OVERLAY ─────────────────────────────────────────── */
-  .login-overlay{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;
-    background:radial-gradient(ellipse 70% 60% at 5% 15%,rgba(13,148,136,.18) 0%,transparent 55%),
-    radial-gradient(ellipse 50% 70% at 95% 85%,rgba(124,58,237,.14) 0%,transparent 55%),
-    linear-gradient(160deg,#0F172A 0%,#1E293B 50%,#0F172A 100%);}
-  .login-overlay.hidden{display:none;}
-  .login-card{background:rgba(255,255,255,.04);border:1.5px solid rgba(13,148,136,.25);border-radius:24px;padding:44px 40px;
-    width:100%;max-width:420px;backdrop-filter:blur(12px);box-shadow:0 24px 64px rgba(0,0,0,.4);}
-  .login-logo{display:flex;align-items:center;gap:12px;justify-content:center;margin-bottom:32px;}
-  .login-logo-icon{width:48px;height:48px;background:linear-gradient(135deg,#0F766E,#14B8A6);border-radius:14px;
-    display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 0 28px rgba(13,148,136,.45);}
-  .login-logo-text{font-family:'DM Serif Display',serif;font-size:24px;color:#fff;}
-  .login-logo-text span{color:#14B8A6;}
-  .login-title{text-align:center;color:#fff;font-size:20px;font-weight:600;margin-bottom:6px;}
-  .login-sub{text-align:center;color:#94A3B8;font-size:13px;margin-bottom:32px;}
-  .login-field{margin-bottom:16px;}
-  .login-field label{display:block;font-size:12px;font-weight:600;color:#94A3B8;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;}
-  .login-field input{width:100%;padding:12px 16px;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.12);
-    border-radius:10px;color:#fff;font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:border-color .2s;}
-  .login-field input:focus{border-color:rgba(13,148,136,.6);background:rgba(13,148,136,.06);}
-  .login-field input::placeholder{color:#475569;}
-  .login-btn{width:100%;padding:14px;background:linear-gradient(135deg,#0F766E,#14B8A6);border:none;border-radius:12px;
-    color:#fff;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;cursor:pointer;margin-top:8px;
-    transition:opacity .2s;letter-spacing:.2px;}
-  .login-btn:hover{opacity:.9;}
-  .login-btn:disabled{opacity:.5;cursor:not-allowed;}
-  .login-error{background:rgba(239,68,68,.1);border:1.5px solid rgba(239,68,68,.3);border-radius:10px;
-    padding:10px 14px;color:#FCA5A5;font-size:13px;margin-top:12px;display:none;}
-  .login-error.show{display:block;}
-  .login-footer{text-align:center;color:#475569;font-size:11px;margin-top:24px;}
-  .login-loading{display:none;text-align:center;color:#14B8A6;font-size:13px;margin-top:12px;}
-  .login-loading.show{display:block;}
-  /* Portal locked state */
-  .portal-locked .card input,.portal-locked .card select,.portal-locked .card textarea,
-  .portal-locked .card button:not(.lang-btn){pointer-events:none;opacity:.45;}
-  .portal-locked .card{position:relative;}
-  /* User bar */
-  .user-bar{display:flex;align-items:center;justify-content:flex-end;gap:12px;margin-bottom:12px;}
-  .user-badge{display:flex;align-items:center;gap:8px;padding:6px 14px;border-radius:100px;
-    background:rgba(13,148,136,.1);border:1px solid rgba(13,148,136,.25);color:#fff;font-size:12px;}
-  .user-badge span{color:#14B8A6;font-weight:600;}
-  .logout-btn{padding:6px 14px;border-radius:100px;border:1px solid rgba(239,68,68,.3);
-    background:rgba(239,68,68,.08);color:#FCA5A5;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;
-    transition:all .2s;}
-  .logout-btn:hover{background:rgba(239,68,68,.15);}
-
-
-/* ══ RESULTS PANEL ══════════════════════════════════════════════════════════ */
-.rp-overlay{position:fixed;inset:0;z-index:99990;background:rgba(10,14,26,.97);
-  display:none;overflow-y:auto;padding:0;}
-.rp-overlay.show{display:block;}
-.rp-wrap{max-width:1000px;margin:0 auto;padding:24px 20px 80px;}
-
-/* Top bar */
-.rp-topbar{display:flex;align-items:center;justify-content:space-between;
-  padding:16px 0 20px;border-bottom:1px solid rgba(255,255,255,.06);margin-bottom:28px;flex-wrap:wrap;gap:12px;}
-.rp-logo{display:flex;align-items:center;gap:10px;}
-.rp-logo-icon{width:36px;height:36px;background:linear-gradient(135deg,#0F766E,#14B8A6);
-  border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px;}
-.rp-logo-text{font-family:'DM Serif Display',serif;font-size:18px;color:#fff;}
-.rp-logo-text span{color:#14B8A6;}
-.rp-topbar-right{display:flex;align-items:center;gap:10px;}
-.rp-btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:9px;
-  font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;border:none;transition:all .2s;}
-.rp-btn-print{background:rgba(13,148,136,.15);border:1px solid rgba(13,148,136,.35);color:#14B8A6;}
-.rp-btn-print:hover{background:rgba(13,148,136,.25);}
-.rp-btn-close{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#94A3B8;}
-.rp-btn-close:hover{background:rgba(255,255,255,.12);color:#fff;}
-
-/* Hero */
-.rp-hero{display:grid;grid-template-columns:1fr auto;gap:24px;align-items:start;
-  background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);
-  border-radius:20px;padding:24px;margin-bottom:20px;}
-@media(max-width:600px){.rp-hero{grid-template-columns:1fr;}}
-.rp-procedure{font-family:'DM Serif Display',serif;font-size:24px;color:#F8FAFC;
-  letter-spacing:-.3px;margin-bottom:10px;}
-.rp-semaforo{display:inline-flex;align-items:center;gap:8px;padding:6px 16px;
-  border-radius:100px;font-size:12px;font-weight:700;letter-spacing:.8px;margin-bottom:14px;}
-.rps-verde{background:rgba(16,185,129,.15);border:1.5px solid rgba(16,185,129,.4);color:#34D399;}
-.rps-amarillo{background:rgba(245,158,11,.15);border:1.5px solid rgba(245,158,11,.4);color:#FCD34D;}
-.rps-rojo{background:rgba(239,68,68,.15);border:1.5px solid rgba(239,68,68,.4);color:#FCA5A5;}
-.rp-decision{font-size:14px;font-weight:600;color:#E2E8F0;margin-bottom:14px;}
-.rp-meta{display:flex;flex-wrap:wrap;gap:14px;}
-.rp-meta-chip{display:flex;align-items:center;gap:6px;font-size:12px;color:#64748B;
-  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);
-  border-radius:100px;padding:4px 12px;}
-.rp-meta-chip strong{color:#94A3B8;}
-.rp-score-box{text-align:center;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);
-  border-radius:16px;padding:20px 24px;min-width:120px;}
-.rp-score-num{font-family:'DM Serif Display',serif;font-size:52px;line-height:1;font-weight:700;}
-.rp-score-denom{font-size:14px;color:#475569;font-weight:400;}
-.rp-score-label{font-size:10px;color:#475569;letter-spacing:1px;text-transform:uppercase;margin-top:6px;}
-.rp-score-sub{font-size:10px;color:#334155;margin-top:6px;line-height:1.4;max-width:140px;}
-.score-c-verde{color:#34D399;}.score-c-amarillo{color:#FCD34D;}.score-c-rojo{color:#FCA5A5;}
-
-/* Summary */
-.rp-summary{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);
-  border-radius:14px;padding:16px 18px;margin-bottom:20px;}
-.rp-summary p{font-size:13px;color:#CBD5E1;line-height:1.7;}
-
-/* Section */
-.rp-section{margin-bottom:24px;}
-.rp-section-hdr{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
-.rp-section-hdr-line{flex:1;height:1px;background:rgba(255,255,255,.06);}
-.rp-section-title{font-size:10px;font-weight:700;letter-spacing:1.6px;
-  text-transform:uppercase;color:#475569;white-space:nowrap;}
-
-/* Criterios */
-.rp-criterio{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);
-  border-radius:14px;padding:16px 18px;margin-bottom:10px;transition:border-color .2s;}
-.rp-criterio:hover{border-color:rgba(255,255,255,.14);}
-.rp-criterio-top{display:flex;align-items:center;justify-content:space-between;
-  margin-bottom:10px;gap:12px;flex-wrap:wrap;}
-.rp-criterio-name{font-size:13px;font-weight:600;color:#E2E8F0;flex:1;}
-.rp-crit-badge{padding:4px 12px;border-radius:100px;font-size:10px;font-weight:700;
-  letter-spacing:.6px;text-transform:uppercase;white-space:nowrap;display:flex;align-items:center;gap:5px;}
-.rcb-verde{background:rgba(16,185,129,.15);color:#34D399;border:1px solid rgba(16,185,129,.3);}
-.rcb-amarillo{background:rgba(245,158,11,.12);color:#FCD34D;border:1px solid rgba(245,158,11,.25);}
-.rcb-rojo{background:rgba(239,68,68,.1);color:#FCA5A5;border:1px solid rgba(239,68,68,.2);}
-.rp-criterio-evidence{font-size:12px;color:#64748B;font-style:italic;line-height:1.6;
-  border-left:2px solid rgba(13,148,136,.5);padding-left:12px;margin-bottom:8px;}
-.rp-criterio-source{font-size:10px;color:#334155;font-style:normal;margin-top:4px;}
-.rp-criterio-nota{font-size:12px;color:#94A3B8;line-height:1.5;
-  background:rgba(255,255,255,.02);border-radius:8px;padding:8px 12px;margin-top:8px;
-  border-left:2px solid rgba(124,58,237,.4);}
-
-/* CPT / ICD */
-.rp-codes-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:4px;}
-@media(max-width:550px){.rp-codes-grid{grid-template-columns:1fr;}}
-.rp-code-box{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);
-  border-radius:14px;padding:16px 18px;}
-.rp-code-label{font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;
-  color:#475569;margin-bottom:8px;}
-.rp-code-val{font-family:monospace;font-size:22px;font-weight:700;color:#F8FAFC;margin-bottom:6px;}
-.rp-code-status{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;
-  border-radius:100px;font-size:11px;font-weight:700;margin-bottom:8px;}
-.rcs-ok{background:rgba(16,185,129,.12);color:#34D399;border:1px solid rgba(16,185,129,.25);}
-.rcs-warn{background:rgba(245,158,11,.1);color:#FCD34D;border:1px solid rgba(245,158,11,.2);}
-.rp-code-desc{font-size:11px;color:#475569;line-height:1.4;}
-.rp-code-nota{font-size:11px;color:#64748B;margin-top:6px;font-style:italic;}
-
-/* Sugerencias */
-.rp-sug{display:flex;gap:14px;padding:14px 16px;background:rgba(255,255,255,.03);
-  border:1px solid rgba(255,255,255,.07);border-radius:14px;margin-bottom:10px;
-  transition:border-color .2s;}
-.rp-sug:hover{border-color:rgba(255,255,255,.14);}
-.rp-sug-left{display:flex;flex-direction:column;align-items:center;gap:8px;flex-shrink:0;padding-top:2px;}
-.rp-sug-priority{padding:4px 10px;border-radius:100px;font-size:10px;font-weight:700;
-  white-space:nowrap;letter-spacing:.5px;}
-.rsp-alta{background:rgba(239,68,68,.12);color:#FCA5A5;border:1px solid rgba(239,68,68,.2);}
-.rsp-media{background:rgba(245,158,11,.1);color:#FCD34D;border:1px solid rgba(245,158,11,.2);}
-.rsp-baja{background:rgba(16,185,129,.1);color:#86EFAC;border:1px solid rgba(16,185,129,.18);}
-.rp-sug-num{font-family:'DM Serif Display',serif;font-size:18px;color:#1E293B;
-  background:rgba(255,255,255,.06);width:28px;height:28px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;}
-.rp-sug-right{flex:1;}
-.rp-sug-role{font-size:10px;color:#475569;font-weight:700;text-transform:uppercase;
-  letter-spacing:.8px;margin-bottom:5px;}
-.rp-sug-text{font-size:13px;color:#E2E8F0;line-height:1.6;margin-bottom:6px;}
-.rp-sug-razon{font-size:11px;color:#475569;line-height:1.4;font-style:italic;}
-
-/* Fundamento */
-.rp-fundamento{background:rgba(13,148,136,.06);border:1px solid rgba(13,148,136,.2);
-  border-radius:14px;padding:16px 18px;margin-bottom:10px;}
-.rp-fundamento-decl{font-size:13px;font-weight:600;color:#14B8A6;margin-bottom:12px;}
-.rp-evidencia{padding:10px 14px;background:rgba(255,255,255,.03);border-radius:10px;
-  margin-bottom:8px;border-left:2px solid rgba(13,148,136,.4);}
-.rp-evidencia-crit{font-size:11px;font-weight:700;color:#94A3B8;margin-bottom:5px;
-  text-transform:uppercase;letter-spacing:.6px;}
-.rp-evidencia-cita{font-size:12px;color:#CBD5E1;font-style:italic;line-height:1.6;margin-bottom:4px;}
-.rp-evidencia-doc{font-size:10px;color:#334155;}
-
-/* Documentos faltantes */
-.rp-docfalt{display:flex;gap:12px;padding:12px 14px;background:rgba(239,68,68,.06);
-  border:1px solid rgba(239,68,68,.15);border-radius:12px;margin-bottom:8px;}
-.rp-docfalt-icon{font-size:18px;flex-shrink:0;padding-top:2px;}
-.rp-docfalt-doc{font-size:13px;font-weight:600;color:#FCA5A5;margin-bottom:4px;}
-.rp-docfalt-quien{font-size:11px;color:#64748B;margin-bottom:3px;}
-.rp-docfalt-como{font-size:11px;color:#94A3B8;font-style:italic;}
-
-/* Drive notice */
-.rp-drive-notice{display:flex;align-items:center;gap:14px;background:rgba(13,148,136,.08);
-  border:1.5px solid rgba(13,148,136,.3);border-radius:14px;padding:16px 20px;margin-bottom:20px;}
-.rp-drive-icon{font-size:28px;flex-shrink:0;}
-.rp-drive-text{flex:1;}
-.rp-drive-title{font-size:13px;font-weight:700;color:#14B8A6;margin-bottom:3px;}
-.rp-drive-sub{font-size:12px;color:#475569;}
-.rp-drive-link{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;
-  background:rgba(13,148,136,.15);border:1px solid rgba(13,148,136,.3);border-radius:8px;
-  color:#14B8A6;font-size:12px;font-weight:600;text-decoration:none;transition:all .2s;flex-shrink:0;}
-.rp-drive-link:hover{background:rgba(13,148,136,.25);}
-
-/* Disclaimer */
-.rp-disclaimer{text-align:center;font-size:10px;color:#1E3A5F;line-height:1.6;
-  padding:16px;border-top:1px solid rgba(255,255,255,.04);margin-top:8px;}
-
-/* Print */
-@media print{
-  .rp-topbar-right,.rp-btn{display:none!important;}
-  .rp-overlay{background:#fff!important;color:#000!important;}
-  .rp-hero,.rp-criterio,.rp-sug,.rp-code-box,.rp-fundamento,.rp-docfalt,.rp-summary,.rp-drive-notice{
-    background:#F8FAFC!important;border:1px solid #E2E8F0!important;color:#000!important;}
-  .rp-procedure,.rp-criterio-name,.rp-sug-text,.rp-evidencia-cita,.rp-decision{color:#000!important;}
-  .rp-score-num,.rp-code-val{color:#0F172A!important;}
-  .score-c-verde,.score-c-amarillo,.score-c-rojo{color:#0F172A!important;}
-  .rp-criterio-evidence{border-color:#0D9488!important;}
-  body > *:not(.rp-overlay){display:none!important;}
-  .rp-overlay{position:static!important;display:block!important;}
-}
+/* Side-by-side layout for analysis + brief */
+.split-view{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:14px;}
+@media(max-width:700px){.split-view{grid-template-columns:1fr;}}
+.split-col{min-width:0;}
+.split-col-header{display:flex;align-items:center;gap:6px;margin-bottom:8px;padding-bottom:6px;border-bottom:1.5px solid var(--border);}
+.split-col-header h4{font-size:12px;font-weight:700;color:var(--dark);text-transform:uppercase;letter-spacing:.5px;}
+.split-col-header .col-icon{font-size:14px;}
+.brief-col{background:var(--teal-bg);border:1.5px solid var(--teal-bd);border-radius:11px;padding:14px;}
+.brief-col.warn{background:var(--amber-bg);border-color:#FDE68A;}
+.brief-col.error{background:var(--red-bg);border-color:#FECACA;}
+.brief-col pre{font-size:11px;color:var(--dark);white-space:pre-wrap;word-break:break-word;line-height:1.6;font-family:'DM Sans',sans-serif;}
+.brief-col .copy-btn{margin-top:10px;padding:6px 12px;border-radius:7px;border:1px solid var(--teal-bd);background:rgba(255,255,255,.7);color:var(--teal-d);font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.brief-col .copy-btn:hover{background:var(--white);}
 
 </style>
 </head>
 <body>
-
-<!-- LOGIN OVERLAY -->
-<div class="login-overlay" id="loginOverlay">
-  <div class="login-card">
-    <div class="login-logo">
-      <div class="login-logo-icon">⚕</div>
-      <div class="login-logo-text">Vindica<span>Health</span></div>
-    </div>
-    <div class="login-title">Acceso al Portal Clínico</div>
-    <div class="login-sub">Ingresa tus credenciales para continuar</div>
-    <div class="login-field">
-      <label>Email</label>
-      <input type="email" id="loginEmail" placeholder="doctor@practica.com" autocomplete="email">
-    </div>
-    <div class="login-field">
-      <label>Contraseña</label>
-      <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password">
-    </div>
-    <button class="login-btn" id="loginBtn" onclick="doLogin()">Entrar al Portal</button>
-    <div class="login-loading" id="loginLoading">Verificando credenciales...</div>
-    <div class="login-error" id="loginError"></div>
-    <div class="login-footer">🔒 HIPAA Compliant · BAA activo · Acceso solo para personal autorizado</div>
-  </div>
-</div>
-
 <div class="bg-layer"></div>
 <div class="grid-overlay"></div>
-<div class="outer">
 
-  
-<div class="user-bar" id="userBar" style="display:none;">
-  <div class="user-badge">👤 <span id="userEmail"></span></div>
-  <button class="logout-btn" onclick="doLogout()">Cerrar sesión</button>
-</div>
+<!-- Auth redirect — uses same login as index.html -->
 
-<div class="lang-bar">
-    <button class="lang-btn" onclick="toggleLang()">
-      <span id="langFlag">🇺🇸</span>
-      <span id="langBtnLabel">Switch to English</span>
-    </button>
+<div class="outer" id="mainApp" style="display:none;">
+  <div class="user-bar">
+    <div class="user-badge"><span id="userEmail"></span></div>
+    <button class="logout-btn" onclick="doLogout()">Cerrar sesion</button>
   </div>
+
+  <a href="portal.html" class="back-link">&larr; Volver al portal principal</a>
 
   <div class="header">
-    <div class="logo-mark">
-      <div class="logo-icon"><img src="logo.png" alt="V" style="width:30px;height:30px;border-radius:6px;"></div>
-      <div class="logo-text">Vindica <span>Health</span></div>
-    </div>
-    <h1 data-es="Portal Clínico Inteligente" data-en="Clinical Intelligence Portal">Portal Clínico Inteligente</h1>
-    <p data-es="Pre-Autorización y Apelaciones — en una sola pantalla · v4.9.2" data-en="Pre-Authorization and Appeals — in one screen · v4.9.2">Pre-Autorización y Apelaciones — en una sola pantalla · v4.9.2</p>
-    <a href="portal-v5.html" style="display:inline-flex;align-items:center;gap:8px;margin-top:12px;padding:10px 20px;background:rgba(13,148,136,.12);border:1.5px solid rgba(13,148,136,.4);border-radius:10px;color:#14B8A6;font-size:13px;font-weight:600;text-decoration:none;transition:all .2s;" onmouseover="this.style.background='rgba(13,148,136,.22)'" onmouseout="this.style.background='rgba(13,148,136,.12)'">Brief Builder v5 →</a>
-    <div class="header-divider"></div>
+    <div class="logo-mark"><div class="logo-icon"><img src="logo.png" alt="V" style="width:30px;height:30px;border-radius:6px;"></div><div class="logo-text">Vindica<span>Health</span></div></div>
+    <h1>Brief Builder v5</h1>
+    <p>Genera el brief de pre-autorizacion paso a paso conforme a LCD L33618 y A57765 FCSO.</p>
   </div>
 
-  <div class="sla-row">
-    <div class="sla-item">
-      <div class="sla-time" data-es="2–5 minutos" data-en="2–5 minutes">2–5 minutos</div>
-      <div class="sla-label" data-es="Reporte de compliance" data-en="Compliance report">Reporte de compliance</div>
-    </div>
-    <div class="sla-div"></div>
-    <div class="sla-item">
-      <div class="sla-time">Zero Trust</div>
-      <div class="sla-label" data-es="Doble agente verificador" data-en="Dual agent verification">Doble agente verificador</div>
-    </div>
-    <div class="sla-div"></div>
-    <div class="sla-item">
-      <div class="sla-time" data-es="Triple Verificación" data-en="Triple Verification">Triple Verificación</div>
-      <div class="sla-label" data-es="Apelaciones — ID + Paciente + CPT" data-en="Appeals — ID + Patient + CPT">Apelaciones — ID + Paciente + CPT</div>
-    </div>
-    <div class="sla-div"></div>
-    <div class="sla-item">
-      <div class="sla-time">100% HIPAA</div>
-      <div class="sla-label" data-es="BAA activo · End-to-end" data-en="Active BAA · End-to-end">BAA activo · End-to-end</div>
-    </div>
-  </div>
-
-  <div class="split">
-
-<!-- LEFT: PRE-AUTORIZACIÓN -->
-<div>
-  <div class="panel-label">
-    <div class="panel-label-dot" style="background:#14B8A6;"></div>
-    <div class="panel-label-text" data-es="Nuevo Caso — Pre-Autorización" data-en="New Case — Pre-Authorization">Nuevo Caso — Pre-Autorización</div>
-  </div>
-  <div class="card" id="preAuthCard">
-    <div class="progress-bar"><div class="progress-fill pf-teal" id="paProgressFill"></div></div>
-    <div class="progress-steps" id="paSteps">
-      <div class="step active-teal" id="pas1"><div class="step-num">1</div><span class="step-label" data-es="Práctica" data-en="Practice">Práctica</span></div>
-      <div class="step" id="pas2"><div class="step-num">2</div><span class="step-label" data-es="Paciente" data-en="Patient">Paciente</span></div>
-      <div class="step" id="pas3"><div class="step-num">3</div><span class="step-label" data-es="Docs" data-en="Docs">Docs</span></div>
-      <div class="step" id="pas4"><div class="step-num">4</div><span class="step-label" data-es="Confirmar" data-en="Confirm">Confirmar</span></div>
+  <div class="card">
+    <div class="progress-bar"><div class="progress-fill" id="progFill" style="width:20%"></div></div>
+    <div class="steps-row">
+      <div class="step active" id="st0" onclick="goStep(0)"><div class="step-num">0</div><span>Codigos</span></div>
+      <div class="step locked" id="st1" onclick="goStep(1)"><div class="step-num">1</div><span>Radiologia</span></div>
+      <div class="step locked" id="st2" onclick="goStep(2)"><div class="step-num">2</div><span>Terapia</span></div>
+      <div class="step locked" id="st3" onclick="goStep(3)"><div class="step-num">3</div><span>Labs</span></div>
+      <div class="step locked" id="st4" onclick="goStep(4)"><div class="step-num">4</div><span>Brief</span></div>
     </div>
 
-    <!-- STEP 1 -->
-    <div class="form-section active" id="pa_s1">
-      <div class="section-tag-teal" data-es="Paso 1 de 4" data-en="Step 1 of 4">Paso 1 de 4</div>
-      <div class="section-title" data-es="Información de la Práctica" data-en="Practice Information">Información de la Práctica</div>
-      <div class="section-desc" data-es="Datos del médico y la práctica médica." data-en="Physician and practice details.">Datos del médico y la práctica médica.</div>
-      <div class="field-grid cols-2">
-        <div class="field">
-          <label><span data-es="Nombre del médico" data-en="Physician name">Nombre del médico</span> <span class="req">*</span></label>
-          <input type="text" id="pa_doctorName" placeholder="Dr. García López">
-          <span class="error-msg" id="pa_err-doctorName" data-es="Campo requerido" data-en="Required field">Campo requerido</span>
-        </div>
-        <div class="field">
-          <label><span data-es="Nombre de la práctica" data-en="Practice name">Nombre de la práctica</span> <span class="req">*</span></label>
-          <input type="text" id="pa_practiceName" placeholder="Ortopedia San Juan">
-          <span class="error-msg" id="pa_err-practiceName" data-es="Campo requerido" data-en="Required field">Campo requerido</span>
-        </div>
-      </div>
-      <div class="field-grid cols-2">
-        <div class="field">
-          <label><span data-es="Email de contacto" data-en="Contact email">Email de contacto</span> <span class="req">*</span></label>
-          <input type="email" id="pa_contactEmail" placeholder="office@practice.com">
-          <span class="error-msg" id="pa_err-contactEmail" data-es="Email válido requerido" data-en="Valid email required">Email válido requerido</span>
-        </div>
-        <div class="field">
-          <label><span data-es="Teléfono" data-en="Phone">Teléfono</span> <span class="hint">(opcional)</span></label>
-          <input type="text" id="pa_contactPhone" placeholder="787-000-0000">
-        </div>
-      </div>
-      <div class="field-grid">
-        <div class="field">
-          <label><span data-es="Plan MA del paciente" data-en="Patient MA Plan">Plan MA del paciente</span> <span class="req">*</span></label>
-          <select id="pa_insurancePlan">
-            <option value="" data-es="— Seleccionar plan —" data-en="— Select plan —">— Seleccionar plan —</option>
-            <!-- FIX-B03: valores ya en formato normalizado que espera CF v4.8 -->
-            <option value="triple-s">Triple-S Salud (Medicare Advantage)</option>
-            <option value="mcs">MCS Classicare</option>
-            <option value="humana-pr">Humana Puerto Rico</option>
-            <option value="molina-pr">Molina Healthcare PR</option>
-            <option value="first-medical" disabled style="color:#94A3B8;" data-es="First Medical — próximamente" data-en="First Medical — coming soon">First Medical Health Plan — próximamente</option>
-          </select>
-          <span class="error-msg" id="pa_err-insurancePlan" data-es="Seleccione el plan" data-en="Select the plan">Seleccione el plan</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- STEP 2 -->
-    <div class="form-section" id="pa_s2">
-      <div class="section-tag-teal" data-es="Paso 2 de 4" data-en="Step 2 of 4">Paso 2 de 4</div>
-      <div class="section-title" data-es="Paciente y Procedimiento" data-en="Patient & Procedure">Paciente y Procedimiento</div>
-      <div class="section-desc" data-es="Solo iniciales del paciente — HIPAA." data-en="Patient initials only — HIPAA.">Solo iniciales del paciente — HIPAA.</div>
-      <div class="info-box"><span>🔒</span>
-        <p data-es="&lt;strong&gt;HIPAA:&lt;/strong&gt; Ingrese solo las iniciales (ej. J.R.M.). No ingrese nombre completo." data-en="&lt;strong&gt;HIPAA:&lt;/strong&gt; Enter initials only (e.g. J.R.M.). No full name."><strong>HIPAA:</strong> Ingrese solo las iniciales (ej. J.R.M.). No ingrese nombre completo.</p>
-      </div>
-      <div class="field-grid cols-3" style="grid-template-columns:1fr 1fr 1fr;">
-        <div class="field">
-          <label><span data-es="Iniciales del paciente" data-en="Patient initials">Iniciales del paciente</span> <span class="req">*</span></label>
-          <input type="text" id="pa_patientInitials" placeholder="J.R.M." maxlength="10">
-          <span class="error-msg" id="pa_err-patientInitials">Requerido</span>
-        </div>
-        <div class="field">
-          <label><span data-es="ICD-10" data-en="ICD-10">ICD-10</span> <span class="req">*</span></label>
-          <input type="text" id="pa_icd10" placeholder="M16.11, M17.11, etc." maxlength="10">
-          <span class="error-msg" id="pa_err-icd10">Requerido</span>
-        </div>
-        <div class="field">
-          <label><span data-es="Fecha propuesta de cirugía" data-en="Proposed surgery date">Fecha propuesta</span> <span class="req">*</span></label>
-          <input type="date" id="pa_surgeryDate">
-          <span class="error-msg" id="pa_err-surgeryDate">Requerido</span>
-        </div>
-      </div>
-      <div class="field-grid">
-        <div class="field">
-          <label><span data-es="Procedimiento quirúrgico" data-en="Surgical procedure">Procedimiento</span> <span class="req">*</span></label>
-          <select id="pa_procedure" onchange="paUpdateDocChecklist()">
-            <option value="" data-es="— Seleccionar —" data-en="— Select —">— Seleccionar —</option>
-            <option value="TKA">Total Knee Arthroplasty (TKA) — CPT 27447</option>
-            <option value="THA">Total Hip Arthroplasty (THA) — CPT 27130</option>
-            <option value="LUMBAR" data-es="Fusión Lumbar — CPT 22612" data-en="Lumbar Fusion — CPT 22612">Fusión Lumbar — CPT 22612</option>
-            <option value="CERVICAL" data-es="Fusión Cervical — CPT 22551" data-en="Cervical Fusion — CPT 22551">Fusión Cervical — CPT 22551</option>
-            <option value="ARTHROSCOPY" data-es="Artroscopía Rodilla — CPT 29881" data-en="Knee Arthroscopy — CPT 29881">Artroscopía Rodilla — CPT 29881</option>
-            <option value="SHOULDER" data-es="Shoulder Replacement — CPT 23472" data-en="Shoulder Replacement — CPT 23472">Shoulder Replacement — CPT 23472</option>
-          </select>
-          <span class="error-msg" id="pa_err-procedure">Requerido</span>
-        </div>
-      </div>
-      <div class="field-grid cols-2">
-        <div class="field">
-          <label data-es="Lateralidad" data-en="Laterality">Lateralidad</label>
-          <select id="pa_laterality">
-            <option value="" data-es="— Si aplica —" data-en="— If applicable —">— Si aplica —</option>
-            <option value="right" data-es="Derecha" data-en="Right">Derecha</option>
-            <option value="left" data-es="Izquierda" data-en="Left">Izquierda</option>
-            <option value="bilateral">Bilateral</option>
-            <option value="na" data-es="No aplica" data-en="N/A">No aplica</option>
+    <!-- PASO 0: Codigos -->
+    <div class="panel active" id="p0">
+      <div class="panel-tag">Paso 0</div>
+      <div class="panel-title">Verificacion de Codigos</div>
+      <div class="panel-desc">Valida CPT, ICD-10 y plan antes de continuar. Sin Gemini, 100% determinista.</div>
+      <div class="cols-2">
+        <div class="field"><label>CPT <span class="req">*</span></label>
+          <select id="f_cpt">
+            <option value="">Seleccionar...</option>
+            <option value="27447">27447 — Total Knee Arthroplasty</option>
+            <option value="27130">27130 — Total Hip Arthroplasty</option>
+            <option value="27486">27486 — Revision TKA (femoral+tibial)</option>
+            <option value="27487">27487 — Revision TKA (all components)</option>
+            <option value="27132">27132 — Conversion to THA</option>
+            <option value="27134">27134 — Revision THA (both)</option>
           </select>
         </div>
-        <div class="field">
-          <label><span data-es="Tipo de análisis" data-en="Analysis type">Tipo de análisis</span> <span class="req">*</span></label>
-          <select id="pa_analysisType">
-            <option value="" data-es="— Seleccionar —" data-en="— Select —">— Seleccionar —</option>
-            <option value="pre-visit" data-es="Pre-Visit Prep" data-en="Pre-Visit Prep">Pre-Visit Prep</option>
-            <option value="pre-submission" data-es="Pre-Submission" data-en="Pre-Submission">Pre-Submission</option>
-            <option value="post-pend" data-es="Post-Pend" data-en="Post-Pend">Post-Pend</option>
-          </select>
-          <span class="error-msg" id="pa_err-analysisType">Requerido</span>
-        </div>
+        <div class="field"><label>ICD-10 <span class="req">*</span></label><input type="text" id="f_icd10" placeholder="M17.12"></div>
       </div>
-      <div class="field-grid">
-        <div class="field">
-          <label><span data-es="Notas adicionales" data-en="Additional notes">Notas adicionales</span> <span class="hint">(opcional)</span></label>
-          <textarea id="pa_notes" placeholder="Contexto clínico relevante..."></textarea>
-        </div>
+      <div class="field"><label>Plan <span class="req">*</span></label>
+        <select id="f_plan">
+          <option value="">Seleccionar...</option>
+          <option value="triple-s">Triple-S Salud (Medicare Advantage)</option>
+          <option value="mcs">MCS Classicare</option>
+          <option value="molina-pr">Molina Healthcare PR</option>
+        </select>
       </div>
+      <div id="r0" style="display:none;margin-top:14px;"></div>
     </div>
 
-    <!-- STEP 3 -->
-    <div class="form-section" id="pa_s3">
-      <div class="section-tag-teal" data-es="Paso 3 de 4" data-en="Step 3 of 4">Paso 3 de 4</div>
-      <div class="section-title" data-es="Documentos del Expediente" data-en="Medical Record Documents">Documentos del Expediente</div>
-      <div class="section-desc" data-es="Cargue cada tipo en su categoría. Los marcados como REQUERIDO deben cargarse." data-en="Upload each document type in its category. REQUIRED must be uploaded.">Cargue cada tipo en su categoría. Los marcados como REQUERIDO deben cargarse.</div>
-      <div id="pa_hardGate" class="hard-gate">
-        <div class="hard-gate-title" id="pa_hardGateTitle">⛔ Documentos faltantes</div>
-        <div class="hard-gate-body" id="pa_hardGateBody">Suba los documentos requeridos antes de continuar.</div>
-        <ul class="hard-gate-list" id="pa_hardGateList"></ul>
+    <!-- PASO 1: Radiologia -->
+    <div class="panel" id="p1">
+      <div class="panel-tag">Paso 1</div>
+      <div class="panel-title">Reportes de Imagen</div>
+      <div class="panel-desc">Suba reportes de RX, MRI o CT. Gemini extrae texto literal — Node.js evalua contra LCD L33618.</div>
+      <div class="upload-zone" id="uz1">
+        <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png" onchange="addFiles(1,this.files);this.value=''">
+        <div class="upload-zone-text">Arrastre archivos aqui o <strong>haga clic</strong> — PDF, JPG, PNG</div>
       </div>
-      <div class="doc-prog-wrap">
-        <div style="flex:1;">
-          <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
-            <span style="font-size:11px;font-weight:600;color:var(--dark);" data-es="Documentos requeridos cargados" data-en="Required documents uploaded">Documentos requeridos cargados</span>
-            <span style="font-size:11px;font-weight:700;color:var(--teal);" id="pa_docProgCount">0 / 0</span>
-          </div>
-          <div style="height:5px;background:var(--border);border-radius:3px;overflow:hidden;">
-            <div id="pa_docProgBar" style="height:100%;background:linear-gradient(90deg,var(--teal),var(--teal-l));border-radius:3px;width:0%;transition:width .4s ease;"></div>
-          </div>
-        </div>
-        <div id="pa_docProgIcon" style="font-size:22px;">📋</div>
-      </div>
-
-      <!-- FIX-1: Formulario OPCIONAL -->
-      <div id="pa_formZone" style="margin-bottom:16px;display:none;">
-        <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--teal-d);margin-bottom:8px;">Formulario de Pre-Autorización del Plan</div>
-        <div style="border:1.5px solid var(--teal-bd);border-radius:11px;overflow:hidden;margin-bottom:4px;">
-          <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--teal-bg);border-bottom:1px solid var(--teal-bd);">
-            <span style="font-size:16px;">📝</span>
-            <div style="flex:1;">
-              <div style="font-size:13px;font-weight:600;color:var(--dark);">Formulario oficial del plan médico</div>
-              <div style="font-size:11px;color:var(--slate);">El formulario de pre-auth que provee el plan — completado y firmado, con todos los campos incluyendo fecha de cirugía.</div>
-            </div>
-            <span id="pa_formBadge" style="font-size:10px;font-weight:700;padding:3px 10px;border-radius:100px;background:var(--amber-bg);color:var(--amber-d);">OPCIONAL</span>
-          </div>
-          <div style="padding:12px 16px;">
-            <div class="mini-upload" style="position:relative;">
-              <input type="file" accept=".pdf" id="pa_formInput" onchange="handleFormFile(this.files);this.value=''">
-              <div class="mini-upload-icon">📝</div>
-              <div class="mini-upload-text"><strong>Clic o arrastre</strong> · PDF</div>
-            </div>
-            <div id="pa_formFileList" style="margin-top:8px;"></div>
-          </div>
-        </div>
-        <div id="pa_formEncryptWarn" style="display:none;background:var(--red-bg);border:1.5px solid #FECACA;border-radius:9px;padding:10px 14px;font-size:12px;color:#991B1B;margin-top:6px;">
-          🔒 <strong id="pa_formEncryptName"></strong> — Este archivo está protegido. Vindica no puede procesar archivos protegidos.<br>
-          <span style="color:var(--slate);">Solución: Abre el PDF → Archivo → Imprimir → Guardar como PDF. Sube esa copia.</span>
-        </div>
-      </div>
-
-      <div id="pa_catUpload"></div>
-      <div id="pa_confirmBox" style="display:none;background:var(--teal-bg);border:1.5px solid var(--teal-bd);border-radius:11px;padding:14px;margin-bottom:14px;">
-        <div style="font-size:12px;font-weight:700;color:var(--teal-d);margin-bottom:10px;" data-es="✅ Confirme antes de enviar:" data-en="✅ Confirm before submitting:">✅ Confirme antes de enviar:</div>
-        <div id="pa_confirmItems"></div>
-      </div>
+      <div class="file-list" id="fl1"></div>
+      <div id="r1" style="display:none;margin-top:14px;"></div>
     </div>
 
-    <!-- STEP 4 -->
-    <div class="form-section" id="pa_s4">
-      <div class="section-tag-teal" data-es="Paso 4 de 4" data-en="Step 4 of 4">Paso 4 de 4</div>
-      <div class="section-title" data-es="Confirmar y Enviar" data-en="Review & Submit">Confirmar y Enviar</div>
-      <div class="section-desc" data-es="Revise el resumen antes de enviar." data-en="Review summary before submitting.">Revise el resumen antes de enviar.</div>
-      <div id="pa_summaryBox" style="margin-bottom:14px;"></div>
-      <div class="info-box"><span>📁</span>
-        <p data-es="El reporte será entregado en la carpeta de Google Drive de su práctica. Recibirá una notificación cuando esté listo." data-en="The report will be delivered to your practice's Google Drive folder. You will be notified when ready.">El reporte será entregado en la carpeta de Google Drive de su práctica. Recibirá una notificación cuando esté listo.</p>
+    <!-- PASO 2: Terapia -->
+    <div class="panel" id="p2">
+      <div class="panel-tag">Paso 2</div>
+      <div class="panel-title">Terapia Fisica</div>
+      <div class="panel-desc">Suba reportes de PT. Puede subir multiples episodios — el sistema suma la duracion total.</div>
+      <div class="upload-zone" id="uz2">
+        <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png" onchange="addFiles(2,this.files);this.value=''">
+        <div class="upload-zone-text">Arrastre archivos aqui o <strong>haga clic</strong></div>
       </div>
-      <div class="field" style="margin-bottom:16px;">
-        <label style="display:flex;align-items:flex-start;gap:9px;cursor:pointer;font-weight:400;">
-          <input type="checkbox" id="pa_confirmHipaa" style="width:15px;height:15px;min-width:15px;margin-top:2px;accent-color:var(--teal);padding:0;border:none;box-shadow:none;">
-          <span style="font-size:12px;color:var(--slate);line-height:1.5;" data-es="Confirmo que el BAA está firmado con Vindica Health y tengo autorización para compartir esta información." data-en="I confirm the BAA is signed with Vindica Health and I am authorized to share this clinical information.">Confirmo que el BAA está firmado con Vindica Health y tengo autorización para compartir esta información.</span>
+      <div class="file-list" id="fl2"></div>
+      <div id="r2" style="display:none;margin-top:14px;"></div>
+    </div>
+
+    <!-- PASO 3: Labs -->
+    <div class="panel" id="p3">
+      <div class="panel-tag">Paso 3</div>
+      <div class="panel-title">Laboratorios</div>
+      <div class="panel-desc">Suba paneles preoperatorios. Si hay multiples fechas, el sistema usa el valor mas reciente.</div>
+      <div class="upload-zone" id="uz3">
+        <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png" onchange="addFiles(3,this.files);this.value=''">
+        <div class="upload-zone-text">Arrastre archivos aqui o <strong>haga clic</strong></div>
+      </div>
+      <div class="file-list" id="fl3"></div>
+      <div id="r3" style="display:none;margin-top:14px;"></div>
+    </div>
+
+    <!-- PASO 4: Brief -->
+    <div class="panel" id="p4">
+      <div class="panel-tag">Paso 4</div>
+      <div class="panel-title">Brief Form</div>
+      <div class="panel-desc">Seleccione comorbilidades adicionales que el medico menciono pero no aparecieron en labs.</div>
+      <div style="font-size:12px;font-weight:700;color:var(--dark);margin-bottom:10px;">Comorbilidades adicionales:</div>
+      <!-- Tipo de Admision -->
+      <div style="font-size:12px;font-weight:700;color:var(--dark);margin-bottom:10px;">Tipo de admision esperada:</div>
+      <div style="display:flex;gap:10px;margin-bottom:18px;">
+        <label class="comor-item" style="flex:1;justify-content:center;" onclick="selectAdmision(this,'INPATIENT')">
+          <input type="radio" name="admision" value="INPATIENT" style="display:none;">
+          <span style="font-size:16px;">&#x1F3E5;</span> INPATIENT <span style="font-size:10px;color:var(--muted);">(2+ noches)</span>
         </label>
-        <span class="error-msg" id="pa_err-confirmHipaa" data-es="Debe confirmar el BAA" data-en="Must confirm BAA">Debe confirmar el BAA</span>
+        <label class="comor-item" style="flex:1;justify-content:center;" onclick="selectAdmision(this,'OUTPATIENT')">
+          <input type="radio" name="admision" value="OUTPATIENT" style="display:none;">
+          <span style="font-size:16px;">&#x1F6B6;</span> OUTPATIENT <span style="font-size:10px;color:var(--muted);">(ambulatorio)</span>
+        </label>
       </div>
-      <div style="display:none;flex-direction:column;gap:7px;margin-bottom:12px;" id="pa_uploadStatus">
-        <div style="display:flex;align-items:center;gap:10px;font-size:12px;color:var(--slate);background:var(--light);padding:9px 12px;border-radius:9px;">
-          <div class="spinner"></div>
-          <span id="pa_sendingLabel" data-es="Enviando a Vindica Health..." data-en="Submitting to Vindica Health...">Enviando a Vindica Health...</span>
-        </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--dark);margin-bottom:10px;">Comorbilidades del paciente:</div>
+      <div class="comor-grid" id="comorGrid">
+        <label class="comor-item" onclick="toggleComor(this)"><input type="checkbox" value="DIABETES"> Diabetes Mellitus</label>
+        <label class="comor-item" onclick="toggleComor(this)"><input type="checkbox" value="HIPERTENSION"> Hipertension Arterial</label>
+        <label class="comor-item" onclick="toggleComor(this)"><input type="checkbox" value="ERC"> Enfermedad Renal Cronica</label>
+        <label class="comor-item" onclick="toggleComor(this)"><input type="checkbox" value="CARDIOPATIA"> Cardiopatia / FA</label>
+        <label class="comor-item" onclick="toggleComor(this)"><input type="checkbox" value="TABACO"> Tabaquismo Activo</label>
+        <label class="comor-item" onclick="toggleComor(this)"><input type="checkbox" value="OBESIDAD"> Obesidad (IMC > 30)</label>
+        <label class="comor-item" onclick="toggleComor(this)"><input type="checkbox" value="ANEMIA_COAGULOPATIA"> Anemia</label>
+        <label class="comor-item" onclick="toggleComor(this)"><input type="checkbox" value="EPOC_ASMA_APNEA"> EPOC / Apnea del Sueno</label>
+        <label class="comor-item" onclick="toggleComor(this)"><input type="checkbox" value="VIVE_SOLO"> Vive solo / sin apoyo</label>
+        <label class="comor-item" onclick="toggleComor(this)"><input type="checkbox" value="BILATERAL"> Cirugia bilateral</label>
+        <label class="comor-item" onclick="toggleComor(this)"><input type="checkbox" value="TVP_HISTORIA"> Historia TVP / Embolia</label>
+        <label class="comor-item" onclick="toggleComor(this)"><input type="checkbox" value="EDAD_AVANZADA"> Edad avanzada (75+)</label>
       </div>
+      <div id="r4" style="display:none;margin-top:14px;"></div>
     </div>
 
-    <!-- PA SUCCESS -->
-    <div class="success-screen" id="pa_success">
-      <div class="success-icon teal">✓</div>
-      <h2 data-es="¡Caso recibido!" data-en="Case received!">¡Caso recibido!</h2>
-      <p data-es="Su expediente está siendo analizado. El reporte estará listo en Drive." data-en="Your record is being analyzed. Report will be ready in Drive.">Su expediente está siendo analizado. El reporte estará listo en Drive.</p>
-      <div class="case-number" id="pa_caseNum">CASO #2025-0000</div>
-      <div class="delivery-timeline" style="margin-bottom:18px;">
-        <div class="tl-step"><div class="tl-dot done-teal">✓</div><div class="tl-label" data-es="Recibido" data-en="Received">Recibido</div></div>
-        <div class="tl-step"><div class="tl-dot pending" id="pa_tl2">🔍</div><div class="tl-label" data-es="Análisis" data-en="Analysis">Análisis</div></div>
-        <div class="tl-step"><div class="tl-dot pending" id="pa_tl3">📋</div><div class="tl-label" data-es="Reporte" data-en="Report">Reporte</div></div>
-        <div class="tl-step"><div class="tl-dot pending" id="pa_tl4">📁</div><div class="tl-label" data-es="Entregado" data-en="Delivered">Entregado</div></div>
-      </div>
-      <div style="background:var(--light);border:1.5px solid var(--border);border-radius:11px;padding:12px 18px;margin:0 auto 16px;max-width:380px;font-size:12px;color:var(--slate);display:flex;align-items:center;gap:9px;">
-        <div class="spinner" id="pa_statusSpinner"></div>
-        <span id="pa_statusText">Analizando expediente contra LCD y CPB...</span>
-      </div>
-      <div id="pa_contentValAlert" style="display:none;margin:0 auto 16px;max-width:480px;">
-        <div style="background:var(--red-bg);border:1.5px solid #FECACA;border-radius:14px;padding:18px 20px;">
-          <div style="font-size:13px;font-weight:700;color:var(--red);margin-bottom:6px;">⛔ Expediente bloqueado — inconsistencias detectadas</div>
-          <div style="font-size:12px;color:#7F1D1D;margin-bottom:14px;">El sistema encontró conflictos entre los documentos subidos y los datos del caso. Corrija los archivos indicados y vuelva a someter.</div>
-          <div id="pa_contentValList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;"></div>
-          <button onclick="paGoBackToDocuments()" style="width:100%;padding:11px;background:var(--dark);color:#fff;border:none;border-radius:10px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;">← Corregir documentos</button>
-        </div>
-      </div>
-      <div id="pa_agent2RejPanel" style="display:none;margin:0 auto 16px;max-width:480px;">
-        <div style="background:var(--amber-bg);border:1.5px solid #FDE68A;border-radius:14px;padding:18px 20px;">
-          <div style="font-size:13px;font-weight:700;color:var(--amber-d);margin-bottom:4px;">⚠️ Revisión manual requerida</div>
-          <div id="pa_agent2Score" style="font-size:11px;font-weight:600;color:var(--slate);margin-bottom:8px;"></div>
-          <div id="pa_agent2Reason" style="font-size:12px;color:#78350F;margin-bottom:14px;"></div>
-          <div style="font-size:12px;color:var(--slate);margin-bottom:14px;">El verificador independiente encontró inconsistencias que requieren revisión por el equipo de Vindica. Puede corregir los documentos o contactar soporte.</div>
-          <button onclick="paGoBackToDocuments()" style="width:100%;padding:11px;background:var(--dark);color:#fff;border:none;border-radius:10px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:8px;">← Corregir documentos</button>
-          <div style="text-align:center;font-size:11px;color:var(--muted);" data-es="¿Necesita ayuda? Escriba a" data-en="Need help? Email">¿Necesita ayuda? Escriba a <a href="/cdn-cgi/l/email-protection#31425e415e4345547147585f555852505954505d45591f525e5c" style="color:var(--teal);"><span class="__cf_email__" data-cfemail="473428372835332207312e29232e24262f22262b332f6924282a">[email&#160;protected]</span></a></div>
-        </div>
-      </div>
-      <div id="pa_phaseReady" style="display:none;">
-        <div style="background:var(--green-bg);border:1.5px solid #A7F3D0;border-radius:14px;padding:16px 20px;margin:0 auto 16px;max-width:380px;">
-          <div style="font-size:12px;font-weight:600;color:#065F46;margin-bottom:12px;">✅ Reporte listo</div>
-          <a id="pa_dlPDF" href="#" target="_blank" style="display:flex;align-items:center;gap:9px;background:#fff;border:1.5px solid #A7F3D0;border-radius:9px;padding:10px 14px;text-decoration:none;">
-            <span style="font-size:18px;">📄</span>
-            <div><div style="font-size:12px;font-weight:600;color:var(--dark);" data-es="Ver Reporte de Pre-Autorización" data-en="View Pre-Authorization Report">Ver Reporte de Pre-Autorización</div><div style="font-size:11px;color:var(--muted);" data-es="Se abre en nueva pestaña · Copia guardada en Drive" data-en="Opens in new tab · Copy saved to Drive">Se abre en nueva pestaña · Copia guardada en Drive</div></div>
-            <span style="margin-left:auto;font-size:11px;font-weight:600;color:var(--teal);">Ver PDF →</span>
-          </a>
-        </div>
-        <div id="pa_decisionBadge" style="display:inline-block;padding:8px 20px;border-radius:11px;font-size:14px;font-weight:700;margin-bottom:16px;"></div>
-      </div>
-      <button class="btn btn-ghost" onclick="paReset()" style="margin-top:4px;" data-es="Someter otro caso" data-en="Submit another case">Someter otro caso</button>
+    <!-- NAV -->
+    <div class="nav-bar" id="navBar">
+      <button class="btn btn-ghost btn-hidden" id="btnBack" onclick="prevStep()">&larr; Atras</button>
+      <button class="btn btn-primary" id="btnNext" onclick="nextStep()">Verificar &rarr;</button>
     </div>
 
-    <div class="form-nav" id="pa_nav">
-      <button class="btn btn-ghost invisible" id="pa_btnBack" onclick="paPrev()">← <span data-es="Atrás" data-en="Back">Atrás</span></button>
-      <div style="display:flex;gap:9px;align-items:center;">
-        <span style="font-size:12px;color:var(--muted);" id="pa_stepCount">Paso 1 de 4</span>
-        <button class="btn btn-primary-teal" id="pa_btnNext" onclick="paNext()"><span id="pa_btnNextLabel">Continuar →</span></button>
-      </div>
-    </div>
     <div class="hipaa-footer">
-      <div class="hipaa-badge">🔒 HIPAA</div>
-      <span data-es="BAA activo · Google Workspace" data-en="Active BAA · Google Workspace">BAA activo · Google Workspace</span>
+      <div class="hipaa-badge">HIPAA</div>
+      <span>Vindica Health LLC | Datos encriptados | BAA Google Cloud</span>
     </div>
   </div>
 </div>
 
-<!-- RIGHT: APELACIONES -->
-<div>
-  <div class="panel-label">
-    <div class="panel-label-dot" style="background:#8B5CF6;"></div>
-    <div class="panel-label-text" data-es="Caso Denegado — Apelación" data-en="Denied Case — Appeal">Caso Denegado — Apelación</div>
-  </div>
-  <div class="card" id="appealCard">
-    <div class="progress-bar"><div class="progress-fill pf-violet" id="apProgressFill" style="width:33%;"></div></div>
-    <div class="progress-steps" id="apSteps">
-      <div class="step active-violet" id="aps1"><div class="step-num">1</div><span class="step-label" data-es="Identificar" data-en="Identify">Identificar</span></div>
-      <div class="step" id="aps2"><div class="step-num">2</div><span class="step-label" data-es="Verificar" data-en="Verify">Verificar</span></div>
-      <div class="step" id="aps3"><div class="step-num">3</div><span class="step-label" data-es="Refutar" data-en="Refute">Refutar</span></div>
-    </div>
-
-    <!-- AP STEP 1 -->
-    <div class="form-section active" id="ap_s1">
-      <div class="section-tag-violet" data-es="Paso 1 de 3" data-en="Step 1 of 3">Paso 1 de 3</div>
-      <div class="section-title" data-es="Identificar el Caso" data-en="Identify the Case">Identificar el Caso</div>
-      <div class="section-desc" data-es="Ingrese el Vindica Case ID del caso denegado." data-en="Enter the Vindica Case ID of the denied case.">Ingrese el Vindica Case ID del caso denegado.</div>
-      <div class="info-box-violet"><span>🔑</span>
-        <p data-es="&lt;strong&gt;Vindica Case ID&lt;/strong&gt; — formato: VINDICA-2025-001-TKA-27447." data-en="&lt;strong&gt;Vindica Case ID&lt;/strong&gt; — format: VINDICA-2025-001-TKA-27447."><strong>Vindica Case ID</strong> — formato: VINDICA-2025-001-TKA-27447. Encuéntrelo en el reporte PDF que recibió cuando sometió el caso.</p>
-      </div>
-      <div class="field-grid">
-        <div class="field">
-          <label><span data-es="Vindica Case ID del caso original" data-en="Vindica Case ID of original case">Vindica Case ID del caso original</span> <span class="req-v">*</span></label>
-          <input type="text" id="ap_caseId" class="violet-focus" placeholder="VINDICA-2025-001-TKA-27447" oninput="apCaseIdCheck()" style="font-family:monospace;font-size:13px;letter-spacing:.5px;">
-          <span class="error-msg" id="ap_err-caseId" data-es="Ingrese el Vindica Case ID" data-en="Enter Vindica Case ID">Ingrese el Vindica Case ID</span>
-        </div>
-      </div>
-      <div class="field-grid">
-        <div class="field">
-          <label><span data-es="Email de la práctica" data-en="Practice email">Email de la práctica</span> <span class="req-v">*</span></label>
-          <input type="email" id="ap_email" class="violet-focus" placeholder="office@practice.com">
-          <span class="error-msg" id="ap_err-email" data-es="Email válido requerido" data-en="Valid email required">Email válido requerido</span>
-        </div>
-      </div>
-      <div id="ap_caseIdStatus" style="display:none;padding:10px 13px;border-radius:10px;font-size:12px;margin-bottom:14px;"></div>
-      <div style="margin-bottom:6px;">
-        <div style="font-size:12px;font-weight:600;color:var(--dark);margin-bottom:8px;"><span data-es="Carta de Denegación del Plan" data-en="Plan Denial Letter">Carta de Denegación del Plan</span> <span class="req-v">*</span></div>
-        <div class="denial-upload-zone" id="ap_denialZone">
-          <input type="file" accept=".pdf,.jpg,.jpeg,.png,.txt" onchange="apHandleDenialFile(this.files[0]); this.value=''">
-          <div class="denial-upload-icon">📨</div>
-          <div class="denial-upload-title" data-es="Subir carta de denegación" data-en="Upload denial letter">Subir carta de denegación</div>
-          <div class="denial-upload-sub" data-es="PDF, JPG, PNG o TXT · La carta que envió el plan" data-en="PDF, JPG, PNG or TXT · The letter sent by the plan">PDF, JPG, PNG o TXT · La carta que envió el plan</div>
-        </div>
-        <div class="denial-file-ready" id="ap_denialFileReady">
-          <span>📨</span><span id="ap_denialFileName">—</span>
-          <button onclick="apRemoveDenialFile()">✕</button>
-        </div>
-        <span class="error-msg" id="ap_err-denial" style="display:none;" data-es="Suba la carta de denegación" data-en="Upload denial letter">Suba la carta de denegación</span>
-      </div>
-    </div>
-
-    <!-- AP STEP 2 -->
-    <div class="form-section" id="ap_s2">
-      <div class="section-tag-violet" data-es="Paso 2 de 3" data-en="Step 2 of 3">Paso 2 de 3</div>
-      <div class="section-title" data-es="Triple Verificación" data-en="Triple Verification">Triple Verificación</div>
-      <div class="section-desc" data-es="El sistema verifica que la carta corresponde exactamente al caso original." data-en="The system verifies the denial letter matches the original case exactly.">El sistema verifica que la carta corresponde exactamente al caso original.</div>
-      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:18px;">
-        <div class="verify-badge pending" id="ap_v1"><span style="font-size:16px;">🔑</span><div style="flex:1;"><div style="font-weight:700;">V1 — Vindica Case ID</div><div style="font-size:11px;font-weight:400;" id="ap_v1msg">Verificando que el caso existe en Drive...</div></div><span id="ap_v1icon">⏳</span></div>
-        <div class="verify-badge pending" id="ap_v2"><span style="font-size:16px;">👤</span><div style="flex:1;"><div style="font-weight:700;" data-es="V2 — Nombre del Paciente" data-en="V2 — Patient Name">V2 — Nombre del Paciente</div><div style="font-size:11px;font-weight:400;" id="ap_v2msg">Comparando nombre en carta con expediente original...</div></div><span id="ap_v2icon">⏳</span></div>
-        <div class="verify-badge pending" id="ap_v3"><span style="font-size:16px;">💊</span><div style="flex:1;"><div style="font-weight:700;" data-es="V3 — Procedimiento / CPT" data-en="V3 — Procedure / CPT">V3 — Procedimiento / CPT</div><div style="font-size:11px;font-weight:400;" id="ap_v3msg">Verificando que el CPT en la carta coincide con el caso original...</div></div><span id="ap_v3icon">⏳</span></div>
-      </div>
-      <div id="ap_verifyError" style="display:none;background:#FEF2F2;border:1.5px solid #FECACA;border-left:4px solid #DC2626;border-radius:11px;padding:12px 14px;margin-bottom:14px;">
-        <div style="font-size:12px;font-weight:700;color:#991B1B;margin-bottom:5px;" id="ap_verifyErrorTitle">⛔ Verificación fallida</div>
-        <div style="font-size:12px;color:#7F1D1D;" id="ap_verifyErrorBody">—</div>
-      </div>
-      <div id="ap_verifyOK" style="display:none;background:var(--green-bg);border:1.5px solid #A7F3D0;border-radius:11px;padding:12px 14px;margin-bottom:14px;">
-        <div style="font-size:12px;font-weight:700;color:#065F46;">✅ Verificación completa — La carta corresponde al caso correcto.</div>
-        <div style="font-size:11px;color:#065F46;margin-top:4px;" id="ap_verifyOKDetail">—</div>
-      </div>
-      <div class="note-box"><span>⚠️</span><p data-es="Si cualquier verificación bloqueante falla, el sistema no generará ningún documento." data-en="If any blocking verification fails, the system will not generate any document.">Si cualquier verificación bloqueante falla, el sistema no generará ningún documento. Esto protege contra cartas de denegación cruzadas del mismo médico.</p></div>
-    </div>
-
-    <!-- AP STEP 3 -->
-    <div class="form-section" id="ap_s3">
-      <div class="section-tag-violet" data-es="Paso 3 de 3" data-en="Step 3 of 3">Paso 3 de 3</div>
-      <div class="section-title" data-es="Generar Refutación" data-en="Generate Refutation">Generar Refutación</div>
-      <div class="section-desc" data-es="Las tres verificaciones pasaron. El sistema generará la Refutación de Hallazgos y la Carta de Apelación." data-en="All verifications passed. The system will generate the Refutation and Appeal Letter.">Las tres verificaciones pasaron. El sistema generará la Refutación de Hallazgos y la Carta de Apelación lista para firma del médico.</div>
-      <div id="ap_summaryBox" style="background:var(--violet-bg);border:1.5px solid var(--violet-bd);border-radius:11px;padding:14px;margin-bottom:14px;">
-        <div style="font-size:12px;font-weight:700;color:var(--violet-d);margin-bottom:10px;">Resumen de la solicitud:</div>
-        <div id="ap_summaryContent" style="font-size:12px;color:var(--dark);line-height:1.8;">—</div>
-      </div>
-      <div class="info-box-violet"><span>✍️</span><p>La carta de apelación <strong>no menciona a Vindica Health ni a ningún sistema de IA</strong>. Sale a nombre del médico tratante. El médico revisa, edita según su criterio clínico, y firma.</p></div>
-      <div id="ap_submitStatus" style="display:none;flex-direction:column;gap:7px;margin-bottom:12px;">
-        <div style="display:flex;align-items:center;gap:9px;font-size:12px;color:var(--slate);background:var(--light);padding:9px 12px;border-radius:9px;">
-          <div class="spinner violet"></div>
-          <span id="ap_statusText">Analizando razones de denegación...</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- AP SUCCESS -->
-    <div class="success-screen" id="ap_success">
-      <div class="success-icon violet">⚖️</div>
-      <h2 data-es="¡Refutación lista!" data-en="Refutation ready!">¡Refutación lista!</h2>
-      <p data-es="La Refutación de Hallazgos y la Carta de Apelación fueron generadas y subidas a Drive." data-en="The Refutation of Findings and Appeal Letter were generated and uploaded to Drive.">La Refutación de Hallazgos y la Carta de Apelación fueron generadas y subidas a Drive.</p>
-      <div class="case-number violet" id="ap_caseNumDisplay">VINDICA-2025-001-TKA-27447</div>
-      <div style="background:var(--violet-bg);border:1.5px solid var(--violet-bd);border-radius:14px;padding:16px 18px;margin:0 auto 16px;max-width:380px;text-align:left;">
-        <div style="font-size:12px;font-weight:700;color:var(--violet-d);margin-bottom:12px;">📁 Documentos generados en Drive:</div>
-        <div style="display:flex;align-items:center;gap:9px;background:#fff;border:1.5px solid var(--violet-bd);border-radius:9px;padding:10px 14px;margin-bottom:7px;"><span style="font-size:18px;">📋</span><div><div style="font-size:12px;font-weight:600;color:var(--dark);">Refutación de Hallazgos</div><div style="font-size:11px;color:var(--muted);">Análisis razón por razón con citas del expediente</div></div></div>
-        <div style="display:flex;align-items:center;gap:9px;background:#fff;border:1.5px solid var(--violet-bd);border-radius:9px;padding:10px 14px;"><span style="font-size:18px;">✍️</span><div><div style="font-size:12px;font-weight:600;color:var(--dark);">Carta de Apelación — Borrador</div><div style="font-size:11px;color:var(--muted);">Lista para revisar y firmar por el médico</div></div></div>
-      </div>
-      <div id="ap_recomendacion" style="display:inline-block;padding:8px 18px;border-radius:11px;font-size:13px;font-weight:700;margin-bottom:16px;background:var(--green-bg);color:#065F46;border:1.5px solid #A7F3D0;"></div>
-      <div style="font-size:11px;color:var(--muted);margin-bottom:14px;">Recuerde: la carta sale con el nombre del médico. No mencione Vindica ni IA al plan.</div>
-      <button class="btn btn-ghost" onclick="apReset()" data-es="Nueva apelación" data-en="New appeal">Nueva apelación</button>
-    </div>
-
-    <div class="form-nav" id="ap_nav">
-      <button class="btn btn-ghost invisible" id="ap_btnBack" onclick="apPrev()">← <span data-es="Atrás" data-en="Back">Atrás</span></button>
-      <div style="display:flex;gap:9px;align-items:center;">
-        <span style="font-size:12px;color:var(--muted);" id="ap_stepCount">Paso 1 de 3</span>
-        <button class="btn btn-primary-violet" id="ap_btnNext" onclick="apNext()"><span id="ap_btnNextLabel">Continuar →</span></button>
-      </div>
-    </div>
-    <div class="hipaa-footer">
-      <div class="hipaa-badge" style="background:var(--violet-bg);border-color:var(--violet-bd);color:var(--violet-d);">🔒 HIPAA</div>
-      <span data-es="BAA activo · Triple Verificación activa" data-en="Active BAA · Triple Verification active">BAA activo · Triple Verificación activa</span>
-    </div>
-  </div>
-</div>
-
-  </div><!-- /split -->
-
-<!-- ══════════════════════════════════════════════════════════════════ -->
-<!-- BRIEF PRE-AUTH — Panel de preparación de documentación           -->
-<!-- ══════════════════════════════════════════════════════════════════ -->
-<div style="margin-top:28px;animation:fadeUp .6s .2s ease both;">
-  <div class="panel-label">
-    <div class="panel-label-dot" style="background:var(--amber);"></div>
-    <div class="panel-label-text" data-es="Brief Pre-Auth — Preparación de Documentación" data-en="Pre-Auth Brief — Documentation Prep">Brief Pre-Auth — Preparación de Documentación</div>
-  </div>
-  <div class="card" id="briefCard" style="padding:0;">
-    <!-- Header -->
-    <div style="background:linear-gradient(135deg,#92400E,#F59E0B);padding:18px 24px;">
-      <div style="font-family:'DM Serif Display',serif;font-size:18px;color:#fff;" data-es="Brief de Pre-Autorización" data-en="Pre-Authorization Brief">Brief de Pre-Autorización</div>
-      <div style="font-size:12px;color:rgba(255,255,255,.8);margin-top:4px;" data-es="Genera un checklist de documentación requerida para el cirujano antes de someter el caso." data-en="Generate a documentation checklist for the surgeon before submitting the case.">Genera un checklist de documentación requerida para el cirujano antes de someter el caso.</div>
-    </div>
-
-    <!-- Form -->
-    <div style="padding:20px 24px;" id="briefForm">
-      <div class="field-grid cols-3" style="gap:14px;margin-bottom:16px;">
-        <div class="field">
-          <label data-es="Procedimiento (CPT)" data-en="Procedure (CPT)">Procedimiento (CPT)</label>
-          <select id="brief_cpt" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:13px;background:#fff;">
-            <option value="27447">27447 — TKA (Rodilla)</option>
-            <option value="27130">27130 — THA (Cadera)</option>
-            <option value="22612">22612 — Fusión Lumbar</option>
-            <option value="22551">22551 — Fusión Cervical</option>
-            <option value="23472">23472 — Hombro Total</option>
-            <option value="27702">27702 — Tobillo Total</option>
-          </select>
-        </div>
-        <div class="field">
-          <label data-es="ICD-10" data-en="ICD-10">ICD-10</label>
-          <input type="text" id="brief_icd10" placeholder="M17.11, M16.11, etc." style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:13px;">
-        </div>
-        <div class="field">
-          <label data-es="Plan" data-en="Plan">Plan</label>
-          <select id="brief_plan" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:13px;background:#fff;">
-            <option value="triple-s">Triple-S Salud (MA)</option>
-            <option value="mcs">MCS Classicare (MA)</option>
-            <option value="molina-pr">Molina Healthcare PR (MA)</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- Comorbilidades checkboxes -->
-      <label style="font-size:13px;font-weight:600;color:var(--dark);margin-bottom:10px;display:block;" data-es="Comorbilidades del paciente" data-en="Patient comorbidities">Comorbilidades del paciente</label>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin-bottom:18px;" id="briefComorbChecks">
-        <label class="comor-check"><input type="checkbox" value="DIABETES"> Diabetes Mellitus</label>
-        <label class="comor-check"><input type="checkbox" value="HIPERTENSION"> Hipertensión Arterial</label>
-        <label class="comor-check"><input type="checkbox" value="ERC"> Enf. Renal Crónica</label>
-        <label class="comor-check"><input type="checkbox" value="CARDIOPATIA"> Cardiopatía / Anticoag.</label>
-        <label class="comor-check"><input type="checkbox" value="TABACO"> Tabaquismo Activo</label>
-        <label class="comor-check"><input type="checkbox" value="OBESIDAD"> Obesidad</label>
-        <label class="comor-check"><input type="checkbox" value="ANEMIA_COAGULOPATIA"> Anemia / Coagulopatía</label>
-        <label class="comor-check"><input type="checkbox" value="EPOC_ASMA_APNEA"> EPOC / Asma / Apnea</label>
-        <label class="comor-check"><input type="checkbox" value="OSTEOPOROSIS"> Osteoporosis</label>
-        <label class="comor-check"><input type="checkbox" value="CORTICOSTEROIDES"> Corticoesteroides Crónicos</label>
-      </div>
-
-      <button id="briefGenBtn" onclick="generarBrief()" style="width:100%;padding:13px;border:none;border-radius:12px;background:linear-gradient(135deg,#92400E,#D97706);color:#fff;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;" data-es="Generar Brief de Documentación" data-en="Generate Documentation Brief">Generar Brief de Documentación</button>
-    </div>
-
-    <!-- Result area -->
-    <div id="briefResult" style="display:none;padding:0 24px 24px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <div style="font-size:14px;font-weight:600;color:var(--dark);" data-es="Brief Generado" data-en="Generated Brief">Brief Generado</div>
-        <div style="display:flex;gap:8px;">
-          <button onclick="imprimirBrief()" style="padding:8px 16px;border:1.5px solid var(--amber);border-radius:8px;background:var(--amber-bg);color:#92400E;font-size:12px;font-weight:600;cursor:pointer;" data-es="Imprimir" data-en="Print">🖨 Imprimir</button>
-          <button onclick="copiarBrief()" style="padding:8px 16px;border:1.5px solid var(--border);border-radius:8px;background:#fff;color:var(--slate);font-size:12px;font-weight:600;cursor:pointer;" data-es="Copiar" data-en="Copy">📋 Copiar</button>
-          <button onclick="resetBrief()" style="padding:8px 16px;border:1.5px solid var(--red);border-radius:8px;background:var(--red-bg);color:var(--red);font-size:12px;font-weight:600;cursor:pointer;" data-es="Nuevo Brief" data-en="New Brief">↺ Nuevo Brief</button>
-        </div>
-      </div>
-      <div id="briefContent" style="background:var(--light);border:1px solid var(--border);border-radius:12px;padding:20px;font-size:13px;line-height:1.7;white-space:pre-wrap;font-family:'DM Sans',monospace;max-height:600px;overflow-y:auto;color:var(--dark);"></div>
-    </div>
-
-    <!-- Loading -->
-    <div id="briefLoading" style="display:none;padding:20px 24px;text-align:center;">
-      <div class="spinner" style="width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--amber);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 10px;"></div>
-      <div style="font-size:13px;color:var(--muted);" data-es="Generando brief..." data-en="Generating brief...">Generando brief...</div>
-    </div>
-  </div>
-</div>
-
-<style>
-.comor-check{display:flex;align-items:center;gap:8px;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:12px;color:var(--dark);cursor:pointer;transition:all .15s;background:#fff;}
-.comor-check:hover{border-color:var(--amber);background:var(--amber-bg);}
-.comor-check input:checked + *{color:#92400E;font-weight:600;}
-.comor-check:has(input:checked){border-color:var(--amber);background:var(--amber-bg);}
-.cols-3{display:grid;grid-template-columns:repeat(3,1fr);}
-@media(max-width:700px){.cols-3{grid-template-columns:1fr;}}
-@keyframes spin{to{transform:rotate(360deg);}}
-</style>
-
-</div><!-- /outer -->
-
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
-
-let lang='es';
-function toggleLang(){
-lang=lang==='es'?'en':'es';
-document.getElementById('langFlag').textContent=lang==='es'?'🇺🇸':'🇵🇷';
-document.getElementById('langBtnLabel').textContent=lang==='es'?'Switch to English':'Cambiar a Español';
-document.querySelectorAll('[data-es]').forEach(el=>{
-const txt=el.getAttribute('data-'+lang);
-if(txt!==null){if(el.tagName==='OPTION')el.textContent=txt;else if(el.tagName==='INPUT'||el.tagName==='TEXTAREA'){}else el.innerHTML=txt;}
-});
-paUpdateProgress();apUpdateProgress();paUpdateDocChecklist();
-}
-
-// ── PLACEHOLDERS — reemplazar antes de deploy ────────────────────
-const CF_BASE_URL='https://vindica-cf-v4-10-5-82635207094.us-east1.run.app';
-const VINDICA_KEY='Vind!ca2026$ecure';
-// ────────────────────────────────────────────────────────────────
-
-const PA_CF_URL=CF_BASE_URL+'/analyzeCase';
-
-let paStep=1;
-
-const docs={
-TKA:[
-{es:'Reporte de Radiólogo',en:'Radiologist Report',des:'RX AP y lateral (weight-bearing). Si hay MRI o CT, incluir reporte escrito.',den:'X-ray AP and lateral (weight-bearing). If MRI or CT available, include written report.',req:true,cat:'IMAGEN'},
-{es:'Notas clínicas del médico',en:'Physician clinical notes',des:'Historia clínica completa, escalas funcionales (KOOS, WOMAC, VAS), hallazgos en examen físico.',den:'Complete clinical history, functional scales (KOOS, WOMAC, VAS), physical exam findings.',req:true,cat:'NOTAS'},
-{es:'Fisioterapia / Tratamiento conservador',en:'Physical therapy / Conservative treatment',des:'Notas de PT, resumen de tratamiento, mínimo 3 meses de manejo conservador.',den:'PT notes, treatment summary, minimum 3 months conservative management.',req:true,cat:'TERAPIA'},
-{es:'Estudios adicionales',en:'Additional studies',des:'EMG, labs, otras imágenes si fueron ordenadas.',den:'EMG, labs, other imaging if ordered.',req:false,cat:'LABS'},
-],
-THA:[
-{es:'Reporte de Radiólogo',en:'Radiologist Report',des:'RX AP pelvis y AP cadera afectada. Reporte escrito del radiólogo.',den:'AP pelvis and AP affected hip X-rays. Written radiologist report.',req:true,cat:'IMAGEN'},
-{es:'Notas clínicas del médico',en:'Physician clinical notes',des:'Historia clínica, Harris Hip Score, hallazgos en examen físico.',den:'Clinical history, Harris Hip Score, physical exam findings.',req:true,cat:'NOTAS'},
-{es:'Fisioterapia / Tratamiento conservador',en:'Physical therapy / Conservative treatment',des:'Documentación de fallo de tratamiento conservador. Notas de PT.',den:'Documentation of failed conservative treatment. PT notes.',req:true,cat:'TERAPIA'},
-{es:'Estudios adicionales',en:'Additional studies',des:'MRI, CT u otros estudios si fueron ordenados.',den:'MRI, CT or other studies if ordered.',req:false,cat:'LABS'},
-],
-LUMBAR:[
-{es:'Reporte de Radiólogo',en:'Radiologist Report',des:'MRI columna lumbar — reporte completo del radiólogo. CT si fue ordenado además del MRI.',den:'Lumbar spine MRI — complete radiologist report. CT if ordered in addition to MRI.',req:true,cat:'IMAGEN'},
-{es:'Notas clínicas del médico',en:'Physician clinical notes',des:'Historia clínica, descripción de dolor, irradiación, déficit neurológico si aplica.',den:'Clinical history, pain description, radiation pattern, neurological deficit if applicable.',req:true,cat:'NOTAS'},
-{es:'Fisioterapia / Tratamiento conservador',en:'Physical therapy / Conservative treatment',des:'Mínimo 6 semanas de PT conservador. Notas de manejo médico previo (antiinflamatorios, inyecciones).',den:'Minimum 6 weeks conservative PT. Notes on prior medical management (anti-inflammatories, injections).',req:true,cat:'TERAPIA'},
-{es:'EMG / Estudios adicionales',en:'EMG / Additional Studies',des:'EMG / conducción nerviosa — REQUERIDO para LUMBAR. Documente hallazgos o justifique si no fue ordenado.',den:'EMG / nerve conduction — REQUIRED for LUMBAR. Document findings or justify if not ordered.',req:true,cat:'LABS'},
-],
-CERVICAL:[
-{es:'Reporte de Radiólogo',en:'Radiologist Report',des:'MRI columna cervical — reporte completo del radiólogo. RX dinámicas si hay inestabilidad.',den:'Cervical spine MRI — complete radiologist report. Dynamic X-rays if instability present.',req:true,cat:'IMAGEN'},
-{es:'Notas clínicas del médico',en:'Physician clinical notes',des:'Historia clínica, descripción de mielopatía, radiculopatía, déficit neurológico.',den:'Clinical history, myelopathy, radiculopathy, neurological deficit description.',req:true,cat:'NOTAS'},
-{es:'Fisioterapia / Tratamiento conservador',en:'Physical therapy / Conservative treatment',des:'Documentación de manejo conservador previo (opcional para cervical).',den:'Prior conservative management documentation (optional for cervical).',req:false,cat:'TERAPIA'},
-{es:'EMG / Estudios adicionales',en:'EMG / Additional Studies',des:'EMG / conducción nerviosa — REQUERIDO para CERVICAL. Documenta radiculopatía o mielopatía.',den:'EMG / nerve conduction — REQUIRED for CERVICAL. Documents radiculopathy or myelopathy.',req:true,cat:'LABS'},
-],
-ARTHROSCOPY:[
-{es:'Reporte de Radiólogo',en:'Radiologist Report',des:'MRI de rodilla — patología de menisco o ligamento. RX para descartar artritis severa.',den:'Knee MRI — meniscus or ligament pathology. X-ray to rule out severe arthritis.',req:true,cat:'IMAGEN'},
-{es:'Notas clínicas del médico',en:'Physician clinical notes',des:'Síntomas, hallazgos en examen físico, pruebas especiales (McMurray, Lachman).',den:'Symptoms, physical exam findings, special tests (McMurray, Lachman).',req:true,cat:'NOTAS'},
-{es:'Fisioterapia / Tratamiento conservador',en:'Physical therapy / Conservative treatment',des:'Documentación de tratamiento conservador (opcional para artroscopía).',den:'Conservative treatment documentation (optional for arthroscopy).',req:false,cat:'TERAPIA'},
-{es:'Estudios adicionales',en:'Additional studies',des:'Labs u otros estudios si fueron ordenados.',den:'Labs or other studies if ordered.',req:false,cat:'LABS'},
-],
-SHOULDER:[
-{es:'Reporte de Radiólogo',en:'Radiologist Report',des:'RX de hombro (AP, axilar, Grashey). MRI o CT — reporte del radiólogo.',den:'Shoulder X-rays (AP, axillary, Grashey). MRI or CT — radiologist report.',req:true,cat:'IMAGEN'},
-{es:'Notas clínicas del médico',en:'Physician clinical notes',des:'Historia clínica, escalas funcionales (ASES, DASH), hallazgos en examen físico.',den:'Clinical history, functional scales (ASES, DASH), physical exam findings.',req:true,cat:'NOTAS'},
-{es:'Fisioterapia / Tratamiento conservador',en:'Physical therapy / Conservative treatment',des:'Documentación de tratamiento conservador (opcional para shoulder replacement).',den:'Conservative treatment documentation (optional for shoulder replacement).',req:false,cat:'TERAPIA'},
-{es:'Estudios adicionales',en:'Additional studies',des:'EMG / conducción nerviosa si hay componente neurológico. Labs si fueron ordenados.',den:'EMG / nerve conduction if neurological component. Labs if ordered.',req:false,cat:'LABS'},
-],
+<script>
+// ════════════════════════════════════════════════════════════════════════════
+// CONFIG
+// ════════════════════════════════════════════════════════════════════════════
+const API = 'https://vindica-cf-v4-10-5-82635207094.us-east1.run.app';
+const KEY = 'Vind!ca2026$ecure';
+const FIREBASE_CFG = {
+  apiKey:"AIzaSyBKmZkxsdP1p0uxKvmSJBYlQPiRPC0eXJ4",
+  authDomain:"vindica-production.firebaseapp.com",
+  projectId:"vindica-production"
 };
 
-const docCategories={
-es:{NOTAS:{icon:'📋',label:'Notas Clínicas del Médico',desc:'Historia clínica, notas de consulta, escalas funcionales.'},IMAGEN:{icon:'🩻',label:'Reporte de Radiólogo',desc:'Informe escrito del radiólogo — RX, MRI, CT. No subir imágenes DICOM crudas.'},TERAPIA:{icon:'🏃',label:'Fisioterapia y Tratamiento Conservador',desc:'Notas de PT, resumen de tratamiento, notas de alta.'},LABS:{icon:'🧪',label:'Labs y Estudios Adicionales',desc:'EMG, conducción nerviosa, resultados de laboratorio.'},OTROS:{icon:'📎',label:'Otros Documentos',desc:'Especialistas previos, notas de peso/BMI, otros.'}},
-en:{NOTAS:{icon:'📋',label:'Physician Clinical Notes',desc:'Clinical history, consultation notes, functional scales.'},IMAGEN:{icon:'🩻',label:'Radiologist Report',desc:'Written radiologist report — X-ray, MRI, CT. Do not upload raw DICOM images.'},TERAPIA:{icon:'🏃',label:'Physical Therapy & Conservative Treatment',desc:'PT notes, treatment summary, discharge notes.'},LABS:{icon:'🧪',label:'Labs & Additional Studies',desc:'EMG, nerve conduction studies, lab results.'},OTROS:{icon:'📎',label:'Other Documents',desc:'Prior specialists, weight/BMI notes, other.'}}
-};
+firebase.initializeApp(FIREBASE_CFG);
+const auth = firebase.auth();
 
-const docCategoryMap={
-TKA:        [{cat:'IMAGEN',req:true},{cat:'NOTAS',req:true},{cat:'TERAPIA',req:true},{cat:'LABS',req:false},{cat:'OTROS',req:false}],
-THA:        [{cat:'IMAGEN',req:true},{cat:'NOTAS',req:true},{cat:'TERAPIA',req:true},{cat:'LABS',req:false},{cat:'OTROS',req:false}],
-LUMBAR:     [{cat:'IMAGEN',req:true},{cat:'NOTAS',req:true},{cat:'TERAPIA',req:true},{cat:'LABS',req:true},{cat:'OTROS',req:false}],  // FIX-Q01: LABS req (CF lo exige)
-CERVICAL:   [{cat:'IMAGEN',req:true},{cat:'NOTAS',req:true},{cat:'TERAPIA',req:false},{cat:'LABS',req:true},{cat:'OTROS',req:false}],  // FIX-Q01: TERAPIA=opt LABS=req (CF)
-ARTHROSCOPY:[{cat:'IMAGEN',req:true},{cat:'NOTAS',req:true},{cat:'TERAPIA',req:false},{cat:'LABS',req:false},{cat:'OTROS',req:false}], // FIX-Q01: TERAPIA=opt (CF no la exige)
-SHOULDER:   [{cat:'IMAGEN',req:true},{cat:'NOTAS',req:true},{cat:'TERAPIA',req:false},{cat:'LABS',req:false},{cat:'OTROS',req:false}], // FIX-Q01: TERAPIA=opt (CF no la exige)
-};
-
-function getRequiredCats(proc){
-if(!proc||!docCategoryMap[proc])return[];
-const s=new Set();
-docCategoryMap[proc].forEach(d=>{if(d.req)s.add(d.cat);});
-return[...s];
-}
-const catFiles={NOTAS:[],IMAGEN:[],TERAPIA:[],LABS:[],OTROS:[]};
-const fmt=b=>b<1024?b+' B':b<1048576?(b/1024).toFixed(0)+' KB':(b/1048576).toFixed(1)+' MB';
-const fileIcon=n=>{const e=n.split('.').pop().toLowerCase();return e==='pdf'?'📄':['jpg','jpeg','png'].includes(e)?'🖼️':'📝';};
-const getAllFiles=()=>Object.values(catFiles).flat();
-
-// FIX-P05: getCorrectMimeType — detección de MIME por extensión para evitar fallback incorrecto
-function getCorrectMimeType(file){
-if(file.type)return file.type;
-const ext=file.name.split('.').pop().toLowerCase();
-const map={'pdf':'application/pdf','jpg':'image/jpeg','jpeg':'image/jpeg','png':'image/png',
-'tif':'image/tiff','tiff':'image/tiff','webp':'image/webp','heic':'image/heic','heif':'image/heif',
-'txt':'text/plain'};
-return map[ext]||'application/octet-stream';
-}
-async function isPdfEncrypted(file){if(!file.name.toLowerCase().endsWith('.pdf'))return false;try{const buf=await file.slice(0,4096).arrayBuffer();const text=new TextDecoder('latin1').decode(buf);return text.includes('/Encrypt');}catch(e){return false;}}
-
-let formFile=null;
-async function handleFormFile(files){
-if(!files||files.length===0)return;
-const file=files[0];
-const warnEl=document.getElementById('pa_formEncryptWarn');
-const nameEl=document.getElementById('pa_formEncryptName');
-const listEl=document.getElementById('pa_formFileList');
-const badgeEl=document.getElementById('pa_formBadge');
-warnEl.style.display='none';listEl.innerHTML='';formFile=null;
-const encrypted=await isPdfEncrypted(file);
-if(encrypted){nameEl.textContent='"'+file.name+'"';warnEl.style.display='block';return;}
-formFile=file;
-listEl.innerHTML=`<div class="cat-file-item"><span>📄</span><span class="fn">${file.name}</span><span class="fsz">${fmt(file.size)}</span><button class="fdel" onclick="removeFormFile()">✕</button></div>`;
-badgeEl.textContent='✓ CARGADO';badgeEl.style.background='var(--green-bg)';badgeEl.style.color='var(--green)';
-}
-function removeFormFile(){
-formFile=null;document.getElementById('pa_formFileList').innerHTML='';
-const b=document.getElementById('pa_formBadge');
-b.textContent='OPCIONAL';b.style.background='var(--amber-bg)';b.style.color='var(--amber-d)';
-}
-function showFormZone(show){const z=document.getElementById('pa_formZone');if(z)z.style.display=show?'block':'none';}
-
-function addFileToCategory(cat,file){
-// FIX-P06: Validación de tamaño máximo por archivo (20MB)
-const MAX_FILE_MB=20;const MAX_FILE_BYTES=MAX_FILE_MB*1024*1024;
-if(file.size>MAX_FILE_BYTES){
-const zone=document.getElementById('paCatZone_'+cat);
-let warnId='sizeWarn_'+cat+'*'+Date.now();
-const div=document.createElement('div');div.id=warnId;
-div.style.cssText='background:var(--amber-bg);border:1.5px solid #FDE68A;border-radius:9px;padding:10px 14px;font-size:12px;color:#92400E;margin:8px 0;';
-div.innerHTML='⚠️ <strong>"'+file.name+'"</strong> — Archivo demasiado grande ('+(file.size/1048576).toFixed(1)+' MB).<br><span style="color:var(--slate);">Máximo permitido: '+MAX_FILE_MB+' MB por archivo. Comprima el PDF e intente de nuevo.</span>';
-if(zone){const body=zone.querySelector('.cat-body');if(body)body.appendChild(div);}
-setTimeout(()=>{const el=document.getElementById(warnId);if(el)el.remove();},10000);
-return;
-}
-isPdfEncrypted(file).then(encrypted=>{
-if(encrypted){const zone=document.getElementById('paCatZone*'+cat);let warnId='encWarn_'+cat;if(!document.getElementById(warnId)){const div=document.createElement('div');div.id=warnId;div.style.cssText='background:var(--red-bg);border:1.5px solid #FECACA;border-radius:9px;padding:10px 14px;font-size:12px;color:#991B1B;margin:8px 0;';div.innerHTML='🔒 <strong>"'+file.name+'"</strong> — Este archivo está protegido.<br><span style="color:var(--slate);">Solución: Abre el PDF → Archivo → Imprimir → Guardar como PDF.</span>';if(zone){const body=zone.querySelector('.cat-body');if(body)body.appendChild(div);}setTimeout(()=>{const el=document.getElementById(warnId);if(el)el.remove();},8000);}return;}
-if(!catFiles[cat].find(f=>f.name===file.name))catFiles[cat].push(file);
-renderCatZones();paUpdateDocProgress();
-});
-}
-function removeFileFromCategory(cat,idx){catFiles[cat].splice(idx,1);renderCatZones();paUpdateDocProgress();}
-
-function paUpdateDocProgress(){
-const proc=document.getElementById('pa_procedure').value;if(!proc)return;
-const reqCats=getRequiredCats(proc);
-const uploaded=reqCats.filter(c=>{
-if(c==='TERAPIA'&&terapiaWaiver.active&&terapiaWaiver.reason.trim().length>3)return true;
-return catFiles[c].length>0;
-}).length;
-const total=reqCats.length;const pct=total>0?Math.round((uploaded/total)*100):0;
-document.getElementById('pa_docProgCount').textContent=`${uploaded} / ${total}`;
-document.getElementById('pa_docProgBar').style.width=pct+'%';
-document.getElementById('pa_docProgIcon').textContent=pct===100?'✅':pct>0?'📂':'📋';
-const missing=reqCats.filter(c=>catFiles[c].length===0);
-const warnEl=document.getElementById('pa_hardGate');
-if(missing.length>0&&uploaded>0){const cats=docCategories[lang];document.getElementById('pa_hardGateList').innerHTML=missing.map(c=>`<li>${cats[c]?.label||c}</li>`).join('');warnEl.style.display='block';}
-else if(missing.length===0){warnEl.style.display='none';paBuildConfirmChecklist(proc);}
-else{warnEl.style.display='none';}
-}
-
-function paBuildConfirmChecklist(proc){
-const container=document.getElementById('pa_confirmBox');const items=document.getElementById('pa_confirmItems');
-if(!proc||!docs[proc])return;
-const ci=docs[proc].filter(d=>d.req).map(d=>({label:lang==='es'?d.es:d.en,desc:lang==='es'?d.des:d.den}));
-items.innerHTML=ci.map((item,i)=>`<div class="confirm-check-item"><input type="checkbox" id="pacc_${i}"><label for="pacc_${i}"><strong>${item.label}</strong> — ${item.desc}</label></div>`).join('');
-container.style.display='block';
-}
-
-function renderCatZones(){
-const proc=document.getElementById('pa_procedure').value;const container=document.getElementById('pa_catUpload');
-if(!proc){container.innerHTML='';return;}
-const reqCats=getRequiredCats(proc);
-const allCats=[...new Set([...reqCats,...(docCategoryMap[proc]?.map(d=>d.cat)||[]),'OTROS'])];
-const cats=docCategories[lang];
-container.innerHTML=allCats.map(catKey=>{
-const cat=cats[catKey];const isReq=reqCats.includes(catKey);const files=catFiles[catKey];const hasDocs=files.length>0;
-const waiverActive=catKey==='TERAPIA'&&terapiaWaiver.active;
-const effectiveDone=hasDocs||(catKey==='TERAPIA'&&waiverActive&&terapiaWaiver.reason.trim().length>3);
-const badgeClass=effectiveDone?'done':isReq?'req':'opt';
-const badgeLabel=effectiveDone?(hasDocs?(lang==='es'?`${files.length} archivo(s)`:files.length+' file(s)'):(lang==='es'?'✓ No aplica':'✓ N/A')):isReq?(lang==='es'?'REQUERIDO':'REQUIRED'):(lang==='es'?'OPCIONAL':'OPTIONAL');
-const zoneClass=['cat-zone',isReq||hasDocs||waiverActive?'open':'',effectiveDone?'has-files':''].filter(Boolean).join(' ');
-const fileItems=files.map((f,i)=>`<div class="cat-file-item"><span>${fileIcon(f.name)}</span><span class="fn">${f.name}</span><span class="fsz">${fmt(f.size)}</span><button class="fdel" onclick="removeFileFromCategory('${catKey}',${i})">✕</button></div>`).join('');
-const waiverBlock=catKey==='TERAPIA'?` <div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--border);"> <label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:var(--slate);cursor:pointer;margin-bottom:0;"> <input type="checkbox" id="terapia_waiver_chk" ${terapiaWaiver.active?'checked':''} onchange="toggleTerapiaWaiver(this.checked)" style="width:15px;height:15px;accent-color:var(--amber);padding:0;border:none;box-shadow:none;"> <span>${lang==='es'?'La fisioterapia no aplica en este caso':'Physical therapy does not apply in this case'}</span> </label> <div class="waiver-box ${terapiaWaiver.active?'show':''}" id="terapia_waiver_box"> <label>${lang==='es'?'Razón clínica documentada *':'Documented clinical reason *'}</label> <textarea id="terapia_waiver_reason" placeholder="${lang==='es'?'Ej: Fractura aguda de cadera — PT contraindicada.':'E.g.: Acute hip fracture — PT contraindicated.'}" oninput="updateTerapiaWaiverReason(this.value)">${terapiaWaiver.reason}</textarea> <div class="waiver-hint">${lang==='es'?'⚠️ Esta razón aparecerá en el reporte de compliance.':'⚠️ This reason will appear in the compliance report.'}</div> </div> </div>`:'';
-return`<div class="${zoneClass}" id="paCatZone_${catKey}"><div class="cat-header" onclick="toggleCat('${catKey}')"><span style="font-size:16px;">${cat.icon}</span><span class="cat-title">${cat.label}</span><span class="cat-badge ${badgeClass}">${badgeLabel}</span><span class="cat-chevron">▼</span></div><div class="cat-body"><div class="cat-desc">${cat.desc}</div><div class="mini-upload"><input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.tif,.tiff" onchange="handleCatFiles('${catKey}',this.files);this.value=''"><div class="mini-upload-icon">${cat.icon}</div><div class="mini-upload-text">${lang==='es'?'Clic o arrastre':'Click or drag'} · <strong>PDF, JPG, PNG, TIFF</strong></div></div><div class="cat-files">${fileItems}</div>${waiverBlock}</div></div>`;
-}).join('');
-}
-
-const terapiaWaiver={active:false,reason:''};
-function toggleTerapiaWaiver(checked){terapiaWaiver.active=checked;if(!checked)terapiaWaiver.reason='';renderCatZones();paUpdateDocProgress();}
-function updateTerapiaWaiverReason(val){terapiaWaiver.reason=val;paUpdateDocProgress();}
-function toggleCat(k){const z=document.getElementById('paCatZone_'+k);if(z)z.classList.toggle('open');}
-function handleCatFiles(k,files){Array.from(files).forEach(f=>addFileToCategory(k,f));}
-function paUpdateDocChecklist(){const proc=document.getElementById('pa_procedure').value;renderCatZones();paUpdateDocProgress();showFormZone(!!proc);if(!proc){document.getElementById('pa_docProgCount').textContent='0 / 0';document.getElementById('pa_docProgBar').style.width='0%';document.getElementById('pa_confirmBox').style.display='none';}}
-
-function paUpdateProgress(){
-document.getElementById('paProgressFill').style.width=(paStep/4*100)+'%';
-document.getElementById('pa_stepCount').textContent=lang==='es'?`Paso ${paStep} de 4`:`Step ${paStep} of 4`;
-for(let i=1;i<=4;i++){const p=document.getElementById('pas'+i);p.className='step';if(i<paStep)p.classList.add('done-teal');else if(i===paStep)p.classList.add('active-teal');}
-document.getElementById('pa_btnBack').classList.toggle('invisible',paStep===1);
-document.getElementById('pa_btnNextLabel').textContent=paStep===4?(lang==='es'?'Enviar caso ✓':'Submit case ✓'):(lang==='es'?'Continuar →':'Continue →');
-}
-
-function paValidate(s){
-const req={1:['pa_doctorName','pa_practiceName','pa_contactEmail','pa_insurancePlan'],2:['pa_patientInitials','pa_surgeryDate','pa_procedure','pa_analysisType'],3:[],4:[]};
-let ok=true;
-req[s].forEach(id=>{const el=document.getElementById(id);const em=document.getElementById('pa_err-'+id.replace('pa_',''));if(el)el.classList.remove('error');if(em)em.classList.remove('show');});
-req[s].forEach(id=>{
-const el=document.getElementById(id);
-if(!el||!el.value.trim()){if(el)el.classList.add('error');const em=document.getElementById('pa_err-'+id.replace('pa_',''));if(em)em.classList.add('show');ok=false;}
-if(id==='pa_contactEmail'&&el&&el.value&&!/^[^\s@]+@[^\s@]+.[^\s@]+$/.test(el.value)){el.classList.add('error');document.getElementById('pa_err-contactEmail').classList.add('show');ok=false;}
-});
-if(s===3){const proc=document.getElementById('pa_procedure').value;if(proc){const reqCats=getRequiredCats(proc);const missing=reqCats.filter(c=>{if(c==='TERAPIA'&&terapiaWaiver.active&&terapiaWaiver.reason.trim().length>3)return false;return catFiles[c].length===0;});if(missing.length>0){const cats=docCategories[lang];document.getElementById('pa_hardGateList').innerHTML=missing.map(c=>`<li>${cats[c]?.label||c}</li>`).join('');document.getElementById('pa_hardGate').style.display='block';document.getElementById('pa_hardGate').scrollIntoView({behavior:'smooth',block:'center'});ok=false;}
-if(terapiaWaiver.active&&terapiaWaiver.reason.trim().length<=3){document.getElementById('pa_hardGateList').innerHTML=`<li>${lang==='es'?'Razón clínica para omitir fisioterapia es requerida':'Clinical reason for omitting physical therapy is required'}</li>`;document.getElementById('pa_hardGate').style.display='block';document.getElementById('pa_hardGate').scrollIntoView({behavior:'smooth',block:'center'});ok=false;}}}
-if(s===4){const h=document.getElementById('pa_confirmHipaa');if(!h.checked){document.getElementById('pa_err-confirmHipaa').classList.add('show');ok=false;}}
-return ok;
-}
-
-function paBuildSummary(){
-const proc=document.getElementById('pa_procedure');const plan=document.getElementById('pa_insurancePlan');const type=document.getElementById('pa_analysisType');const allFiles=getAllFiles();
-const keys=lang==='es'?['Médico','Práctica','Plan MA','Paciente','Procedimiento','Tipo','Fecha','Archivos']:['Physician','Practice','MA Plan','Patient','Procedure','Type','Date','Files'];
-const vals=[document.getElementById('pa_doctorName').value,document.getElementById('pa_practiceName').value,plan.options[plan.selectedIndex]?.text||'—',document.getElementById('pa_patientInitials').value,proc.options[proc.selectedIndex]?.text.split('—')[0].trim()||'—',type.options[type.selectedIndex]?.text||'—',document.getElementById('pa_surgeryDate').value||'—',allFiles.length+(lang==='es'?' archivo(s)':' file(s)')];
-document.getElementById('pa_summaryBox').innerHTML=`<div style="border:1.5px solid var(--border);border-radius:11px;overflow:hidden;">${keys.map((k,i)=>`<div style="display:flex;padding:9px 14px;border-bottom:${i<keys.length-1?'1px solid var(--border)':'none'};background:${i%2===0?'var(--light)':'var(--white)'}"><span style="width:120px;font-size:12px;font-weight:600;color:var(--slate);flex-shrink:0;">${k}</span><span style="font-size:12px;color:var(--dark);">${vals[i]}</span></div>`).join('')}</div>`;
-}
-
-function paShow(n){for(let i=1;i<=4;i++)document.getElementById('pa_s'+i).classList.remove('active');document.getElementById('pa_s'+n).classList.add('active');}
-
-const PA_STATUS_MSGS={es:['Verificando documentos del expediente...','Cargando LCD de Palmetto GBA...','Cargando CPB del plan MA...','Analizando criterios clínicos...','Generando reporte de compliance...','Preparando sugerencias de documentación...','Subiendo reporte a Drive...','Enviando notificaciones...'],en:['Verifying medical record documents...','Loading Palmetto GBA LCD...','Loading MA plan CPB...','Analyzing clinical criteria...','Generating compliance report...','Preparing documentation suggestions...','Uploading report to Drive...','Sending notifications...']};
-let paMsgIdx=0,paPollInterval=null;
-function paRotateMsg(){const msgs=PA_STATUS_MSGS[lang];paMsgIdx=(paMsgIdx+1)%msgs.length;const el=document.getElementById('pa_statusText');if(el)el.textContent=msgs[paMsgIdx];}
-function paAdvanceTL(s){for(let i=2;i<=s;i++){const d=document.getElementById('pa_tl'+i);if(d){d.className='tl-dot done-teal';d.textContent='✓';}}}
-
-async function paSubmit(){
-document.getElementById('pa_uploadStatus').style.display='flex';document.getElementById('pa_btnNext').disabled=true;
-const year=new Date().getFullYear();const proc=document.getElementById('pa_procedure').value;
-const procMap={TKA:'TKA-27447',THA:'THA-27130',LUMBAR:'LUMBAR-22612',CERVICAL:'CERVICAL-22551',ARTHROSCOPY:'ARTHRO-29881',SHOULDER:'SHOULDER-23472'};
-const seq=String(Math.floor(Math.random()*900)+100).padStart(3,'0');
-const caseId=`VINDICA-${year}-${seq}-${procMap[proc]||'PROC'}`;
-document.getElementById('pa_uploadStatus').style.display='none';
-document.getElementById('pa_nav').style.display='none';
-document.getElementById('pa_nav').nextElementSibling.style.display='none';
-document.getElementById('paProgressFill').style.width='100%';
-for(let i=1;i<=4;i++)document.getElementById('pa_s'+i).style.display='none';
-document.getElementById('pa_caseNum').textContent=caseId;
-document.getElementById('pa_success').style.display='';document.getElementById('pa_success').classList.add('show');// FIX-Q04
-paMsgIdx=0;document.getElementById('pa_statusText').textContent=PA_STATUS_MSGS[lang][0];
-paPollInterval=setInterval(paRotateMsg,3200);
-
-// Demo mode (placeholder URL)
-if(CF_BASE_URL.includes('XXXXXXX')){
-let step=0;const di=setInterval(()=>{step++;if(step===3)paAdvanceTL(2);if(step===6)paAdvanceTL(3);if(step===9){paAdvanceTL(4);clearInterval(di);clearInterval(paPollInterval);paShowReportReady({decision:'✅ LISTO PARA SOMETER',score:92,reportePDF:null,sugerencias:null});}},1100);
-return;
-}
-
-try{
-// Convertir archivos a base64
-const fileList=[];
-for(const[cat,files]of Object.entries(catFiles)){
-for(const file of files){
-const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(file);});
-fileList.push({name:file.name,category:cat,mimeType:getCorrectMimeType(file),base64:b64,driveFileId:null});
-}
-}
-if(formFile){
-const formB64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(formFile);});
-fileList.push({name:formFile.name,category:'FORMULARIO',mimeType:getCorrectMimeType(formFile),base64:formB64,driveFileId:null});
-}
-
-// ── FIX-B01: payload con nombres de campo compatibles con CF v4.8 ──────
-// CF v4.9+ espera: procedure, plan, doctor, practice, contactEmail,
-//                  patientInitials, analysisType, surgeryDate, terapiaWaiver,
-//                  laterality, notes
-const payload={
-  caseId,
-  folderId:             null,
-  procedure:            proc,
-  icd10:                (document.getElementById('pa_icd10')?.value||'').trim(),
-  plan:                 document.getElementById('pa_insurancePlan').value,
-  doctor:               document.getElementById('pa_doctorName').value,
-  practice:             document.getElementById('pa_practiceName').value,
-  contactEmail:         document.getElementById('pa_contactEmail').value,
-  patientInitials:      document.getElementById('pa_patientInitials').value,
-  analysisType:         document.getElementById('pa_analysisType').value,
-  surgeryDate:          document.getElementById('pa_surgeryDate').value,
-  terapiaWaiver:        terapiaWaiver.active?terapiaWaiver.reason:null,
-  laterality:           document.getElementById('pa_laterality').value||null,
-  notes:                document.getElementById('pa_notes').value.trim()||null,
-  files:                fileList,
-};
-// ────────────────────────────────────────────────────────────────────────
-
-const resp=await fetch(PA_CF_URL,{
-  method:'POST',
-  headers:{'Content-Type':'application/json','X-Vindica-Key':VINDICA_KEY},
-  body:JSON.stringify(payload),
-});
-if(!resp.ok)throw new Error(`HTTP ${resp.status}`);
-const{jobId}=await resp.json();
-paAdvanceTL(2);paStartPolling(jobId,caseId);
-
-}catch(err){
-clearInterval(paPollInterval);
-document.getElementById('pa_statusSpinner').style.display='none';
-document.getElementById('pa_statusText').textContent=lang==='es'?`Error al enviar: ${err.message}`:`Submit error: ${err.message}`;
-}
-}
-
-function paStartPolling(jobId,caseId){
-const pollUrl=CF_BASE_URL+'/status/'+jobId;let attempts=0;const maxAttempts=120;
-const poll=setInterval(async()=>{
-attempts++;if(attempts>maxAttempts){clearInterval(poll);clearInterval(paPollInterval);document.getElementById('pa_statusText').textContent=lang==='es'?'Tiempo agotado — revise Drive para el reporte.':'Timed out — check Drive for the report.';return;}
-try{
-const r=await fetch(pollUrl,{headers:{'X-Vindica-Key':VINDICA_KEY}});if(!r.ok)return;const job=await r.json();
-if(job.status==='COMPLETE'){clearInterval(poll);clearInterval(paPollInterval);paAdvanceTL(4);paShowReportReady({decision:job.decision,score:job.score_confianza,reportePDF:job.reportePDF,sugerencias:job.sugerencias,jobData:job});}
-else if(job.status==='CONTENT_VALIDATION_FAILED'){clearInterval(poll);clearInterval(paPollInterval);document.getElementById('pa_statusSpinner').style.display='none';document.getElementById('pa_statusText').textContent='Expediente bloqueado.';paShowContentValidationError(job.conflictos||[]);}
-else if(job.status==='AGENT2_REJECTED'){clearInterval(poll);clearInterval(paPollInterval);document.getElementById('pa_statusSpinner').style.display='none';document.getElementById('pa_statusText').textContent=lang==='es'?'Revisión manual requerida.':'Manual review required.';paShowAgent2Rejected(job.score,job.reason);}
-else if(job.status==='ERROR'||job.status==='TIMEOUT'){clearInterval(poll);clearInterval(paPollInterval);document.getElementById('pa_statusSpinner').style.display='none';document.getElementById('pa_statusText').textContent=`Error: ${job.error}`;}
-else if(job.status==='TRIAGE_FAILED'){clearInterval(poll);clearInterval(paPollInterval);document.getElementById('pa_statusSpinner').style.display='none';document.getElementById('pa_statusText').textContent=lang==='es'?`Expediente incompleto: ${job.message||'Faltan documentos requeridos. Vuelva al paso 3.'}`:`Incomplete record: ${job.message||'Required documents missing. Return to step 3.'}`;} // FIX-NEW-01 + FIX-Q08
-else if(job.status==='ALREADY_EXISTS'){clearInterval(poll);clearInterval(paPollInterval);paAdvanceTL(4);paShowReportReady({decision:job.decision||'✅ REPORTE PREVIO DISPONIBLE',score:job.score_confianza||null,reportePDF:job.reportePDF,sugerencias:null});} // FIX-NEW-01 + FIX-Q08
-else if(job.status==='AGENT_1')paAdvanceTL(2);
-else if(job.status==='AGENT_3'||job.status==='GENERATING_FILES')paAdvanceTL(3);
-}catch(e){}
-},5000);
-}
-
-function paShowContentValidationError(conflictos){
-const panel=document.getElementById('pa_contentValAlert');const list=document.getElementById('pa_contentValList');if(!panel||!list)return;
-const tipoLabels={REGION_ANATOMICA:'🫀 Región Anatómica',LATERALIDAD:'↔️ Lateralidad',INICIALES:'👤 Iniciales del Paciente',PLAN_MEDICO:'🏥 Plan Médico',PROCEDIMIENTO:'🔧 Procedimiento'};
-list.innerHTML=conflictos.map(c=>`<div style="background:#fff;border:1px solid #FECACA;border-radius:9px;padding:11px 14px;"><div style="font-size:11px;font-weight:700;color:var(--red);margin-bottom:4px;">${tipoLabels[c.tipo]||c.tipo}</div><div style="font-size:12px;color:var(--dark);margin-bottom:3px;">${c.mensaje_staff}</div><div style="font-size:11px;color:var(--muted);">📄 ${c.documento}</div></div>`).join('');
-panel.style.display='block';panel.scrollIntoView({behavior:'smooth',block:'center'});
-}
-
-function paShowAgent2Rejected(score,reason){
-const panel=document.getElementById('pa_agent2RejPanel');if(!panel)return;
-document.getElementById('pa_agent2Score').textContent=score?`Score ${score}/100`:'';
-document.getElementById('pa_agent2Reason').textContent=reason||'El expediente requiere revisión manual por el equipo de Vindica.';
-panel.style.display='block';panel.scrollIntoView({behavior:'smooth',block:'center'});
-}
-function paGoBackToDocuments(){
-document.getElementById('pa_contentValAlert').style.display='none';document.getElementById('pa_agent2RejPanel').style.display='none';document.getElementById('pa_success').classList.remove('show');document.getElementById('pa_success').style.display='';// FIX-Q03
-// FIX-NEW-03: restore pa_nav + hipaa-footer + re-enable submit btn (hidden by paSubmit)
-document.getElementById('pa_nav').style.display='';const _hip=document.getElementById('pa_nav').nextElementSibling;if(_hip)_hip.style.display='';
-document.getElementById('pa_btnNext').disabled=false;
-paStep=3;paShow(3);paUpdateProgress();
-const cu=document.getElementById('pa_catUpload');if(cu)cu.scrollIntoView({behavior:'smooth',block:'start'});
-}
-
-function paShowReportReady({decision,score,reportePDF,sugerencias,jobData}){
-  document.getElementById('pa_statusSpinner').style.display='none';
-  document.getElementById('pa_statusText').textContent='Reporte listo.';
-  document.getElementById('pa_phaseReady').style.display='block';
-  // PDF: abrir en nueva pestaña del browser
-  const pdfB64 = (jobData&&jobData.pdfBase64) || null;
-  const driveUrl = reportePDF || (jobData&&jobData.driveUrl) || null;
-  const dlLink = document.getElementById('pa_dlPDF');
-  if(pdfB64){
-    // Convertir base64 a Blob URL → abre PDF nativo en browser
-    try{
-      const raw=atob(pdfB64);const arr=new Uint8Array(raw.length);
-      for(let i=0;i<raw.length;i++)arr[i]=raw.charCodeAt(i);
-      const blob=new Blob([arr],{type:'application/pdf'});
-      dlLink.href=URL.createObjectURL(blob);
-      dlLink.target='_blank';
-    }catch(e){ if(driveUrl) dlLink.href=driveUrl; }
-  } else if(driveUrl){
-    dlLink.href=driveUrl;
-    dlLink.target='_blank';
+auth.onAuthStateChanged(user => {
+  if (user) {
+    document.getElementById('mainApp').style.display = '';
+    document.getElementById('userEmail').textContent = user.email;
+  } else {
+    window.location.href = 'index.html';
   }
-  const badge=document.getElementById('pa_decisionBadge');
-  const isOK=decision&&(decision.includes('LISTO')||decision.includes('SOMETER'));
-  const isWarn=decision&&(decision.includes('REVISION')||decision.includes('REVISIÓN'));
-  badge.style.cssText='display:inline-block;padding:8px 18px;border-radius:11px;font-size:13px;font-weight:700;'+(isOK?'background:#ECFDF5;color:#065F46;border:1.5px solid #A7F3D0;':isWarn?'background:#FFFBEB;color:#92400E;border:1.5px solid #FDE68A;':'background:#FEF2F2;color:#991B1B;border:1.5px solid #FECACA;');
-  badge.textContent=(decision||'ANALISIS COMPLETO')+' — Score '+(score||'—')+'/100';
-  const caseId=document.getElementById('pa_caseNum').textContent;
-  rpShow({caseId,decision,score,reportePDF,jobData,
-    procedure:document.getElementById('pa_procedure').value,
-    plan:document.getElementById('pa_insurancePlan').value,
-    patientInitials:document.getElementById('pa_patientInitials').value,
-    doctor:document.getElementById('pa_doctorName').value,
-    practice:document.getElementById('pa_practiceName').value,
-    laterality:document.getElementById('pa_laterality').value,
-  });
-}
-
-function paNext(){if(!paValidate(paStep))return;if(paStep===3)paBuildSummary();if(paStep<4){paStep++;paShow(paStep);paUpdateProgress();window.scrollTo({top:0,behavior:'smooth'});}else paSubmit();}
-function paPrev(){if(paStep>1){paStep--;paShow(paStep);paUpdateProgress();window.scrollTo({top:0,behavior:'smooth'});}}
-function paReset(){
-paStep=1;Object.keys(catFiles).forEach(k=>catFiles[k]=[]);paMsgIdx=0;formFile=null;terapiaWaiver.active=false;terapiaWaiver.reason='';
-if(paPollInterval){clearInterval(paPollInterval);paPollInterval=null;}
-document.getElementById('pa_nav').style.display='';const hip=document.getElementById('pa_nav').nextElementSibling;if(hip)hip.style.display='';
-document.getElementById('pa_success').classList.remove('show');document.getElementById('pa_uploadStatus').style.display='none';document.getElementById('pa_btnNext').disabled=false;document.getElementById('pa_phaseReady').style.display='none';document.getElementById('pa_hardGate').style.display='none';document.getElementById('pa_confirmBox').style.display='none';document.getElementById('pa_catUpload').innerHTML='';document.getElementById('pa_docProgCount').textContent='0 / 0';document.getElementById('pa_docProgBar').style.width='0%';
-for(let i=2;i<=4;i++){const d=document.getElementById('pa_tl'+i);if(d){d.className='tl-dot pending';d.textContent=i===2?'🔍':i===3?'📋':'📁';}}
-['pa_doctorName','pa_practiceName','pa_contactEmail','pa_contactPhone','pa_insurancePlan','pa_patientInitials','pa_icd10','pa_surgeryDate','pa_procedure','pa_laterality','pa_analysisType','pa_notes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-document.getElementById('pa_confirmHipaa').checked=false;
-for(let i=1;i<=4;i++)document.getElementById('pa_s'+i).style.display='';
-paUpdateDocChecklist();paShow(1);paUpdateProgress();
-}
-paUpdateProgress();
-
-// ── APPEALS ──────────────────────────────────────────────────────────────────
-const AP_CF_URL=CF_BASE_URL+'/analyzeDenial';
-let apStep=1,apDenialFile=null;
-
-function apUpdateProgress(){
-document.getElementById('apProgressFill').style.width=(apStep/3*100)+'%';
-document.getElementById('ap_stepCount').textContent=lang==='es'?`Paso ${apStep} de 3`:`Step ${apStep} of 3`;
-for(let i=1;i<=3;i++){const p=document.getElementById('aps'+i);p.className='step';if(i<apStep)p.classList.add('done-violet');else if(i===apStep)p.classList.add('active-violet');}
-document.getElementById('ap_btnBack').classList.toggle('invisible',apStep===1);
-document.getElementById('ap_btnNextLabel').textContent=apStep===3?(lang==='es'?'Generar Refutación ✓':'Generate Refutation ✓'):(lang==='es'?'Continuar →':'Continue →');
-}
-
-function apCaseIdCheck(){
-const val=document.getElementById('ap_caseId').value.trim();const statusEl=document.getElementById('ap_caseIdStatus');
-const pattern=/^VINDICA-\d{4}-\d{3}-[A-Z]+-\d{5}$/;if(!val){statusEl.style.display='none';return;}
-if(pattern.test(val)){statusEl.style.display='block';statusEl.style.cssText='display:block;padding:9px 12px;border-radius:9px;font-size:12px;margin-bottom:14px;background:var(--green-bg);border:1.5px solid #A7F3D0;color:#065F46;';statusEl.textContent='✅ Formato válido — '+val;}
-else{statusEl.style.display='block';statusEl.style.cssText='display:block;padding:9px 12px;border-radius:9px;font-size:12px;margin-bottom:14px;background:var(--amber-bg);border:1.5px solid #FDE68A;color:var(--amber-d);';statusEl.textContent=lang==='es'?'⚠️ Formato esperado: VINDICA-AAAA-NNN-PROC-CPT':'⚠️ Expected format: VINDICA-YYYY-NNN-PROC-CPT';}
-}
-
-function apHandleDenialFile(file){if(!file)return;apDenialFile=file;document.getElementById('ap_denialZone').classList.add('has-file');document.getElementById('ap_denialFileName').textContent=file.name;document.getElementById('ap_denialFileReady').classList.add('show');}
-function apRemoveDenialFile(){apDenialFile=null;document.getElementById('ap_denialZone').classList.remove('has-file');document.getElementById('ap_denialFileReady').classList.remove('show');}
-
-function apValidate(s){
-let ok=true;
-if(s===1){
-const caseId=document.getElementById('ap_caseId').value.trim();const email=document.getElementById('ap_email').value.trim();
-const caseErr=document.getElementById('ap_err-caseId');const emailErr=document.getElementById('ap_err-email');const denialErr=document.getElementById('ap_err-denial');
-if(!caseId){caseErr.style.display='block';ok=false;}else caseErr.style.display='none';
-if(!email||!/^[^\s@]+@[^\s@]+.[^\s@]+$/.test(email)){emailErr.style.display='block';ok=false;}else emailErr.style.display='none';
-if(!apDenialFile){denialErr.style.display='block';ok=false;}else denialErr.style.display='none';
-}
-return ok;
-}
-
-function apRunTripleVerification(){
-const caseId=document.getElementById('ap_caseId').value.trim();const isValidFormat=/^VINDICA-\d{4}-\d{3}-[A-Z]+-\d{5}$/.test(caseId);
-const setV=(n,status,msg)=>{const el=document.getElementById('ap_v'+n);const msgEl=document.getElementById('ap_v'+n+'msg');const icon=document.getElementById('ap_v'+n+'icon');el.className='verify-badge '+status;if(msgEl)msgEl.textContent=msg;if(icon)icon.textContent=status==='pass'?'✅':status==='warn'?'⚠️':status==='fail'?'❌':'⏳';};
-setV(1,'pending',lang==='es'?'Verificando que el caso existe en Drive...':'Verifying case exists in Drive...');
-setV(2,'pending',lang==='es'?'Comparando nombre en carta con expediente original...':'Comparing name in denial letter with original record...');
-setV(3,'pending',lang==='es'?'Verificando CPT en la carta contra caso original...':'Verifying CPT in denial letter against original case...');
-document.getElementById('ap_verifyError').style.display='none';document.getElementById('ap_verifyOK').style.display='none';
-if(!isValidFormat){
-setTimeout(()=>{setV(1,'fail',`El Vindica Case ID "${caseId}" no tiene el formato correcto.`);document.getElementById('ap_verifyError').style.display='block';document.getElementById('ap_verifyErrorTitle').textContent='⛔ V1 Fallida — Case ID no válido';document.getElementById('ap_verifyErrorBody').textContent=`Formato esperado: VINDICA-AAAA-NNN-PROC-CPT.`;document.getElementById('ap_btnNext').disabled=true;},800);
-return false;
-}
-document.getElementById('ap_btnNext').disabled=true;
-setTimeout(()=>{setV(1,'pass',`Caso ${caseId} encontrado en Drive.`);setTimeout(()=>{setV(2,'pass','Nombre del paciente en carta coincide con expediente original.');setTimeout(()=>{setV(3,'pass','CPT en carta coincide con procedimiento del caso original.');document.getElementById('ap_verifyOK').style.display='block';document.getElementById('ap_verifyOKDetail').textContent=`Caso ${caseId} — Identidad y procedimiento verificados.`;document.getElementById('ap_btnNext').disabled=false;apBuildSummary();},900);},900);},800);
-return true;
-}
-
-function apBuildSummary(){
-const caseId=document.getElementById('ap_caseId').value.trim();const email=document.getElementById('ap_email').value.trim();
-const proc=caseId.split('-')[3]||'—';const cpt=caseId.split('-')[4]||'—';
-const procNames={TKA:'Total Knee Arthroplasty',THA:'Total Hip Arthroplasty',LUMBAR:'Lumbar Fusion',CERVICAL:'Cervical Fusion',ARTHRO:'Knee Arthroscopy',SHOULDER:'Shoulder Replacement'};
-document.getElementById('ap_summaryContent').innerHTML=`<div style="display:grid;gap:4px;"><div><strong style="color:var(--violet-d);">Case ID:</strong> ${caseId}</div><div><strong style="color:var(--violet-d);">${lang==='es'?'Procedimiento':'Procedure'}:</strong> ${procNames[proc]||proc} (CPT ${cpt})</div><div><strong style="color:var(--violet-d);">Email:</strong> ${email}</div><div><strong style="color:var(--violet-d);">${lang==='es'?'Carta de denegación':'Denial letter'}:</strong> ${apDenialFile?.name||'—'}</div></div>`;
-}
-
-const AP_STATUS_MSGS={es:['Leyendo carta de denegación...','Extrayendo razones de denegación del plan...','Comparando contra análisis original de Vindica...','Identificando criterios refutables...','Redactando Refutación de Hallazgos...','Generando Carta de Apelación...','Subiendo documentos a Drive...','Notificando a la práctica...'],en:['Reading denial letter...','Extracting plan denial reasons...','Comparing against original Vindica analysis...','Identifying refutable criteria...','Drafting Refutation of Findings...','Generating Appeal Letter...','Uploading documents to Drive...','Notifying practice...']};
-let apMsgIdx=0,apPollInterval=null;
-function apRotateMsg(){const msgs=AP_STATUS_MSGS[lang];apMsgIdx=(apMsgIdx+1)%msgs.length;const el=document.getElementById('ap_statusText');if(el)el.textContent=msgs[apMsgIdx];}
-
-async function apSubmitRefutacion(){
-const caseId=document.getElementById('ap_caseId').value.trim();
-document.getElementById('ap_submitStatus').style.display='flex';document.getElementById('ap_btnNext').disabled=true;
-apMsgIdx=0;document.getElementById('ap_statusText').textContent=AP_STATUS_MSGS[lang][0];apPollInterval=setInterval(apRotateMsg,2800);
-if(CF_BASE_URL.includes('XXXXXXX')){let step=0;const di=setInterval(()=>{step++;if(step===8){clearInterval(di);clearInterval(apPollInterval);apShowSuccess(caseId,'✅ APELAR_COMPLETO — 3 de 3 razones refutables');}},900);return;}
-try{
-let denialBase64=null,denialMimeType='application/pdf';
-if(apDenialFile){denialBase64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(apDenialFile);});denialMimeType=getCorrectMimeType(apDenialFile);} // FIX-Q06 + FIX-NEW-07: } moved out of comment
-const resp=await fetch(AP_CF_URL,{
-method:'POST',
-headers:{'Content-Type':'application/json','X-Vindica-Key':VINDICA_KEY},
-// FIX-L01: denialLetterName usado correctamente con el nombre real del archivo
-body:JSON.stringify({
-vindicaCaseId:      caseId,
-denialLetterBase64: denialBase64,
-denialLetterMime:   denialMimeType,
-denialLetterName:   apDenialFile?.name||'carta_denegacion.pdf',
-email:              document.getElementById('ap_email').value,
-}),
 });
-if(!resp.ok)throw new Error(`HTTP ${resp.status}`);
-const{jobId}=await resp.json();apStartPolling(jobId,caseId);
-}catch(err){clearInterval(apPollInterval);document.getElementById('ap_submitStatus').style.display='none';document.getElementById('ap_btnNext').disabled=false;alert(`Error: ${err.message}`);}
-}
 
-function apStartPolling(jobId,caseId){
-const pollUrl=CF_BASE_URL+'/status/'+jobId;let attempts=0;const maxAttempts=120;
-const poll=setInterval(async()=>{
-attempts++;if(attempts>maxAttempts){clearInterval(poll);clearInterval(apPollInterval);document.getElementById('ap_statusText').textContent='Tiempo agotado — revise Drive.';return;}
-try{
-const r=await fetch(pollUrl,{headers:{'X-Vindica-Key':VINDICA_KEY}});if(!r.ok)return;const job=await r.json();
-if(job.status==='COMPLETE'){clearInterval(poll);clearInterval(apPollInterval);apShowSuccess(caseId,job.recomendacion,job.tipo_carta);}
-else if(job.status==='ERROR'||job.status==='TIMEOUT'){clearInterval(poll);clearInterval(apPollInterval);document.getElementById('ap_submitStatus').style.display='none';document.getElementById('ap_btnNext').disabled=false;document.getElementById('ap_statusText').textContent=job.error||'Error desconocido';}
-else if(job.status==='TRIPLE_VERIFICATION_FAILED'){clearInterval(poll);clearInterval(apPollInterval);document.getElementById('ap_submitStatus').style.display='none';document.getElementById('ap_btnNext').disabled=false;const errs=(job.errors||[]).map(e=>e.detalle||e.verificacion).join(' · ');document.getElementById('ap_statusText').textContent=lang==='es'?`⛔ Verificación fallida: ${errs||'La carta no corresponde al caso original.'}`:`⛔ Verification failed: ${errs||'Denial letter does not match the original case.'}`;}// FIX-NEW-04
-}catch(e){}
-},5000);
-}
+function doLogout() { auth.signOut(); }
 
-function apShowSuccess(caseId,recomendacion,tipoCarta){
-document.getElementById('ap_nav').style.display='none';const hip=document.getElementById('ap_nav').nextElementSibling;if(hip)hip.style.display='none';
-document.getElementById('apProgressFill').style.width='100%';
-for(let i=1;i<=3;i++)document.getElementById('ap_s'+i).style.display='none';
-document.getElementById('ap_caseNumDisplay').textContent=caseId;
-const recEl=document.getElementById('ap_recomendacion');if(recomendacion)recEl.textContent=recomendacion;if(tipoCarta)recEl.textContent+=` · ${tipoCarta}`;
-document.getElementById('ap_success').classList.add('show');
-}
+// ════════════════════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════���════════════════════════════════════════════════════
+let step = 0;
+const maxUnlocked = [0]; // tracks highest unlocked step
+const files = { 1: [], 2: [], 3: [] };
+const results = {}; // step => API response
 
-function apShow(n){for(let i=1;i<=3;i++)document.getElementById('ap_s'+i).classList.remove('active');document.getElementById('ap_s'+n).classList.add('active');}
-
-function apNext(){
-if(!apValidate(apStep))return;
-if(apStep===1){apStep++;apShow(apStep);apUpdateProgress();window.scrollTo({top:0,behavior:'smooth'});setTimeout(apRunTripleVerification,400);}
-else if(apStep===2){const allPass=[...document.querySelectorAll('.verify-badge.pass')].length>=3;if(!allPass)return;apStep++;apShow(apStep);apUpdateProgress();window.scrollTo({top:0,behavior:'smooth'});}
-else if(apStep===3)apSubmitRefutacion();
-}
-
-function apPrev(){if(apStep>1){apStep--;apShow(apStep);apUpdateProgress();window.scrollTo({top:0,behavior:'smooth'});}}
-
-function apReset(){
-apStep=1;apDenialFile=null;apMsgIdx=0;
-if(apPollInterval){clearInterval(apPollInterval);apPollInterval=null;}
-document.getElementById('ap_nav').style.display='';const hip=document.getElementById('ap_nav').nextElementSibling;if(hip)hip.style.display='';
-document.getElementById('ap_success').classList.remove('show');document.getElementById('ap_success').style.display='';for(let i=1;i<=3;i++)document.getElementById('ap_s'+i).style.display='';// FIX-Q05: clear inline styles set by apShowSuccess
-document.getElementById('ap_submitStatus').style.display='none';document.getElementById('ap_btnNext').disabled=false;
-document.getElementById('ap_caseId').value='';document.getElementById('ap_email').value='';document.getElementById('ap_caseIdStatus').style.display='none';
-apRemoveDenialFile();document.getElementById('ap_verifyError').style.display='none';document.getElementById('ap_verifyOK').style.display='none';
-['ap_v1','ap_v2','ap_v3'].forEach(id=>{const el=document.getElementById(id);if(el)el.className='verify-badge pending';const msg=document.getElementById(id+'msg');if(msg)msg.textContent=lang==='es'?'Verificando...':'Verifying...';const icon=document.getElementById(id+'icon');if(icon)icon.textContent='⏳';});
-document.getElementById('ap_verifyError').style.display='none';document.getElementById('ap_verifyOK').style.display='none';
-apUpdateProgress();
-}
-apUpdateProgress();
-
-// ── FIREBASE AUTH ─────────────────────────────────────────────
-// CONFIGURACIÓN FIREBASE — llenar con valores de Firebase Console
-const FIREBASE_CONFIG = {
-  apiKey: "AIzaSyBKmZkxsdP1p0uxKvmSJBYlQPiRPC0eXJ4",
-  authDomain: "vindica-production.firebaseapp.com",
-  projectId: "vindica-production",
-};
-
-let firebaseApp, firebaseAuth;
-try {
-  firebaseApp = firebase.initializeApp(FIREBASE_CONFIG);
-  firebaseAuth = firebase.auth();
-  firebaseAuth.onAuthStateChanged(user => {
-    if (user) {
-      showPortal(user);
-    } else {
-      showLogin();
-    }
-  });
-} catch(e) {
-  console.warn('Firebase not configured:', e.message);
-  // Fallback: show portal directly if Firebase not configured
-  if (FIREBASE_CONFIG.apiKey.includes('REEMPLAZAR')) {
-    showPortalUnlocked(null);
+// ════════════════════════════════════════════════════════════════════════════
+// NAVIGATION
+// ════════════════════════════════════════════════════════════════════════════
+function updateUI() {
+  const max = Math.max(...maxUnlocked);
+  for (let i = 0; i <= 4; i++) {
+    const el = document.getElementById('st' + i);
+    el.className = 'step';
+    if (i < step) el.classList.add('done');
+    else if (i === step) el.classList.add('active');
+    else if (i <= max) el.classList.add('done');
+    else el.classList.add('locked');
+    document.getElementById('p' + i).classList.toggle('active', i === step);
   }
+  document.getElementById('progFill').style.width = ((step + 1) / 5 * 100) + '%';
+  document.getElementById('btnBack').classList.toggle('btn-hidden', step === 0);
+
+  const labels = ['Verificar', 'Analizar', 'Analizar', 'Analizar', 'Generar Brief'];
+  document.getElementById('btnNext').textContent = labels[step] + ' \u2192';
 }
 
-function showLogin() {
-  window.location.href = 'index.html';
+function goStep(n) {
+  if (n > Math.max(...maxUnlocked)) return;
+  step = n;
+  updateUI();
 }
+function prevStep() { if (step > 0) { step--; updateUI(); } }
 
-function showPortal(user) {
-  document.getElementById('loginOverlay').classList.add('hidden');
-  document.getElementById('userBar').style.display = 'flex';
-  document.getElementById('userEmail').textContent = user.email;
-  document.querySelector('.outer').classList.remove('portal-locked');
-}
-
-function showPortalUnlocked(user) {
-  document.getElementById('loginOverlay').classList.add('hidden');
-  document.querySelector('.outer').classList.remove('portal-locked');
-}
-
-async function doLogin() {
-  const email = document.getElementById('loginEmail').value.trim();
-  const pass = document.getElementById('loginPassword').value;
-  const btn = document.getElementById('loginBtn');
-  const err = document.getElementById('loginError');
-  const loading = document.getElementById('loginLoading');
-
-  err.classList.remove('show');
-  if (!email || !pass) {
-    err.textContent = 'Por favor ingresa email y contraseña.';
-    err.classList.add('show');
-    return;
-  }
-
+async function nextStep() {
+  const btn = document.getElementById('btnNext');
   btn.disabled = true;
-  loading.classList.add('show');
-
+  btn.innerHTML = '<span class="spinner"></span> Procesando...';
   try {
-    await firebaseAuth.signInWithEmailAndPassword(email, pass);
-    // onAuthStateChanged handles the rest
-  } catch(e) {
-    loading.classList.remove('show');
-    btn.disabled = false;
-    const msgs = {
-      'auth/user-not-found': 'No existe una cuenta con ese email.',
-      'auth/wrong-password': 'Contraseña incorrecta.',
-      'auth/invalid-email': 'Email no válido.',
-      'auth/too-many-requests': 'Demasiados intentos. Intenta más tarde.',
-      'auth/invalid-credential': 'Email o contraseña incorrectos.',
-    };
-    err.textContent = msgs[e.code] || 'Error al iniciar sesión. Verifica tus credenciales.';
-    err.classList.add('show');
-  }
-}
-
-async function doLogout() {
-  await firebaseAuth.signOut();
-}
-
-// Allow Enter key on password field
-document.getElementById('loginPassword').addEventListener('keydown', e => {
-  if (e.key === 'Enter') doLogin();
-});
-document.getElementById('loginEmail').addEventListener('keydown', e => {
-  if (e.key === 'Enter') document.getElementById('loginPassword').focus();
-});
-
-// ══════════════════════════════════════════════════════════════════════════════
-// BRIEF PRE-AUTH — Generación instantánea de checklist de documentación
-// ══════════════════════════════════════════════════════════════════════════════
-
-let _lastBriefText = '';
-
-async function generarBrief() {
-  const cpt = document.getElementById('brief_cpt').value;
-  const icd10 = document.getElementById('brief_icd10').value.trim();
-  const plan = document.getElementById('brief_plan').value;
-  const checks = document.querySelectorAll('#briefComorbChecks input:checked');
-  const comorbilidades = Array.from(checks).map(c => c.value);
-
-  if (comorbilidades.length === 0) {
-    alert(lang === 'es' ? 'Selecciona al menos una comorbilidad.' : 'Select at least one comorbidity.');
-    return;
-  }
-
-  const btn = document.getElementById('briefGenBtn');
-  const form = document.getElementById('briefForm');
-  const loading = document.getElementById('briefLoading');
-  const result = document.getElementById('briefResult');
-
-  btn.disabled = true;
-  loading.style.display = 'block';
-  result.style.display = 'none';
-
-  try {
-    const resp = await fetch(CF_BASE_URL + '/brief', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Vindica-Key': VINDICA_KEY },
-      body: JSON.stringify({ cpt, icd10, plan, comorbilidades }),
-    });
-
-    if (!resp.ok) throw new Error('Error del servidor: ' + resp.status);
-    const data = await resp.json();
-
-    _lastBriefText = data.texto || '';
-    // Render HTML estructurado con 2 columnas
-    const el = document.getElementById('briefContent');
-    let html = '';
-    for (const sec of (data.brief || [])) {
-      html += `<div style="font-weight:700;font-size:14px;color:#92400E;border-bottom:2px solid #F59E0B;padding-bottom:6px;margin:18px 0 10px;">${sec.titulo}</div>`;
-      if (sec.contenido) {
-        html += `<div style="margin-bottom:12px;">${sec.contenido.map(l=>`<div>${l}</div>`).join('')}</div>`;
-      }
-      if (sec.comorbilidades) {
-        for (const c of sec.comorbilidades) {
-          html += `<div style="border:1px solid var(--border);border-radius:10px;margin-bottom:14px;overflow:hidden;">`;
-          // Header
-          html += `<div style="background:var(--amber-bg);padding:10px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">`;
-          html += `<span style="font-weight:700;font-size:13px;color:#92400E;">${c.nombre}</span>`;
-          if (c.umbral) html += `<span style="font-size:11px;color:var(--slate);background:#fff;padding:2px 8px;border-radius:4px;border:1px solid var(--border);">${c.umbral}</span>`;
-          html += `</div>`;
-          if (c.clearance) html += `<div style="background:#FEF2F2;padding:6px 14px;font-size:12px;color:#EF4444;font-weight:600;border-bottom:1px solid var(--border);">⚠ Clearance ${c.clearance} REQUERIDO</div>`;
-          // Two columns
-          html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:0;">`;
-          // Left: requisitos
-          html += `<div style="padding:12px 14px;border-right:1px solid var(--border);">`;
-          html += `<div style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Documentar en nota</div>`;
-          (c.requiere||[]).forEach((r,i)=>{
-            html += `<div style="font-size:12px;margin-bottom:4px;color:var(--dark);">${i+1}. ${r}</div>`;
-          });
-          html += `<div style="margin-top:10px;padding-top:8px;border-top:1px dashed var(--border);font-size:11px;font-weight:600;color:var(--slate);">Verificación A57765:</div>`;
-          ['Evaluación preoperatoria','Riesgo quirúrgico','Estado de control','Riesgo/beneficio','Plan perioperatorio'].forEach(e=>{
-            html += `<div style="font-size:11px;color:var(--muted);">☐ ${e}</div>`;
-          });
-          html += `</div>`;
-          // Right: ejemplo
-          html += `<div style="padding:12px 14px;background:#FFFBEB;">`;
-          html += `<div style="font-size:11px;font-weight:700;color:#92400E;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Ejemplo de nota</div>`;
-          if (c.ejemplo) {
-            html += `<div style="font-size:11.5px;color:#78350F;line-height:1.6;font-style:italic;">${c.ejemplo}</div>`;
-          } else {
-            html += `<div style="font-size:11.5px;color:var(--muted);font-style:italic;">Documentar evaluación riesgo/beneficio según A57765 FCSO.</div>`;
-          }
-          html += `</div>`;
-          html += `</div></div>`; // close grid + card
-        }
-      }
-    }
-    el.innerHTML = html;
-
-    loading.style.display = 'none';
-    result.style.display = 'block';
+    if (step === 0) await runStep0();
+    else if (step === 1) await runStep1();
+    else if (step === 2) await runStep2();
+    else if (step === 3) await runStep3();
+    else if (step === 4) await runStep4();
   } catch (err) {
-    loading.style.display = 'none';
-    alert('Error generando brief: ' + err.message);
-  } finally {
-    btn.disabled = false;
+    showError(step, err.message);
   }
+  btn.disabled = false;
+  btn.textContent = ['Verificar','Analizar','Analizar','Analizar','Generar Brief'][step] + ' \u2192';
 }
 
-function imprimirBrief() {
-  const w = window.open('', '_blank');
-  w.document.write('<html><head><title>Brief Pre-Auth — Vindica Health</title>');
-  w.document.write('<style>body{font-family:monospace;font-size:13px;line-height:1.8;padding:40px;white-space:pre-wrap;}</style>');
-  w.document.write('</head><body>');
-  w.document.write(_lastBriefText.replace(/</g,'&lt;'));
-  w.document.write('</body></html>');
-  w.document.close();
-  w.print();
+function unlock(n) { if (!maxUnlocked.includes(n)) maxUnlocked.push(n); step = n; updateUI(); }
+
+// ���═══════════════════════════════════════════════════════��═══════════════════
+// API HELPERS
+// ════════════════════════════════════════════════════════════════════════════
+async function api(path, body) {
+  const r = await fetch(API + path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Vindica-Key': KEY },
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) { const d = await r.json().catch(() => ({})); throw new Error(d.error || 'HTTP ' + r.status); }
+  return r.json();
 }
 
-function copiarBrief() {
-  navigator.clipboard.writeText(_lastBriefText).then(() => {
-    const btn = event.target;
-    const orig = btn.textContent;
-    btn.textContent = '✅ Copiado';
-    setTimeout(() => { btn.textContent = orig; }, 2000);
+async function fileToB64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result.split(',')[1]);
+    r.onerror = rej;
+    r.readAsDataURL(file);
   });
 }
 
-function resetBrief() {
-  document.getElementById('briefResult').style.display = 'none';
-  document.getElementById('briefLoading').style.display = 'none';
-  document.getElementById('briefContent').textContent = '';
-  document.getElementById('brief_icd10').value = '';
-  document.querySelectorAll('#briefComorbChecks input').forEach(c => { c.checked = false; });
-  _lastBriefText = '';
+function showError(s, msg) {
+  const el = document.getElementById('r' + s);
+  el.style.display = 'block';
+  el.innerHTML = `<div class="badge badge-err">Error: ${msg}</div>`;
 }
 
-</script>
+// ════════════════════════════════════════════════════════════════════════════
+// FILE MANAGEMENT
+// ════════════════════════════════════════════════════════════════════════════
+function addFiles(s, fileList) {
+  Array.from(fileList).forEach(f => {
+    if (!files[s].find(x => x.name === f.name)) files[s].push(f);
+  });
+  renderFiles(s);
+}
 
+function removeFile(s, idx) { files[s].splice(idx, 1); renderFiles(s); }
 
-<!-- ══ RESULTS PANEL ══════════════════════════════════════════════════════ -->
-<div class="rp-overlay" id="rpOverlay">
-  <div class="rp-wrap">
-    <div class="rp-topbar">
-      <div class="rp-logo">
-        <div class="rp-logo-icon">⚕</div>
-        <div class="rp-logo-text">Vindica <span>Health</span></div>
-      </div>
-      <div style="font-family:monospace;font-size:12px;color:#334155;" id="rp_caseId">—</div>
-      <div class="rp-topbar-right">
-        <button class="rp-btn rp-btn-print" onclick="rpPrint()">🖨 Imprimir / PDF</button>
-        <button class="rp-btn rp-btn-close" onclick="rpClose()">✕ Cerrar</button>
-      </div>
+function renderFiles(s) {
+  const el = document.getElementById('fl' + s);
+  const fmt = b => b < 1048576 ? (b / 1024).toFixed(0) + ' KB' : (b / 1048576).toFixed(1) + ' MB';
+  el.innerHTML = files[s].map((f, i) =>
+    `<div class="file-item"><span>\uD83D\uDCC4</span><span class="fn">${f.name}</span><span style="color:var(--muted);font-size:10px;">${fmt(f.size)}</span><button class="fdel" onclick="removeFile(${s},${i})">\u2715</button></div>`
+  ).join('');
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// STEP 0: Codigos
+// ════════════════════════════════════════════════════════════════════════════
+async function runStep0() {
+  const cpt = document.getElementById('f_cpt').value;
+  const icd10 = document.getElementById('f_icd10').value.trim();
+  const plan = document.getElementById('f_plan').value;
+  if (!cpt || !icd10 || !plan) throw new Error('Complete todos los campos');
+
+  const d = await api('/analizar/codigos', { cpt, icd10, plan });
+  results[0] = d;
+  const el = document.getElementById('r0');
+  el.style.display = 'block';
+
+  let html = '';
+  html += `<div class="badge ${d.cpt.valido ? 'badge-ok' : 'badge-err'}">CPT ${d.cpt.codigo} — ${d.cpt.descripcion} ${d.cpt.valido ? '\u2713' : '\u2717'}</div><br>`;
+  html += `<div class="badge ${d.icd10.valido ? 'badge-ok' : 'badge-err'}">ICD-10 ${d.icd10.codigo} — ${d.icd10.grupo_a57765 || 'N/A'} ${d.icd10.valido ? '\u2713' : '\u2717'}</div><br>`;
+  if (d.icd10.correccion_sugerida) {
+    html += `<div class="badge badge-warn">${d.icd10.correccion_sugerida.razon}</div><br>`;
+  }
+  html += `<div class="badge ${d.plan.valido ? 'badge-ok' : 'badge-err'}">Plan: ${d.plan.nombre_completo || d.plan.nombre} ${d.plan.valido ? '\u2713' : '\u2717'}</div>`;
+
+  if (d.puede_continuar) {
+    html += `<div style="margin-top:12px;" class="badge badge-ok">Puede continuar al siguiente paso</div>`;
+  } else {
+    html += `<div style="margin-top:12px;" class="badge badge-err">${d.mensaje_error}</div>`;
+  }
+  el.innerHTML = html;
+
+  if (d.puede_continuar) unlock(1);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// STEP 1: Radiologia
+// ════════════════════════════════��═══���═══════════════════════════════════════
+async function runStep1() {
+  if (files[1].length === 0) throw new Error('Suba al menos un archivo de imagen');
+  const archivos = [];
+  for (const f of files[1]) {
+    archivos.push({ nombre: f.name, base64: await fileToB64(f), mimeType: f.type || 'application/pdf' });
+  }
+  const cpt = document.getElementById('f_cpt').value;
+  const icd10 = document.getElementById('f_icd10').value.trim();
+
+  const d = await api('/analizar/radiologia', { archivos, cpt, icd10 });
+  results[1] = d;
+  const el = document.getElementById('r1');
+  el.style.display = 'block';
+
+  const cumple = d.cumple_lcd;
+  let html = '<div class="split-view">';
+
+  // LEFT — Analisis
+  html += '<div class="split-col">';
+  html += '<div class="split-col-header"><span class="col-icon">&#x1F50D;</span><h4>Analisis</h4></div>';
+  html += `<div class="badge ${cumple ? 'badge-ok' : 'badge-warn'}">${cumple ? 'Cumple LCD L33618' : 'Requiere concatenacion'}</div>`;
+  if (d.terminos_encontrados.length) html += `<div class="badge badge-ok" style="margin-top:6px;">Terminos LCD: ${d.terminos_encontrados.join(', ')}</div>`;
+  if (d.terminos_rechazados_encontrados.length) html += `<div class="badge badge-warn" style="margin-top:6px;">Terminos vagos: ${d.terminos_rechazados_encontrados.join(', ')}</div>`;
+  if (d.datos_por_archivo) {
+    for (const a of d.datos_por_archivo) {
+      if (a.datos) {
+        html += `<div class="result-box" style="margin-top:10px;"><h4>Datos extraidos:</h4><pre>`;
+        if (a.datos.tipo_estudio) html += `Estudio: ${a.datos.tipo_estudio}\n`;
+        if (a.datos.fecha_estudio) html += `Fecha: ${a.datos.fecha_estudio}\n`;
+        if (a.datos.radiologo) html += `Radiologo: ${a.datos.radiologo}\n`;
+        if (a.datos.institucion) html += `Institucion: ${a.datos.institucion}\n`;
+        html += `</pre></div>`;
+      }
+    }
+  }
+  html += '</div>';
+
+  // RIGHT — Brief de esta seccion
+  html += '<div class="split-col">';
+  html += `<div class="split-col-header"><span class="col-icon">&#x1F4CB;</span><h4>Brief — Estudios de Imagen</h4></div>`;
+  html += `<div class="brief-col ${cumple ? '' : 'warn'}">`;
+  html += `<div style="font-size:10px;font-weight:700;color:${cumple ? 'var(--teal-d)' : 'var(--amber-d)'};text-transform:uppercase;margin-bottom:8px;">${cumple ? 'INCLUIR EN SU NOTA:' : 'ACCION REQUERIDA — CONCATENACION:'}</div>`;
+  html += `<pre>${escapeHtml(d.plantilla_cirujano)}</pre>`;
+  html += `<button class="copy-btn" onclick="copyText(this, '${btoa(unescape(encodeURIComponent(d.plantilla_cirujano)))}')">Copiar seccion</button>`;
+  html += '</div></div>';
+
+  html += '</div>';
+  el.innerHTML = html;
+  unlock(2);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// STEP 2: Terapia
+// ════════════════════════════════════════════════════════════════════════════
+async function runStep2() {
+  if (files[2].length === 0) throw new Error('Suba al menos un reporte de PT');
+  const archivos = [];
+  for (const f of files[2]) {
+    archivos.push({ nombre: f.name, base64: await fileToB64(f), mimeType: f.type || 'application/pdf' });
+  }
+  const cpt = document.getElementById('f_cpt').value;
+
+  const d = await api('/analizar/terapia', { archivos, cpt });
+  results[2] = d;
+  const el = document.getElementById('r2');
+  el.style.display = 'block';
+
+  const cumple90 = d.cumple_90_dias;
+  const tieneADLs = !!d.plantilla_adls && d.adls_extraidas && d.adls_extraidas.length > 0;
+  let html = '<div class="split-view">';
+
+  // LEFT — Analisis
+  html += '<div class="split-col">';
+  html += '<div class="split-col-header"><span class="col-icon">&#x1F50D;</span><h4>Analisis</h4></div>';
+  html += `<div class="badge ${cumple90 ? 'badge-ok' : 'badge-warn'}">${d.duracion_total_dias} dias documentados ${cumple90 ? '(cumple >= 90)' : '(requiere >= 90)'}</div>`;
+  if (d.inyecciones_detectadas && !d.inyecciones_cuentan) html += `<div class="badge badge-warn" style="margin-top:6px;">Inyecciones detectadas — NO cuentan para THA</div>`;
+  if (d.modalidades_validas && d.modalidades_validas.length) html += `<div class="badge badge-info" style="margin-top:6px;">Modalidades: ${d.modalidades_validas.join(', ')}</div>`;
+
+  // ADLs status
+  html += `<div style="margin-top:12px;padding:10px;border-radius:9px;border:1.5px solid ${tieneADLs ? '#A7F3D0' : '#FECACA'};background:${tieneADLs ? 'var(--green-bg)' : 'var(--red-bg)'};">`;
+  html += `<div style="font-size:11px;font-weight:700;color:${tieneADLs ? '#065F46' : '#991B1B'};">${tieneADLs ? '&#x2713; ADLs Documentadas (' + d.adls_extraidas.length + ')' : '&#x2717; ADLs NO Encontradas — Gap Critico'}</div>`;
+  if (tieneADLs) {
+    html += `<div style="font-size:10px;color:#065F46;margin-top:4px;">${d.adls_extraidas.join(' | ')}</div>`;
+  } else {
+    html += `<div style="font-size:10px;color:#991B1B;margin-top:4px;">El reporte de terapia no incluye ADLs especificas. Esto puede causar denegacion.</div>`;
+  }
+  html += '</div>';
+
+  // Datos del terapeuta
+  if (d.datos_por_archivo) {
+    for (const a of d.datos_por_archivo) {
+      if (a.datos) {
+        html += `<div class="result-box" style="margin-top:10px;"><h4>Datos extraidos:</h4><pre>`;
+        if (a.datos.terapeuta_nombre) html += `Terapeuta: ${a.datos.terapeuta_nombre}\n`;
+        if (a.datos.terapeuta_licencia) html += `Licencia: ${a.datos.terapeuta_licencia}\n`;
+        if (a.datos.fecha_inicio) html += `Inicio: ${a.datos.fecha_inicio}\n`;
+        if (a.datos.fecha_fin) html += `Fin: ${a.datos.fecha_fin}\n`;
+        if (a.datos.total_sesiones) html += `Sesiones: ${a.datos.total_sesiones}\n`;
+        html += `</pre></div>`;
+      }
+    }
+  }
+  html += '</div>';
+
+  // RIGHT — Brief de terapia + ADLs
+  html += '<div class="split-col">';
+  html += `<div class="split-col-header"><span class="col-icon">&#x1F4CB;</span><h4>Brief — Terapia + ADLs</h4></div>`;
+
+  // Brief terapia
+  html += `<div class="brief-col ${cumple90 ? '' : 'warn'}" style="margin-bottom:10px;">`;
+  html += `<div style="font-size:10px;font-weight:700;color:${cumple90 ? 'var(--teal-d)' : 'var(--amber-d)'};text-transform:uppercase;margin-bottom:8px;">TERAPIA CONSERVADORA:</div>`;
+  html += `<pre>${escapeHtml(d.plantilla_terapia)}</pre>`;
+  html += `<button class="copy-btn" onclick="copyText(this, '${btoa(unescape(encodeURIComponent(d.plantilla_terapia)))}')">Copiar seccion</button>`;
+  html += '</div>';
+
+  // Brief ADLs
+  const adlsText = d.plantilla_adls || '';
+  html += `<div class="brief-col ${tieneADLs ? '' : 'error'}">`;
+  html += `<div style="font-size:10px;font-weight:700;color:${tieneADLs ? 'var(--teal-d)' : '#991B1B'};text-transform:uppercase;margin-bottom:8px;">${tieneADLs ? 'ACTIVIDADES DE LA VIDA DIARIA:' : 'DOCUMENTACION FALTANTE — ADLs:'}</div>`;
+  html += `<pre>${escapeHtml(adlsText)}</pre>`;
+  html += `<button class="copy-btn" onclick="copyText(this, '${btoa(unescape(encodeURIComponent(adlsText)))}')">Copiar seccion</button>`;
+  html += '</div>';
+
+  html += '</div>';
+  html += '</div>';
+  el.innerHTML = html;
+  unlock(3);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// STEP 3: Labs
+// ════════════════════════════════════════════════════════════════════════════
+async function runStep3() {
+  if (files[3].length === 0) throw new Error('Suba al menos un archivo de laboratorio');
+  const archivos = [];
+  for (const f of files[3]) {
+    archivos.push({ nombre: f.name, base64: await fileToB64(f), mimeType: f.type || 'application/pdf' });
+  }
+
+  const d = await api('/analizar/laboratorios', { archivos });
+  results[3] = d;
+  const el = document.getElementById('r3');
+  el.style.display = 'block';
+
+  let html = '';
+  if (d.fecha_labs) html += `<div class="badge badge-info">Fecha: ${d.fecha_labs} | Lab: ${d.laboratorio || 'N/A'}</div>`;
+
+  const vals = d.valores_extraidos;
+  const valRows = Object.entries(vals).filter(([k,v]) => v !== null && v !== undefined);
+  if (valRows.length) {
+    html += '<div class="result-box"><h4>Valores extraidos:</h4><pre>';
+    valRows.forEach(([k, v]) => { html += `${k}: ${v}\n`; });
+    html += '</pre></div>';
+  }
+
+  if (d.alertas.length) {
+    d.alertas.forEach(a => {
+      html += `<div class="badge ${a.tipo === 'CRITICO' ? 'badge-err' : 'badge-warn'}">${a.campo}: ${a.valor} (umbral: ${a.umbral || 'N/A'}) — ${a.tipo}</div><br>`;
+    });
+  } else {
+    html += `<div class="badge badge-ok">Sin alertas de laboratorio</div>`;
+  }
+
+  if (Object.keys(d.plantillas_por_comorbilidad).length) {
+    for (const [id, plantilla] of Object.entries(d.plantillas_por_comorbilidad)) {
+      html += `<div class="result-box"><h4>${id}:</h4><div class="rpt-plantilla">${formatPlantilla(plantilla)}</div></div>`;
+    }
+  }
+
+  el.innerHTML = html;
+  unlock(4);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// STEP 4: Brief
+// ════════════════════════════════════════════════════════════════════════════
+function toggleComor(el) {
+  const cb = el.querySelector('input');
+  cb.checked = !cb.checked;
+  el.classList.toggle('selected', cb.checked);
+}
+
+function selectAdmision(el, val) {
+  document.querySelectorAll('input[name="admision"]').forEach(r => {
+    r.checked = false;
+    r.closest('.comor-item').classList.remove('selected');
+  });
+  el.querySelector('input').checked = true;
+  el.classList.add('selected');
+}
+
+async function runStep4() {
+  const comors = [...document.querySelectorAll('#comorGrid input:checked')].map(c => c.value);
+  const admisionRadio = document.querySelector('input[name="admision"]:checked');
+
+  const body = {
+    cpt: document.getElementById('f_cpt').value,
+    icd10: document.getElementById('f_icd10').value.trim(),
+    plan: document.getElementById('f_plan').value,
+    comorbilidades_adicionales: comors,
+    datos_radiologia: results[1] || null,
+    datos_terapia: results[2] || null,
+    datos_labs: results[3] || null,
+    tipo_admision: admisionRadio ? admisionRadio.value : null,
+  };
+
+  const d = await api('/generar/brief', body);
+  results[4] = d;
+  const el = document.getElementById('r4');
+  el.style.display = 'block';
+
+  const meta = d.meta || {};
+  const secciones = d.secciones || [];
+  const validaciones = d.validaciones || {};
+
+  // ── Reporte visual con logo ──
+  let html = '<div class="rpt">';
+
+  // Header con logo
+  html += `<div class="rpt-header">
+    <div class="rpt-header-logo"><img src="logo.png" alt="V" style="width:30px;height:30px;border-radius:6px;"></div>
+    <div class="rpt-header-text">
+      <h2>Vindica<span style="color:#14B8A6">Health</span> — Brief Pre-Autorizacion</h2>
+      <p>CONFIDENCIAL HIPAA | ${new Date().toLocaleDateString('es-PR')} | LCD L33618 + A57765 FCSO</p>
     </div>
-    <div id="rp_content"><!-- filled by JS --></div>
-  </div>
-</div>
+  </div>`;
 
+  // Meta del caso
+  html += `<div class="rpt-meta">
+    <span><strong>CPT:</strong> ${meta.cpt || ''}</span>
+    <span><strong>ICD-10:</strong> ${meta.icd10 || ''}</span>
+    <span><strong>Plan:</strong> ${meta.plan || ''}</span>
+    <span><strong>Procedimiento:</strong> ${meta.procedimiento || ''}</span>
+  </div>`;
+
+  // Secciones
+  const secIcons = {
+    'VERIFICACION DE CODIGOS': {icon: '\u2705', type: 'ok'},
+    'ESTUDIOS DE IMAGEN': {icon: '\uD83E\uDE7B', type: 'info'},
+    'TERAPIA CONSERVADORA': {icon: '\uD83C\uDFC3', type: 'info'},
+    'ACTIVIDADES DE LA VIDA DIARIA': {icon: '\uD83D\uDCCB', type: 'info'},
+    'COMORBILIDADES Y LABORATORIOS': {icon: '\uD83E\uDDEA', type: 'info'},
+  };
+
+  for (const sec of secciones) {
+    if (sec.titulo === 'COMORBILIDADES Y LABORATORIOS' && sec.comorbilidades) {
+      // Comorbilidades — render especial
+      const si = secIcons[sec.titulo] || {icon: '\uD83D\uDCC4', type: 'info'};
+      html += `<div class="rpt-section open">
+        <div class="rpt-sec-head" onclick="this.parentElement.classList.toggle('open')">
+          <div class="rpt-sec-icon ${si.type}">${si.icon}</div>
+          <div class="rpt-sec-title">${sec.titulo}</div>
+          <div class="rpt-sec-badge info">${sec.comorbilidades.length} condiciones</div>
+        </div>
+        <div class="rpt-sec-body">`;
+
+      for (const c of sec.comorbilidades) {
+        const dotClass = c.valida ? 'ok' : 'warn';
+        html += `<div class="rpt-comor open">
+          <div class="rpt-comor-head" onclick="this.parentElement.classList.toggle('open')">
+            <div class="dot ${dotClass}"></div>
+            <h5>${c.nombre}</h5>
+            <span style="font-size:10px;color:var(--muted);">${c.fuente === 'laboratorios' ? 'De labs' : 'Brief form'}</span>
+          </div>
+          <div class="rpt-comor-body">
+            <div class="rpt-plantilla-label">INCLUIR EN SU NOTA:</div>
+            <div class="rpt-plantilla">${formatPlantilla(c.plantilla)}</div>`;
+        if (c.elementos_faltantes && c.elementos_faltantes.length > 0) {
+          html += `<div class="rpt-faltantes">Elementos faltantes: ${c.elementos_faltantes.join(', ')}</div>`;
+        }
+        if (c.mensaje_staff) {
+          html += `<div class="rpt-faltantes">${c.mensaje_staff}</div>`;
+        }
+        html += `</div></div>`;
+      }
+      html += `</div></div>`;
+      continue;
+    }
+
+    // Secciones normales (codigos, radiologia, terapia, ADLs)
+    const si = secIcons[sec.titulo] || {icon: '\uD83D\uDCC4', type: 'info'};
+    const estado = sec.estado === 'ok' ? 'ok' : sec.estado === 'error' ? 'err' : 'warn';
+    const badgeLabel = sec.estado_label || sec.estado || '';
+
+    html += `<div class="rpt-section open">
+      <div class="rpt-sec-head" onclick="this.parentElement.classList.toggle('open')">
+        <div class="rpt-sec-icon ${estado}">${si.icon}</div>
+        <div class="rpt-sec-title">${sec.titulo}</div>
+        <div class="rpt-sec-badge ${estado}">${badgeLabel}</div>
+      </div>
+      <div class="rpt-sec-body">`;
+
+    if (sec.contenido) {
+      html += `<pre style="font-size:12px;color:var(--dark);line-height:1.6;white-space:pre-wrap;font-family:'DM Sans',sans-serif;">${escapeHtml(sec.contenido)}</pre>`;
+    }
+
+    if (sec.plantilla) {
+      html += `<div class="rpt-plantilla-label">INCLUIR EN SU NOTA:</div>
+        <div class="rpt-plantilla">${formatPlantilla(sec.plantilla)}</div>`;
+    }
+
+    if (sec.elementos_faltantes && sec.elementos_faltantes.length > 0) {
+      html += `<div class="rpt-faltantes">Elementos faltantes: ${sec.elementos_faltantes.join(', ')}</div>`;
+    }
+
+    // Validacion de esta seccion
+    const valKey = sec.titulo === 'ESTUDIOS DE IMAGEN' ? 'radiologia' :
+                   sec.titulo === 'TERAPIA CONSERVADORA' ? 'terapia' :
+                   sec.titulo === 'ACTIVIDADES DE LA VIDA DIARIA' ? 'adls' : null;
+    if (valKey && validaciones[valKey]) {
+      const v = validaciones[valKey];
+      if (v.cumple) {
+        html += `<div style="margin-top:8px;" class="badge badge-ok">Validacion completa</div>`;
+      } else {
+        html += `<div style="margin-top:8px;" class="badge badge-warn">Faltan: ${v.faltantes.join(', ')}</div>`;
+      }
+    }
+
+    html += `</div></div>`;
+  }
+
+  // Footer
+  html += `<div class="rpt-footer">
+    <strong>NOTA IMPORTANTE:</strong> Campos entre [corchetes] requieren informacion del cirujano.
+    Si un elemento ya esta en su nota, omitirlo.
+    Este documento usa SOLO datos de los documentos subidos al portal.
+    Generado conforme a LCD L33618 FCSO y Articulo A57765 FCSO, Jurisdiccion J-N.<br><br>
+    <strong>Vindica Health LLC</strong> | HIPAA Confidencial | ${new Date().toLocaleDateString('es-PR')}
+  </div>`;
+
+  html += '</div>'; // close .rpt
+
+  // Action buttons
+  html += `<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;">
+    <button class="btn btn-primary" onclick="printBrief()">Imprimir</button>
+    <button class="btn btn-ghost" onclick="downloadBrief()">Descargar TXT</button>
+    <button class="btn btn-ghost" onclick="copyBrief()">Copiar al portapapeles</button>
+  </div>
+  <div style="text-align:center;margin-top:20px;padding-top:16px;border-top:1.5px solid var(--border);">
+    <button class="btn btn-primary" style="padding:14px 32px;font-size:14px;" onclick="nuevoCaso()">Nuevo Caso &rarr;</button>
+  </div>`;
+
+  el.innerHTML = html;
+}
+
+function escapeHtml(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function copyText(btn, b64) {
+  const text = decodeURIComponent(escape(atob(b64)));
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = 'Copiado!';
+    setTimeout(() => btn.textContent = orig, 2000);
+  });
+}
+
+function formatPlantilla(text) {
+  let safe = escapeHtml(text);
+  // Convert [blanks] to styled spans
+  safe = safe.replace(/\[([^\]]+)\]/g, '<span class="blank">$1</span>');
+  // Split into paragraphs on double newlines
+  const paragraphs = safe.split(/\n{2,}/);
+  let html = '';
+  for (const p of paragraphs) {
+    const trimmed = p.replace(/\n/g, ' ').trim();
+    if (!trimmed) continue;
+    if (/^Norma:/i.test(trimmed)) {
+      html += `<span class="norma">${trimmed}</span>`;
+    } else {
+      html += `<p>${trimmed}</p>`;
+    }
+  }
+  return html;
+}
+
+function printBrief() {
+  const meta = results[4].meta || {};
+  const w = window.open('', '_blank');
+  w.document.write(`<!DOCTYPE html><html><head><title>Vindica Brief</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:Arial,Helvetica,sans-serif;color:#1a1a1a;padding:30px 40px;}
+  .hdr{display:flex;align-items:center;gap:14px;border-bottom:3px solid #0D9488;padding-bottom:14px;margin-bottom:20px;}
+  .hdr-logo{width:44px;height:44px;background:linear-gradient(135deg,#0F766E,#14B8A6);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#fff;}
+  .hdr h1{font-size:18px;color:#0F172A;} .hdr h1 span{color:#0D9488;}
+  .hdr p{font-size:11px;color:#64748B;}
+  .meta{display:flex;flex-wrap:wrap;gap:16px;margin-bottom:18px;font-size:12px;color:#475569;} .meta b{color:#0F172A;}
+  pre{font-family:Arial,sans-serif;font-size:11.5px;white-space:pre-wrap;line-height:1.7;color:#1a1a1a;}
+  .ftr{margin-top:24px;padding-top:12px;border-top:2px solid #E2E8F0;font-size:10px;color:#94A3B8;text-align:center;}
+  @media print{body{padding:20px;}}
+</style></head><body>
+<div class="hdr">
+  <div class="hdr-logo"><img src="logo.png" alt="V" style="width:30px;height:30px;border-radius:6px;"></div>
+  <div><h1>Vindica<span>Health</span> — Brief Pre-Autorizacion</h1>
+  <p>CONFIDENCIAL HIPAA | ${new Date().toLocaleDateString('es-PR')} | LCD L33618 + A57765 FCSO, Jurisdiccion J-N</p></div>
+</div>
+<div class="meta">
+  <span><b>CPT:</b> ${meta.cpt||''}</span>
+  <span><b>ICD-10:</b> ${meta.icd10||''}</span>
+  <span><b>Plan:</b> ${meta.plan||''}</span>
+  <span><b>Procedimiento:</b> ${meta.procedimiento||''}</span>
+</div>
+<pre>${escapeHtml(results[4].documento_texto)}</pre>
+<div class="ftr">Vindica Health LLC | HIPAA Confidencial | Este documento fue generado automaticamente</div>
+</body></html>`);
+  w.document.close();
+  setTimeout(() => w.print(), 300);
+}
+
+function downloadBrief() {
+  const blob = new Blob([results[4].documento_texto], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `vindica_brief_${document.getElementById('f_icd10').value}_${new Date().toISOString().split('T')[0]}.txt`;
+  a.click();
+}
+
+function nuevoCaso() {
+  // Reset state
+  step = 0;
+  maxUnlocked.length = 0;
+  maxUnlocked.push(0);
+  files[1] = []; files[2] = []; files[3] = [];
+  for (const k in results) delete results[k];
+  // Reset form
+  document.getElementById('f_cpt').value = '';
+  document.getElementById('f_icd10').value = '';
+  document.getElementById('f_plan').value = '';
+  document.querySelectorAll('#comorGrid input').forEach(c => { c.checked = false; c.closest('.comor-item').classList.remove('selected'); });
+  document.querySelectorAll('input[name="admision"]').forEach(r => { r.checked = false; r.closest('.comor-item').classList.remove('selected'); });
+  // Reset result areas and file lists
+  for (let i = 0; i <= 4; i++) { const el = document.getElementById('r' + i); if (el) { el.style.display = 'none'; el.innerHTML = ''; } }
+  for (let i = 1; i <= 3; i++) { const el = document.getElementById('fl' + i); if (el) el.innerHTML = ''; }
+  updateUI();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function copyBrief() {
+  navigator.clipboard.writeText(results[4].documento_texto).then(() => {
+    alert('Brief copiado al portapapeles');
+  });
+}
+
+updateUI();
+</script>
 </body>
 </html>
