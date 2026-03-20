@@ -510,9 +510,6 @@ async function runStep1() {
   if (d.datos_por_archivo) {
     for (const a of d.datos_por_archivo) {
       if (a.datos) {
-        if (a.advertencias_extraccion) {
-          html += `<div class="badge badge-warn" style="margin-top:8px;">Verificacion: ${a.advertencias_extraccion.join(' | ')}</div>`;
-        }
         html += `<div class="result-box" style="margin-top:10px;"><h4>Datos extraidos:</h4><pre>`;
         if (a.datos.tipo_estudio) html += `Estudio: ${a.datos.tipo_estudio}\n`;
         if (a.datos.fecha_estudio) html += `Fecha: ${a.datos.fecha_estudio}\n`;
@@ -579,9 +576,6 @@ async function runStep2() {
   if (d.datos_por_archivo) {
     for (const a of d.datos_por_archivo) {
       if (a.datos) {
-        if (a.advertencias_extraccion) {
-          html += `<div class="badge badge-warn" style="margin-top:8px;">Verificacion: ${a.advertencias_extraccion.join(' | ')}</div>`;
-        }
         html += `<div class="result-box" style="margin-top:10px;"><h4>Datos extraidos:</h4><pre>`;
         if (a.datos.terapeuta_nombre) html += `Terapeuta: ${a.datos.terapeuta_nombre}\n`;
         if (a.datos.terapeuta_licencia) html += `Licencia: ${a.datos.terapeuta_licencia}\n`;
