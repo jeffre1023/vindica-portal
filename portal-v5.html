@@ -112,6 +112,42 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 
 .brief-doc{background:#fff;border:2px solid var(--border);border-radius:12px;padding:24px;margin:14px 0;font-size:12px;line-height:1.7;color:var(--dark);font-family:'DM Sans',monospace;white-space:pre-wrap;max-height:500px;overflow-y:auto;}
 
+/* Report styled view */
+.rpt{background:#fff;border-radius:16px;border:2px solid var(--border);overflow:hidden;margin:14px 0;}
+.rpt-header{background:var(--dark);color:#fff;padding:20px 24px;display:flex;align-items:center;gap:14px;}
+.rpt-header-logo{width:40px;height:40px;background:linear-gradient(135deg,#0F766E,#14B8A6);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;flex-shrink:0;}
+.rpt-header-text h2{font-family:'DM Serif Display',serif;font-size:18px;margin-bottom:2px;}
+.rpt-header-text p{font-size:11px;color:#94A3B8;}
+.rpt-meta{display:flex;flex-wrap:wrap;gap:10px;padding:14px 24px;background:var(--light);border-bottom:1px solid var(--border);font-size:12px;color:var(--slate);}
+.rpt-meta strong{color:var(--dark);}
+.rpt-section{border-bottom:1px solid var(--border);padding:0;}
+.rpt-section:last-child{border-bottom:none;}
+.rpt-sec-head{display:flex;align-items:center;gap:10px;padding:14px 24px;cursor:pointer;user-select:none;}
+.rpt-sec-icon{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff;flex-shrink:0;}
+.rpt-sec-icon.ok{background:var(--green);}
+.rpt-sec-icon.warn{background:var(--amber);}
+.rpt-sec-icon.err{background:var(--red);}
+.rpt-sec-icon.info{background:var(--teal);}
+.rpt-sec-title{flex:1;font-size:13px;font-weight:700;color:var(--dark);}
+.rpt-sec-badge{font-size:10px;font-weight:700;padding:3px 10px;border-radius:100px;letter-spacing:.5px;}
+.rpt-sec-badge.ok{background:var(--green-bg);color:#065F46;}
+.rpt-sec-badge.warn{background:var(--amber-bg);color:var(--amber-d);}
+.rpt-sec-badge.err{background:var(--red-bg);color:#991B1B;}
+.rpt-sec-body{padding:0 24px 18px;display:none;}
+.rpt-section.open .rpt-sec-body{display:block;}
+.rpt-plantilla{background:var(--teal-bg);border:1.5px solid var(--teal-bd);border-radius:10px;padding:14px 16px;margin-top:8px;font-size:12px;line-height:1.7;color:var(--dark);white-space:pre-wrap;font-family:'DM Sans',sans-serif;}
+.rpt-plantilla-label{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--teal-d);margin-bottom:6px;}
+.rpt-faltantes{background:var(--amber-bg);border:1.5px solid #FDE68A;border-radius:10px;padding:10px 14px;margin-top:8px;font-size:11px;color:var(--amber-d);}
+.rpt-comor{border:1.5px solid var(--border);border-radius:11px;margin-bottom:10px;overflow:hidden;}
+.rpt-comor-head{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--light);border-bottom:1px solid var(--border);cursor:pointer;}
+.rpt-comor-head .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.rpt-comor-head .dot.ok{background:var(--green);}
+.rpt-comor-head .dot.warn{background:var(--amber);}
+.rpt-comor-head h5{flex:1;font-size:12px;font-weight:700;color:var(--dark);}
+.rpt-comor-body{padding:12px 14px;display:none;}
+.rpt-comor.open .rpt-comor-body{display:block;}
+.rpt-footer{padding:14px 24px;background:var(--light);border-top:1px solid var(--border);font-size:11px;color:var(--muted);line-height:1.6;}
+
 .hipaa-footer{text-align:center;padding:13px 20px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:center;gap:8px;}
 .hipaa-badge{display:inline-flex;align-items:center;gap:4px;background:var(--green-bg);border:1px solid #A7F3D0;border-radius:100px;padding:3px 9px;font-size:10px;font-weight:600;color:#065F46;}
 .hipaa-footer span{font-size:11px;color:var(--muted);}
@@ -569,29 +605,133 @@ async function runStep4() {
   const el = document.getElementById('r4');
   el.style.display = 'block';
 
-  let html = '<div style="margin-bottom:14px;">';
+  const meta = d.meta || {};
+  const secciones = d.secciones || [];
+  const validaciones = d.validaciones || {};
 
-  // Validaciones
-  if (d.validaciones) {
-    for (const [key, val] of Object.entries(d.validaciones)) {
-      if (val.cumple) {
-        html += `<div class="badge badge-ok">${key}: Completa</div> `;
+  // ── Reporte visual con logo ──
+  let html = '<div class="rpt">';
+
+  // Header con logo
+  html += `<div class="rpt-header">
+    <div class="rpt-header-logo">V</div>
+    <div class="rpt-header-text">
+      <h2>Vindica<span style="color:#14B8A6">Health</span> — Brief Pre-Autorizacion</h2>
+      <p>CONFIDENCIAL HIPAA | ${new Date().toLocaleDateString('es-PR')} | LCD L33618 + A57765 FCSO</p>
+    </div>
+  </div>`;
+
+  // Meta del caso
+  html += `<div class="rpt-meta">
+    <span><strong>CPT:</strong> ${meta.cpt || ''}</span>
+    <span><strong>ICD-10:</strong> ${meta.icd10 || ''}</span>
+    <span><strong>Plan:</strong> ${meta.plan || ''}</span>
+    <span><strong>Procedimiento:</strong> ${meta.procedimiento || ''}</span>
+  </div>`;
+
+  // Secciones
+  const secIcons = {
+    'VERIFICACION DE CODIGOS': {icon: '\u2705', type: 'ok'},
+    'ESTUDIOS DE IMAGEN': {icon: '\uD83E\uDE7B', type: 'info'},
+    'TERAPIA CONSERVADORA': {icon: '\uD83C\uDFC3', type: 'info'},
+    'ACTIVIDADES DE LA VIDA DIARIA': {icon: '\uD83D\uDCCB', type: 'info'},
+    'COMORBILIDADES Y LABORATORIOS': {icon: '\uD83E\uDDEA', type: 'info'},
+  };
+
+  for (const sec of secciones) {
+    if (sec.titulo === 'COMORBILIDADES Y LABORATORIOS' && sec.comorbilidades) {
+      // Comorbilidades — render especial
+      const si = secIcons[sec.titulo] || {icon: '\uD83D\uDCC4', type: 'info'};
+      html += `<div class="rpt-section open">
+        <div class="rpt-sec-head" onclick="this.parentElement.classList.toggle('open')">
+          <div class="rpt-sec-icon ${si.type}">${si.icon}</div>
+          <div class="rpt-sec-title">${sec.titulo}</div>
+          <div class="rpt-sec-badge info">${sec.comorbilidades.length} condiciones</div>
+        </div>
+        <div class="rpt-sec-body">`;
+
+      for (const c of sec.comorbilidades) {
+        const dotClass = c.valida ? 'ok' : 'warn';
+        html += `<div class="rpt-comor open">
+          <div class="rpt-comor-head" onclick="this.parentElement.classList.toggle('open')">
+            <div class="dot ${dotClass}"></div>
+            <h5>${c.nombre}</h5>
+            <span style="font-size:10px;color:var(--muted);">${c.fuente === 'laboratorios' ? 'De labs' : 'Brief form'}</span>
+          </div>
+          <div class="rpt-comor-body">
+            <div class="rpt-plantilla-label">INCLUIR EN SU NOTA:</div>
+            <div class="rpt-plantilla">${escapeHtml(c.plantilla)}</div>`;
+        if (c.elementos_faltantes && c.elementos_faltantes.length > 0) {
+          html += `<div class="rpt-faltantes">Elementos faltantes: ${c.elementos_faltantes.join(', ')}</div>`;
+        }
+        if (c.mensaje_staff) {
+          html += `<div class="rpt-faltantes">${c.mensaje_staff}</div>`;
+        }
+        html += `</div></div>`;
+      }
+      html += `</div></div>`;
+      continue;
+    }
+
+    // Secciones normales (codigos, radiologia, terapia, ADLs)
+    const si = secIcons[sec.titulo] || {icon: '\uD83D\uDCC4', type: 'info'};
+    const estado = sec.estado === 'ok' ? 'ok' : sec.estado === 'error' ? 'err' : 'warn';
+    const badgeLabel = sec.estado_label || sec.estado || '';
+
+    html += `<div class="rpt-section open">
+      <div class="rpt-sec-head" onclick="this.parentElement.classList.toggle('open')">
+        <div class="rpt-sec-icon ${estado}">${si.icon}</div>
+        <div class="rpt-sec-title">${sec.titulo}</div>
+        <div class="rpt-sec-badge ${estado}">${badgeLabel}</div>
+      </div>
+      <div class="rpt-sec-body">`;
+
+    if (sec.contenido) {
+      html += `<pre style="font-size:12px;color:var(--dark);line-height:1.6;white-space:pre-wrap;font-family:'DM Sans',sans-serif;">${escapeHtml(sec.contenido)}</pre>`;
+    }
+
+    if (sec.plantilla) {
+      html += `<div class="rpt-plantilla-label">INCLUIR EN SU NOTA:</div>
+        <div class="rpt-plantilla">${escapeHtml(sec.plantilla)}</div>`;
+    }
+
+    if (sec.elementos_faltantes && sec.elementos_faltantes.length > 0) {
+      html += `<div class="rpt-faltantes">Elementos faltantes: ${sec.elementos_faltantes.join(', ')}</div>`;
+    }
+
+    // Validacion de esta seccion
+    const valKey = sec.titulo === 'ESTUDIOS DE IMAGEN' ? 'radiologia' :
+                   sec.titulo === 'TERAPIA CONSERVADORA' ? 'terapia' :
+                   sec.titulo === 'ACTIVIDADES DE LA VIDA DIARIA' ? 'adls' : null;
+    if (valKey && validaciones[valKey]) {
+      const v = validaciones[valKey];
+      if (v.cumple) {
+        html += `<div style="margin-top:8px;" class="badge badge-ok">Validacion completa</div>`;
       } else {
-        html += `<div class="badge badge-warn">${key}: Faltan — ${val.faltantes.join(', ')}</div> `;
+        html += `<div style="margin-top:8px;" class="badge badge-warn">Faltan: ${v.faltantes.join(', ')}</div>`;
       }
     }
+
+    html += `</div></div>`;
   }
-  html += '</div>';
 
-  // Documento
-  html += `<div class="brief-doc">${escapeHtml(d.documento_texto)}</div>`;
+  // Footer
+  html += `<div class="rpt-footer">
+    <strong>NOTA IMPORTANTE:</strong> Campos entre [corchetes] requieren informacion del cirujano.
+    Si un elemento ya esta en su nota, omitirlo.
+    Este documento usa SOLO datos de los documentos subidos al portal.
+    Generado conforme a LCD L33618 FCSO y Articulo A57765 FCSO, Jurisdiccion J-N.<br><br>
+    <strong>Vindica Health LLC</strong> | HIPAA Confidencial | ${new Date().toLocaleDateString('es-PR')}
+  </div>`;
 
-  // Botones
-  html += `<div style="display:flex;gap:10px;flex-wrap:wrap;">`;
-  html += `<button class="btn btn-primary" onclick="printBrief()">Imprimir</button>`;
-  html += `<button class="btn btn-ghost" onclick="downloadBrief()">Descargar TXT</button>`;
-  html += `<button class="btn btn-ghost" onclick="copyBrief()">Copiar al portapapeles</button>`;
-  html += `</div>`;
+  html += '</div>'; // close .rpt
+
+  // Action buttons
+  html += `<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;">
+    <button class="btn btn-primary" onclick="printBrief()">Imprimir</button>
+    <button class="btn btn-ghost" onclick="downloadBrief()">Descargar TXT</button>
+    <button class="btn btn-ghost" onclick="copyBrief()">Copiar al portapapeles</button>
+  </div>`;
 
   el.innerHTML = html;
 }
@@ -601,10 +741,37 @@ function escapeHtml(s) {
 }
 
 function printBrief() {
+  const meta = results[4].meta || {};
   const w = window.open('', '_blank');
-  w.document.write('<pre style="font-family:monospace;font-size:12px;white-space:pre-wrap;">' + escapeHtml(results[4].documento_texto) + '</pre>');
+  w.document.write(`<!DOCTYPE html><html><head><title>Vindica Brief</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:Arial,Helvetica,sans-serif;color:#1a1a1a;padding:30px 40px;}
+  .hdr{display:flex;align-items:center;gap:14px;border-bottom:3px solid #0D9488;padding-bottom:14px;margin-bottom:20px;}
+  .hdr-logo{width:44px;height:44px;background:linear-gradient(135deg,#0F766E,#14B8A6);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#fff;}
+  .hdr h1{font-size:18px;color:#0F172A;} .hdr h1 span{color:#0D9488;}
+  .hdr p{font-size:11px;color:#64748B;}
+  .meta{display:flex;flex-wrap:wrap;gap:16px;margin-bottom:18px;font-size:12px;color:#475569;} .meta b{color:#0F172A;}
+  pre{font-family:Arial,sans-serif;font-size:11.5px;white-space:pre-wrap;line-height:1.7;color:#1a1a1a;}
+  .ftr{margin-top:24px;padding-top:12px;border-top:2px solid #E2E8F0;font-size:10px;color:#94A3B8;text-align:center;}
+  @media print{body{padding:20px;}}
+</style></head><body>
+<div class="hdr">
+  <div class="hdr-logo">V</div>
+  <div><h1>Vindica<span>Health</span> — Brief Pre-Autorizacion</h1>
+  <p>CONFIDENCIAL HIPAA | ${new Date().toLocaleDateString('es-PR')} | LCD L33618 + A57765 FCSO, Jurisdiccion J-N</p></div>
+</div>
+<div class="meta">
+  <span><b>CPT:</b> ${meta.cpt||''}</span>
+  <span><b>ICD-10:</b> ${meta.icd10||''}</span>
+  <span><b>Plan:</b> ${meta.plan||''}</span>
+  <span><b>Procedimiento:</b> ${meta.procedimiento||''}</span>
+</div>
+<pre>${escapeHtml(results[4].documento_texto)}</pre>
+<div class="ftr">Vindica Health LLC | HIPAA Confidencial | Este documento fue generado automaticamente</div>
+</body></html>`);
   w.document.close();
-  w.print();
+  setTimeout(() => w.print(), 300);
 }
 
 function downloadBrief() {
