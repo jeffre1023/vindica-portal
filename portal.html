@@ -205,7 +205,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
     <div class="panel active" id="p0">
       <div class="panel-tag">Paso 0</div>
       <div class="panel-title">Verificacion de Codigos</div>
-      <div class="panel-desc">Valida CPT, ICD-10 y plan antes de continuar. Sin Gemini, 100% determinista.</div>
+      <div class="panel-desc">Valida CPT, ICD-10 y plan conforme al LCD L33618 y Articulo A57765 FCSO.</div>
       <div class="cols-2">
         <div class="field"><label>CPT <span class="req">*</span></label>
           <select id="f_cpt">
@@ -235,7 +235,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
     <div class="panel" id="p1">
       <div class="panel-tag">Paso 1</div>
       <div class="panel-title">Reportes de Imagen</div>
-      <div class="panel-desc">Suba reportes de RX, MRI o CT. Gemini extrae texto literal — Node.js evalua contra LCD L33618.</div>
+      <div class="panel-desc">Suba reportes de RX, MRI o CT. Analisis conforme a criterios LCD L33618 FCSO.</div>
       <div class="upload-zone" id="uz1">
         <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png" onchange="addFiles(1,this.files);this.value=''">
         <div class="upload-zone-text">Arrastre archivos aqui o <strong>haga clic</strong> — PDF, JPG, PNG</div>
@@ -248,7 +248,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
     <div class="panel" id="p2">
       <div class="panel-tag">Paso 2</div>
       <div class="panel-title">Terapia Fisica</div>
-      <div class="panel-desc">Suba reportes de PT. Puede subir multiples episodios — el sistema suma la duracion total.</div>
+      <div class="panel-desc">Suba reportes de PT. Multiples episodios permitidos — el sistema suma la duracion total conforme a A57765.</div>
       <div class="upload-zone" id="uz2">
         <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png" onchange="addFiles(2,this.files);this.value=''">
         <div class="upload-zone-text">Arrastre archivos aqui o <strong>haga clic</strong></div>
@@ -261,7 +261,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
     <div class="panel" id="p3">
       <div class="panel-tag">Paso 3</div>
       <div class="panel-title">Laboratorios</div>
-      <div class="panel-desc">Suba paneles preoperatorios. Si hay multiples fechas, el sistema usa el valor mas reciente.</div>
+      <div class="panel-desc">Suba paneles preoperatorios. El sistema evalua valores contra umbrales quirurgicos conforme a A57765.</div>
       <div class="upload-zone" id="uz3">
         <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png" onchange="addFiles(3,this.files);this.value=''">
         <div class="upload-zone-text">Arrastre archivos aqui o <strong>haga clic</strong></div>
