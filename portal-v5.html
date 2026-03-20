@@ -179,7 +179,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 <!-- LOGIN -->
 <div class="login-overlay" id="loginOverlay">
   <div class="login-card">
-    <div class="login-logo"><div class="login-logo-icon">V</div><div class="login-logo-text">Vindica<span>Health</span></div></div>
+    <div class="login-logo"><div class="login-logo-icon"><img src="logo.png" alt="V" style="width:32px;height:32px;border-radius:6px;"></div><div class="login-logo-text">Vindica<span>Health</span></div></div>
     <div class="login-field"><label>Email</label><input type="text" id="loginEmail" placeholder="usuario@practica.com"></div>
     <div class="login-field"><label>Password</label><input type="password" id="loginPass" placeholder="********" onkeydown="if(event.key==='Enter')doLogin()"></div>
     <button class="login-btn" onclick="doLogin()">Acceder</button>
@@ -196,7 +196,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
   <a href="portal.html" class="back-link">&larr; Volver al portal principal</a>
 
   <div class="header">
-    <div class="logo-mark"><div class="logo-icon">V</div><div class="logo-text">Vindica<span>Health</span></div></div>
+    <div class="logo-mark"><div class="logo-icon"><img src="logo.png" alt="V" style="width:30px;height:30px;border-radius:6px;"></div><div class="logo-text">Vindica<span>Health</span></div></div>
     <h1>Brief Builder v5</h1>
     <p>Genera el brief pre-autorizacion paso a paso. Gemini extrae, Node.js decide.</p>
   </div>
@@ -405,7 +405,7 @@ async function nextStep() {
 
 function unlock(n) { if (!maxUnlocked.includes(n)) maxUnlocked.push(n); step = n; updateUI(); }
 
-// ════════════════════════════════════════════════════════════════════════════
+// ���═══════════════════════════════════════════════════════��═══════════════════
 // API HELPERS
 // ════════════════════════════════════════════════════════════════════════════
 async function api(path, body) {
@@ -614,7 +614,7 @@ async function runStep4() {
 
   // Header con logo
   html += `<div class="rpt-header">
-    <div class="rpt-header-logo">V</div>
+    <div class="rpt-header-logo"><img src="logo.png" alt="V" style="width:30px;height:30px;border-radius:6px;"></div>
     <div class="rpt-header-text">
       <h2>Vindica<span style="color:#14B8A6">Health</span> — Brief Pre-Autorizacion</h2>
       <p>CONFIDENCIAL HIPAA | ${new Date().toLocaleDateString('es-PR')} | LCD L33618 + A57765 FCSO</p>
@@ -757,7 +757,7 @@ function printBrief() {
   @media print{body{padding:20px;}}
 </style></head><body>
 <div class="hdr">
-  <div class="hdr-logo">V</div>
+  <div class="hdr-logo"><img src="logo.png" alt="V" style="width:30px;height:30px;border-radius:6px;"></div>
   <div><h1>Vindica<span>Health</span> — Brief Pre-Autorizacion</h1>
   <p>CONFIDENCIAL HIPAA | ${new Date().toLocaleDateString('es-PR')} | LCD L33618 + A57765 FCSO, Jurisdiccion J-N</p></div>
 </div>
