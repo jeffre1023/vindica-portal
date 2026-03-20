@@ -277,6 +277,20 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
       <div class="panel-title">Brief Form</div>
       <div class="panel-desc">Seleccione comorbilidades adicionales que el medico menciono pero no aparecieron en labs.</div>
       <div style="font-size:12px;font-weight:700;color:var(--dark);margin-bottom:10px;">Comorbilidades adicionales:</div>
+      <!-- Tipo de Admision -->
+      <div style="font-size:12px;font-weight:700;color:var(--dark);margin-bottom:10px;">Tipo de admision esperada:</div>
+      <div style="display:flex;gap:10px;margin-bottom:18px;">
+        <label class="comor-item" style="flex:1;justify-content:center;" onclick="selectAdmision(this,'INPATIENT')">
+          <input type="radio" name="admision" value="INPATIENT" style="display:none;">
+          <span style="font-size:16px;">&#x1F3E5;</span> INPATIENT <span style="font-size:10px;color:var(--muted);">(2+ noches)</span>
+        </label>
+        <label class="comor-item" style="flex:1;justify-content:center;" onclick="selectAdmision(this,'OUTPATIENT')">
+          <input type="radio" name="admision" value="OUTPATIENT" style="display:none;">
+          <span style="font-size:16px;">&#x1F6B6;</span> OUTPATIENT <span style="font-size:10px;color:var(--muted);">(ambulatorio)</span>
+        </label>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--dark);margin-bottom:10px;">Comorbilidades del paciente:</div>
       <div class="comor-grid" id="comorGrid">
         <label class="comor-item" onclick="toggleComor(this)"><input type="checkbox" value="DIABETES"> Diabetes Mellitus</label>
         <label class="comor-item" onclick="toggleComor(this)"><input type="checkbox" value="HIPERTENSION"> Hipertension Arterial</label>
@@ -286,6 +300,10 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
         <label class="comor-item" onclick="toggleComor(this)"><input type="checkbox" value="OBESIDAD"> Obesidad (IMC > 30)</label>
         <label class="comor-item" onclick="toggleComor(this)"><input type="checkbox" value="ANEMIA_COAGULOPATIA"> Anemia</label>
         <label class="comor-item" onclick="toggleComor(this)"><input type="checkbox" value="EPOC_ASMA_APNEA"> EPOC / Apnea del Sueno</label>
+        <label class="comor-item" onclick="toggleComor(this)"><input type="checkbox" value="VIVE_SOLO"> Vive solo / sin apoyo</label>
+        <label class="comor-item" onclick="toggleComor(this)"><input type="checkbox" value="BILATERAL"> Cirugia bilateral</label>
+        <label class="comor-item" onclick="toggleComor(this)"><input type="checkbox" value="TVP_HISTORIA"> Historia TVP / Embolia</label>
+        <label class="comor-item" onclick="toggleComor(this)"><input type="checkbox" value="EDAD_AVANZADA"> Edad avanzada (75+)</label>
       </div>
       <div id="r4" style="display:none;margin-top:14px;"></div>
     </div>
@@ -649,8 +667,18 @@ function toggleComor(el) {
   el.classList.toggle('selected', cb.checked);
 }
 
+function selectAdmision(el, val) {
+  document.querySelectorAll('input[name="admision"]').forEach(r => {
+    r.checked = false;
+    r.closest('.comor-item').classList.remove('selected');
+  });
+  el.querySelector('input').checked = true;
+  el.classList.add('selected');
+}
+
 async function runStep4() {
   const comors = [...document.querySelectorAll('#comorGrid input:checked')].map(c => c.value);
+  const admisionRadio = document.querySelector('input[name="admision"]:checked');
 
   const body = {
     cpt: document.getElementById('f_cpt').value,
@@ -660,6 +688,7 @@ async function runStep4() {
     datos_radiologia: results[1] || null,
     datos_terapia: results[2] || null,
     datos_labs: results[3] || null,
+    tipo_admision: admisionRadio ? admisionRadio.value : null,
   };
 
   const d = await api('/generar/brief', body);
