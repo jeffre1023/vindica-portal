@@ -220,6 +220,22 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
         </div>
         <div class="field"><label>ICD-10 <span class="req">*</span></label><input type="text" id="f_icd10" placeholder="M17.12"></div>
       </div>
+      <div class="cols-2">
+        <div class="field"><label>Modificador de Lateralidad</label>
+          <select id="f_modifier">
+            <option value="">Sin modificador</option>
+            <option value="RT">RT — Lado derecho</option>
+            <option value="LT">LT — Lado izquierdo</option>
+            <option value="50">50 — Bilateral</option>
+          </select>
+        </div>
+        <div class="field"><label>Modificador Adicional</label>
+          <select id="f_modifier2">
+            <option value="">Ninguno</option>
+            <option value="62">62 — Co-cirujano</option>
+          </select>
+        </div>
+      </div>
       <div class="field"><label>Plan <span class="req">*</span></label>
         <select id="f_plan">
           <option value="">Seleccionar...</option>
@@ -452,11 +468,19 @@ function renderFiles(s) {
 // ════════════════════════════════════════════════════════════════════════════
 // STEP 0: Codigos
 // ════════════════════════════════════════════════════════════════════════════
+function buildCptWithModifiers() {
+  let cpt = document.getElementById('f_cpt').value;
+  const mod1 = document.getElementById('f_modifier').value;
+  const mod2 = document.getElementById('f_modifier2').value;
+  if (mod1) cpt += '-' + mod1;
+  if (mod2) cpt += '-' + mod2;
+  return cpt;
+}
 async function runStep0() {
-  const cpt = document.getElementById('f_cpt').value;
+  const cpt = buildCptWithModifiers();
   const icd10 = document.getElementById('f_icd10').value.trim();
   const plan = document.getElementById('f_plan').value;
-  if (!cpt || !icd10 || !plan) throw new Error('Complete todos los campos');
+  if (!document.getElementById('f_cpt').value || !icd10 || !plan) throw new Error('Complete todos los campos');
 
   const d = await api('/analizar/codigos', { cpt, icd10, plan });
   results[0] = d;
@@ -468,6 +492,12 @@ async function runStep0() {
   html += `<div class="badge ${d.icd10.valido ? 'badge-ok' : 'badge-err'}">ICD-10 ${d.icd10.codigo} — ${d.icd10.grupo_a57765 || 'N/A'} ${d.icd10.valido ? '\u2713' : '\u2717'}</div><br>`;
   if (d.icd10.correccion_sugerida) {
     html += `<div class="badge badge-warn">${d.icd10.correccion_sugerida.razon}</div><br>`;
+  }
+  if (d.lateralidad && d.lateralidad.alertas && d.lateralidad.alertas.length > 0) {
+    d.lateralidad.alertas.forEach(a => {
+      const cls = a.nivel === 'CRITICO' ? 'badge-err' : 'badge-warn';
+      html += `<div class="badge ${cls}">${a.mensaje}</div><br>`;
+    });
   }
   html += `<div class="badge ${d.plan.valido ? 'badge-ok' : 'badge-err'}">Plan: ${d.plan.nombre_completo || d.plan.nombre} ${d.plan.valido ? '\u2713' : '\u2717'}</div>`;
 
@@ -490,7 +520,7 @@ async function runStep1() {
   for (const f of files[1]) {
     archivos.push({ nombre: f.name, base64: await fileToB64(f), mimeType: f.type || 'application/pdf' });
   }
-  const cpt = document.getElementById('f_cpt').value;
+  const cpt = buildCptWithModifiers();
   const icd10 = document.getElementById('f_icd10').value.trim();
 
   const d = await api('/analizar/radiologia', { archivos, cpt, icd10 });
@@ -680,7 +710,7 @@ async function runStep4() {
   const admisionRadio = document.querySelector('input[name="admision"]:checked');
 
   const body = {
-    cpt: document.getElementById('f_cpt').value,
+    cpt: buildCptWithModifiers(),
     icd10: document.getElementById('f_icd10').value.trim(),
     plan: document.getElementById('f_plan').value,
     comorbilidades_adicionales: comors,
@@ -981,6 +1011,8 @@ function nuevoCaso() {
   for (const k in results) delete results[k];
   // Reset form
   document.getElementById('f_cpt').value = '';
+  document.getElementById('f_modifier').value = '';
+  document.getElementById('f_modifier2').value = '';
   document.getElementById('f_icd10').value = '';
   document.getElementById('f_plan').value = '';
   document.querySelectorAll('#comorGrid input').forEach(c => { c.checked = false; c.closest('.comor-item').classList.remove('selected'); });
