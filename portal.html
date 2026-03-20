@@ -690,6 +690,24 @@ async function runStep4() {
     tipo_admision: admisionRadio ? admisionRadio.value : null,
   };
 
+  // Verificar consistencia de paciente entre documentos
+  const pacientes = [];
+  if (results[1]?.paciente_iniciales) pacientes.push({ paso: 'Radiologia', iniciales: results[1].paciente_iniciales, dob: results[1].paciente_dob });
+  if (results[2]?.paciente_iniciales) pacientes.push({ paso: 'Terapia', iniciales: results[2].paciente_iniciales, dob: results[2].paciente_dob });
+  if (results[3]?.paciente_iniciales) pacientes.push({ paso: 'Laboratorios', iniciales: results[3].paciente_iniciales, dob: results[3].paciente_dob });
+
+  let alertaPaciente = '';
+  if (pacientes.length >= 2) {
+    const norm = s => (s||'').replace(/[.\s]/g,'').toUpperCase();
+    const iniciales = [...new Set(pacientes.map(p => norm(p.iniciales)).filter(Boolean))];
+    const dobs = [...new Set(pacientes.map(p => p.dob).filter(Boolean))];
+    if (iniciales.length > 1) {
+      alertaPaciente = `ALERTA: Los documentos pueden pertenecer a pacientes diferentes. Iniciales detectadas: ${pacientes.map(p => p.paso + ': ' + p.iniciales).join(' | ')}. Verificar antes de continuar.`;
+    } else if (dobs.length > 1) {
+      alertaPaciente = `ALERTA: Fechas de nacimiento no coinciden entre documentos: ${pacientes.map(p => p.paso + ': ' + (p.dob || 'N/A')).join(' | ')}. Verificar.`;
+    }
+  }
+
   const d = await api('/generar/brief', body);
   results[4] = d;
   const el = document.getElementById('r4');
@@ -699,8 +717,21 @@ async function runStep4() {
   const secciones = d.secciones || [];
   const validaciones = d.validaciones || {};
 
+  // ── Alerta de consistencia de paciente ──
+  let html = '';
+  if (alertaPaciente) {
+    html += `<div style="padding:12px 16px;margin-bottom:14px;border-radius:9px;background:var(--red-bg);border:1.5px solid #FECACA;color:#991B1B;font-size:12px;font-weight:600;">
+      <span style="font-size:16px;">&#x26A0;</span> ${alertaPaciente}
+    </div>`;
+  } else if (pacientes.length >= 2) {
+    const p = pacientes[0];
+    html += `<div style="padding:8px 14px;margin-bottom:14px;border-radius:9px;background:var(--green-bg);border:1.5px solid #A7F3D0;color:#065F46;font-size:11px;">
+      Paciente verificado: ${p.iniciales}${p.dob ? ' | DOB: ' + p.dob : ''} — consistente en ${pacientes.length} documentos
+    </div>`;
+  }
+
   // ── Reporte visual con logo ──
-  let html = '<div class="rpt">';
+  html += '<div class="rpt">';
 
   // Header con logo
   html += `<div class="rpt-header">
