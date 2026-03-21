@@ -866,12 +866,75 @@ async function runStep4() {
     html += `</div></div>`;
   }
 
+  // ── Formulario del Cirujano ──
+  const worksheetBlanks = [];
+  for (const sec of secciones) {
+    if (sec.titulo === 'VERIFICACI\u00d3N DE C\u00d3DIGOS' || sec.titulo === 'VERIFICACION DE CODIGOS') continue;
+    if (sec.titulo === 'RESUMEN EJECUTIVO') continue;
+    if (sec.comorbilidades && Array.isArray(sec.comorbilidades)) {
+      for (const c of sec.comorbilidades) {
+        if (!c.plantilla || !c.plantilla.includes('[')) continue;
+        worksheetBlanks.push({ titulo: c.nombre || c.id, text: c.plantilla });
+      }
+      continue;
+    }
+    if (!sec.plantilla || !sec.plantilla.includes('[')) continue;
+    worksheetBlanks.push({ titulo: sec.titulo, text: sec.plantilla });
+  }
+
+  if (worksheetBlanks.length > 0) {
+    html += `<div style="margin-top:20px;border:2px solid var(--teal);border-radius:12px;overflow:hidden;">
+      <div style="background:var(--dark);color:#fff;padding:16px 20px;">
+        <h3 style="font-size:16px;margin:0;">FORMULARIO DEL CIRUJANO</h3>
+        <p style="font-size:11px;color:#94A3B8;margin:4px 0 0;">Complete los espacios en blanco. Si ya consta en su nota operatoria, omitir.</p>
+      </div>
+      <div style="padding:4px 20px 8px;background:#F1F5F9;font-size:11px;color:var(--slate);">
+        CPT: ${meta.cpt || ''} &nbsp;|&nbsp; ICD-10: ${meta.icd10 || ''} &nbsp;|&nbsp; Plan: ${meta.plan || ''} &nbsp;|&nbsp; ${meta.procedimiento || ''}
+      </div>
+      <div style="padding:16px 20px;">`;
+
+    for (const narr of worksheetBlanks) {
+      // Clean text: remove staff alerts, norma citations
+      let clean = narr.text
+        .replace(/ALERTA DE DOCUMENTACI[O\u00d3]N:[\s\S]*$/m, '')
+        .replace(/ACCI[O\u00d3]N REQUERIDA[\s\S]*$/m, '')
+        .replace(/ALERTA:[\s\S]*$/m, '')
+        .replace(/AVISO IMPORTANTE AL STAFF:[\s\S]*$/m, '')
+        .replace(/Criterios de alta hospitalaria \(NO incluir[\s\S]*$/m, '')
+        .replace(/Conforme al Art[i\u00ed]culo A57765 FCSO:.*$/gm, '')
+        .replace(/Norma:.*$/gm, '')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+
+      html += `<div style="margin-bottom:14px;">
+        <div style="background:#F0FDFA;border-left:3px solid var(--teal);padding:6px 12px;font-weight:700;font-size:12px;color:#0F766E;margin-bottom:8px;border-radius:0 6px 6px 0;">${escapeHtml(narr.titulo)}</div>
+        <div style="font-size:12px;line-height:1.7;color:var(--dark);">${formatPlantilla(clean)}</div>
+      </div>`;
+    }
+
+    // Signature
+    html += `<div style="margin-top:20px;padding-top:16px;border-top:2px solid var(--teal);">
+      <div style="display:flex;gap:30px;margin-top:16px;">
+        <div style="flex:1;"><div style="border-bottom:1px solid var(--dark);height:30px;"></div><p style="font-size:11px;font-weight:600;margin-top:4px;">Firma del Cirujano</p><p style="font-size:10px;color:var(--muted);">Nombre: ________________ NPI: ________________</p></div>
+        <div style="flex:1;"><div style="border-bottom:1px solid var(--dark);height:30px;"></div><p style="font-size:11px;font-weight:600;margin-top:4px;">Fecha</p><p style="font-size:10px;color:var(--muted);">Licencia: ________________ Tel\u00e9fono: ________________</p></div>
+      </div>
+    </div>`;
+
+    // Disclaimer
+    html += `<div style="margin-top:16px;padding:12px 16px;background:#FEE2E2;border-left:4px solid #EF4444;border-radius:0 8px 8px 0;">
+      <p style="font-size:10px;font-weight:700;color:#991B1B;margin:0 0 4px;">RESPONSABILIDAD CL\u00cdNICA</p>
+      <p style="font-size:10px;color:#991B1B;margin:0;line-height:1.5;">AVISO IMPORTANTE: Este documento fue generado de forma automatizada a partir de los documentos cl\u00ednicos subidos al portal Vindica Health. Es responsabilidad exclusiva del m\u00e9dico tratante y/o su oficina verificar todos los detalles cl\u00ednicos contra el record m\u00e9dico del paciente antes de someter la solicitud de pre-autorizaci\u00f3n. Vindica Health no sustituye el juicio cl\u00ednico del profesional de la salud.</p>
+    </div>`;
+
+    html += `</div></div>`;
+  }
+
   // Footer
   html += `<div class="rpt-footer">
-    <strong>NOTA IMPORTANTE:</strong> Campos entre [corchetes] requieren informacion del cirujano.
-    Si un elemento ya esta en su nota, omitirlo.
+    <strong>NOTA IMPORTANTE:</strong> Campos entre [corchetes] requieren informaci\u00f3n del cirujano.
+    Si un elemento ya est\u00e1 en su nota, omitirlo.
     Este documento usa SOLO datos de los documentos subidos al portal.
-    Generado conforme a LCD L33618 FCSO y Articulo A57765 FCSO, Jurisdiccion J-N.<br><br>
+    Generado conforme a LCD L33618 FCSO y Art\u00edculo A57765 FCSO, Jurisdicci\u00f3n J-N.<br><br>
     <strong>Vindica Health LLC</strong> | HIPAA Confidencial | ${new Date().toLocaleDateString('es-PR')}
   </div>`;
 
