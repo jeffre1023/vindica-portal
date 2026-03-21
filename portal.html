@@ -937,8 +937,9 @@ async function runStep4() {
 
   // Footer
   html += `<div class="rpt-footer">
-    <strong>NOTA IMPORTANTE:</strong> Campos entre [corchetes] requieren informaci\u00f3n del cirujano.
-    Si un elemento ya est\u00e1 en su nota, omitirlo.
+    <strong>NOTA IMPORTANTE:</strong>
+    <span class="blank" style="font-size:10px;">naranja</span> = campo vac\u00edo, requiere informaci\u00f3n del cirujano.
+    <span style="color:#0F766E;font-weight:700;text-decoration:underline dotted;font-size:10px;">teal</span> = dato extra\u00eddo autom\u00e1ticamente, verificar contra documento original.
     Este documento usa SOLO datos de los documentos subidos al portal.
     Generado conforme a LCD L33618 FCSO y Art\u00edculo A57765 FCSO, Jurisdicci\u00f3n J-N.<br><br>
     <strong>Vindica Health LLC</strong> | HIPAA Confidencial | ${new Date().toLocaleDateString('es-PR')}
@@ -975,8 +976,10 @@ function copyText(btn, b64) {
 
 function formatPlantilla(text) {
   let safe = escapeHtml(text);
-  // Convert [blanks] to styled spans
+  // Convert [blanks] to styled spans (orange — needs filling)
   safe = safe.replace(/\[([^\]]+)\]/g, '<span class="blank">$1</span>');
+  // Convert {pre-filled} to styled spans (teal — needs verification)
+  safe = safe.replace(/\{([^}]+)\}/g, '<span style="color:#0F766E;font-weight:700;text-decoration:underline;text-decoration-style:dotted;">$1</span>');
   // Split into paragraphs on double newlines
   const paragraphs = safe.split(/\n{2,}/);
   let html = '';
