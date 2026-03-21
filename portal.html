@@ -879,12 +879,12 @@ async function runStep4() {
     if (sec.titulo === 'RESUMEN EJECUTIVO') continue;
     if (sec.comorbilidades && Array.isArray(sec.comorbilidades)) {
       for (const c of sec.comorbilidades) {
-        if (!c.plantilla || !c.plantilla.includes('[')) continue;
+        if (!c.plantilla || (!c.plantilla.includes('[') && !c.plantilla.includes('{'))) continue;
         worksheetBlanks.push({ titulo: c.nombre || c.id, text: c.plantilla });
       }
       continue;
     }
-    if (!sec.plantilla || !sec.plantilla.includes('[')) continue;
+    if (!sec.plantilla || (!sec.plantilla.includes('[') && !sec.plantilla.includes('{'))) continue;
     worksheetBlanks.push({ titulo: sec.titulo, text: sec.plantilla });
   }
 
