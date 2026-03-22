@@ -120,7 +120,7 @@ input:focus,select:focus{border-color:var(--teal);}
   <h2><div class="icon">1</div> Datos del Paciente</h2>
   <div class="row">
     <div><label>Nombre del Paciente</label><input type="text" id="pNombre" placeholder="Ej: Juan P. Rodriguez"></div>
-    <div><label>ID / MBI</label><input type="text" id="pId" placeholder="Opcional"></div>
+    <div><label>MBI (Medicare ID) <span style="color:var(--red);font-size:10px;">* requerido</span></label><input type="text" id="pMbi" placeholder="Ej: 1EG4-TE5-MK72"></div>
   </div>
   <div class="row">
     <div><label>Edad</label><input type="number" id="pEdad" value="70" min="0" max="120"></div>
@@ -289,15 +289,33 @@ async function calcularRAF() {
   btn.innerHTML = '<span class="spinner"></span> Calculando...';
 
   try {
+    const mbi = document.getElementById('pMbi').value.trim();
+    if (!mbi) {
+      alert('El MBI (Medicare ID) es requerido para guardar el paciente.');
+      btn.disabled = false;
+      btn.textContent = 'Calcular RAF Score';
+      return;
+    }
+
     const data = await api('/hcc/calcular', {
       icd10s: pacienteCodigos.map(c => c.icd10),
       edad: parseInt(document.getElementById('pEdad').value) || 70,
       sexo: document.getElementById('pSexo').value,
       paciente_nombre: document.getElementById('pNombre').value || 'Paciente',
+      mbi,
+      plan: document.getElementById('pPlan').value,
     });
 
     renderRAF(data);
     document.getElementById('rafCard').style.display = 'block';
+
+    // Show save confirmation
+    if (data.guardado) {
+      const saveMsg = document.createElement('div');
+      saveMsg.style.cssText = 'text-align:center;padding:8px;background:var(--green-bg);border:1px solid var(--green);border-radius:8px;font-size:12px;color:#065F46;margin-top:8px;';
+      saveMsg.textContent = data.mensaje_guardado;
+      document.getElementById('rafCard').appendChild(saveMsg);
+    }
 
     // Also fetch gap analysis
     const gaps = await api('/hcc/gaps', {
