@@ -1216,6 +1216,7 @@ async function descargarBriefPDF() {
         breakdown: window._lastRafData.breakdown,
         recomendaciones: window._lastGapData.recomendaciones || [],
         pendientes_historico: pendientes,
+        texto_nota: document.getElementById('meatNota').value || '',
       }),
     });
     if (!resp.ok) throw new Error('Error generando PDF');
