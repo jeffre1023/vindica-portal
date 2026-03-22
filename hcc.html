@@ -245,8 +245,9 @@ input:focus,select:focus{border-color:var(--teal);}
   <h2><div class="icon" style="background:var(--amber);">&#128196;</div> Brief Pre-Visita</h2>
   <div style="font-size:10px;color:var(--amber-d);background:var(--amber-bg);padding:8px 12px;border-radius:6px;margin-bottom:12px;border:1px solid var(--amber);">Este brief es una gu&iacute;a para el m&eacute;dico. Las condiciones sugeridas deben ser evaluadas cl&iacute;nicamente. Solo documentar lo que corresponda al estado actual del paciente.</div>
   <div id="briefContent"></div>
-  <div style="text-align:center;margin-top:14px;">
-    <button class="btn btn-ghost" onclick="window.print()" style="margin-right:8px;">&#128424; Imprimir Brief</button>
+  <div style="text-align:center;margin-top:14px;display:flex;gap:8px;justify-content:center;">
+    <button class="btn btn-primary" onclick="descargarBriefPDF()" style="font-size:12px;">&#128196; Descargar PDF</button>
+    <button class="btn btn-ghost" onclick="window.print()" style="font-size:12px;">&#128424; Imprimir</button>
   </div>
 </div>
 
@@ -514,6 +515,7 @@ async function calcularRAF() {
       dob: document.getElementById('pDob').value || null,
     });
 
+    window._lastRafData = data;
     renderRAF(data);
     document.getElementById('rafCard').style.display = 'block';
 
@@ -532,6 +534,7 @@ async function calcularRAF() {
     const gaps = await api('/hcc/gaps', {
       icd10s: pacienteCodigos.map(c => c.icd10),
     });
+    window._lastGapData = gaps;
     renderGaps(gaps);
     document.getElementById('gapCard').style.display = 'block';
 
@@ -1169,6 +1172,63 @@ async function generarBrief(rafData, gapData) {
 
   document.getElementById('briefContent').innerHTML = html;
   document.getElementById('briefCard').style.display = 'block';
+}
+
+// ── Descargar Brief PDF ──
+async function descargarBriefPDF() {
+  if (!window._lastRafData || !window._lastGapData) {
+    alert('Calcule el RAF primero.');
+    return;
+  }
+
+  const mbi = document.getElementById('pMbi').value.trim();
+
+  // Check for historic pending
+  let pendientes = [];
+  if (mbi) {
+    try {
+      const pac = await api(`/hcc/paciente/${encodeURIComponent(mbi)}`, '_=1');
+      if (pac.hccs_historico && pac.hccs_historico.length > 0) {
+        const docSet = new Set(window._lastRafData.hccs_validos || []);
+        const pendientesHccs = pac.hccs_historico.filter(h => !docSet.has(h));
+        pendientes = pendientesHccs.map(hcc => {
+          const c = HCC_CONDICIONES_LISTA.find(x => x.hcc === hcc);
+          return { hcc, label: c ? c.label : 'HCC ' + hcc };
+        });
+      }
+    } catch (e) {}
+  }
+
+  try {
+    const resp = await fetch(`${API}/hcc/brief-pdf`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Vindica-Key': KEY },
+      body: JSON.stringify({
+        nombre: document.getElementById('pNombre').value || 'Paciente',
+        mbi: mbi,
+        edad: parseInt(document.getElementById('pEdad').value) || 70,
+        sexo: document.getElementById('pSexo').value,
+        plan: document.getElementById('pPlan').options[document.getElementById('pPlan').selectedIndex].text,
+        raf_total: window._lastRafData.raf_total,
+        raf_condiciones: window._lastRafData.raf_condiciones,
+        raf_demografico: window._lastRafData.raf_demografico,
+        hccs_validos: window._lastRafData.hccs_validos,
+        breakdown: window._lastRafData.breakdown,
+        recomendaciones: window._lastGapData.recomendaciones || [],
+        pendientes_historico: pendientes,
+      }),
+    });
+    if (!resp.ok) throw new Error('Error generando PDF');
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `vindica_hcc_brief_${(mbi || 'paciente').replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    alert('Error descargando PDF: ' + e.message);
+  }
 }
 
 // ── Brief Checklist Interactivo ──
