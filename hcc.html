@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vindica Health — HCC/RAF Capture</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -142,12 +144,16 @@ input:focus,select:focus{border-color:var(--teal);}
 </head>
 <body>
 <div class="bg-layer"></div>
-<div class="container">
+<div class="container" id="mainApp" style="display:none;">
 
-<!-- Nav -->
-<div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:20px;padding-top:10px;">
+<!-- Nav + User -->
+<div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:20px;padding-top:10px;position:relative;">
   <a href="portal.html" style="padding:8px 20px;border-radius:100px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:var(--muted);font-size:12px;font-weight:600;text-decoration:none;">Pre-Auth</a>
   <a href="hcc.html" style="padding:8px 20px;border-radius:100px;background:var(--teal);color:white;font-size:12px;font-weight:600;text-decoration:none;">HCC / RAF</a>
+  <div style="position:absolute;right:0;display:flex;align-items:center;gap:8px;">
+    <span id="userEmail" style="color:var(--muted);font-size:11px;"></span>
+    <button onclick="doLogout()" style="padding:5px 12px;border-radius:100px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.08);color:#FCA5A5;font-size:11px;cursor:pointer;font-family:inherit;">Salir</button>
+  </div>
 </div>
 
 <!-- Header -->
@@ -241,6 +247,13 @@ input:focus,select:focus{border-color:var(--teal);}
   <div style="font-size:10px;color:var(--amber-d);background:var(--amber-bg);padding:8px 12px;border-radius:6px;margin-bottom:12px;border:1px solid var(--amber);">Este an&aacute;lisis es orientativo. Los elementos detectados son sugerencias basadas en criterios MEAT publicados por CMS. El m&eacute;dico es responsable de verificar que la documentaci&oacute;n refleja lo evaluado cl&iacute;nicamente en la visita.</div>
   <div style="margin-bottom:12px;">
     <label>Texto de la nota cl&iacute;nica</label>
+    <div style="display:flex;gap:8px;margin-bottom:6px;">
+      <label class="btn btn-ghost" style="cursor:pointer;font-size:11px;padding:6px 14px;">
+        &#128196; Subir PDF
+        <input type="file" id="meatPdfInput" accept=".pdf" onchange="uploadPDFNota()" style="display:none;">
+      </label>
+      <span style="font-size:11px;color:var(--muted);align-self:center;">o pegue el texto directamente</span>
+    </div>
     <textarea id="meatNota" rows="6" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:9px;font-size:12px;font-family:inherit;resize:vertical;outline:none;" placeholder="Pegue el texto de la nota del m&eacute;dico aqu&iacute;..."></textarea>
   </div>
   <button class="btn btn-primary" onclick="analizarMEAT()" style="margin-bottom:14px;">Analizar MEAT</button>
@@ -264,6 +277,20 @@ input:focus,select:focus{border-color:var(--teal);}
   <h2><div class="icon" style="background:var(--slate);">&#128203;</div> Pacientes MA Guardados</h2>
   <button class="btn btn-ghost" onclick="cargarPacientes()" style="margin-bottom:12px;">Actualizar Lista</button>
   <div id="pacientesLista"><div class="empty-msg">Haga click en "Actualizar Lista" para ver pacientes guardados.</div></div>
+</div>
+
+<!-- Modal: Cargar HCCs Hist&oacute;ricos -->
+<div id="historicoModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;display:none;align-items:center;justify-content:center;">
+  <div style="background:white;border-radius:16px;padding:24px;max-width:500px;width:90%;max-height:80vh;overflow-y:auto;">
+    <h3 style="font-size:15px;color:var(--dark);margin-bottom:4px;">Cargar HCCs Hist&oacute;ricos</h3>
+    <p id="historicoMbi" style="font-size:12px;color:var(--muted);margin-bottom:12px;"></p>
+    <p style="font-size:11px;color:var(--slate);margin-bottom:10px;">Seleccione las condiciones que el paciente tuvo documentadas el a&ntilde;o anterior. Esto permite al sistema identificar qu&eacute; condiciones faltan documentar este a&ntilde;o.</p>
+    <div id="historicoChecklist" style="margin-bottom:14px;"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button class="btn btn-ghost" onclick="cerrarHistorico()">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarHistorico()">Guardar Hist&oacute;rico</button>
+    </div>
+  </div>
 </div>
 
 <div style="height:40px;"></div>
@@ -290,9 +317,10 @@ let searchTimeout = null;
 async function api(path, params) {
   const isGet = typeof params === 'string';
   const url = isGet ? `${API}${path}?${params}` : `${API}${path}`;
+  const userEmail = (typeof authFB !== 'undefined' && authFB.currentUser) ? authFB.currentUser.email : '';
   const opts = {
     method: isGet ? 'GET' : 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Vindica-Key': KEY },
+    headers: { 'Content-Type': 'application/json', 'X-Vindica-Key': KEY, 'X-User-Email': userEmail },
   };
   if (!isGet) opts.body = JSON.stringify(params);
   const r = await fetch(url, opts);
@@ -867,15 +895,17 @@ async function cargarPacientes() {
       return;
     }
 
-    lista.innerHTML = data.pacientes.map(p => `
-      <div class="pac-row">
+    lista.innerHTML = data.pacientes.map(p => {
+      const tieneHist = p.hccs_historico && p.hccs_historico.length > 0;
+      return `<div class="pac-row">
         <span class="pac-name">${p.nombre}</span>
         <span class="pac-mbi">${p.mbi}</span>
         <span style="font-size:11px;color:var(--muted);">${p.ultima_visita || ''}</span>
         <span class="pac-raf">${(p.raf_total || 0).toFixed(3)}</span>
-        <span class="pac-btn" onclick="cargarBriefPreVisita('${p.mbi}')">Brief</span>
-      </div>
-    `).join('');
+        <span class="pac-btn" onclick="abrirHistorico('${p.mbi}','${esc(p.nombre)}')">Hist&oacute;rico${tieneHist ? ' ✓' : ''}</span>
+        ${tieneHist ? `<span class="pac-btn" onclick="cargarBriefPreVisita('${p.mbi}')">Brief</span>` : ''}
+      </div>`;
+    }).join('');
   } catch (e) {
     lista.innerHTML = `<div style="color:var(--red);font-size:12px;">Error: ${e.message}</div>`;
   }
@@ -895,7 +925,7 @@ function mostrarPostCalculo() {
   }
 }
 
-// Add code from MEAT detection alert
+// Add code from MEAT detection alert — then re-analyze MEAT
 function agregarDesdeDeteccion(codigo, hcc, desc) {
   api('/hcc/lookup', `icd10=${codigo}`).then(r => {
     if (r.encontrado) {
@@ -903,6 +933,9 @@ function agregarDesdeDeteccion(codigo, hcc, desc) {
     } else {
       agregarCodigo(codigo, hcc, desc, `HCC ${hcc}`, 0);
     }
+    // Re-analyze MEAT with updated codes if nota exists
+    const nota = document.getElementById('meatNota').value.trim();
+    if (nota) setTimeout(() => analizarMEAT(), 500);
   });
 }
 
@@ -918,6 +951,139 @@ function agregarDesdeGap(codigo, hcc, desc) {
     }
   });
 }
+
+// ── HCCs Hist&oacute;ricos Modal ──
+const HCC_CONDICIONES_LISTA = [
+  { hcc: 38, label: 'Diabetes Mellitus Tipo 2 (sin complicaciones)' },
+  { hcc: 37, label: 'Diabetes con Complicaciones Cr\u00f3nicas' },
+  { hcc: 36, label: 'Diabetes con Complicaciones Severas Agudas' },
+  { hcc: 329, label: 'Enfermedad Renal Cr\u00f3nica Stage 3' },
+  { hcc: 328, label: 'Enfermedad Renal Cr\u00f3nica Stage 3B' },
+  { hcc: 327, label: 'Enfermedad Renal Cr\u00f3nica Stage 4' },
+  { hcc: 326, label: 'Enfermedad Renal Cr\u00f3nica Stage 5 / ESRD' },
+  { hcc: 226, label: 'Insuficiencia Card\u00edaca (cr\u00f3nica)' },
+  { hcc: 225, label: 'Insuficiencia Card\u00edaca Aguda' },
+  { hcc: 224, label: 'Insuficiencia Card\u00edaca Aguda sobre Cr\u00f3nica' },
+  { hcc: 280, label: 'EPOC / Enfermedad Pulmonar' },
+  { hcc: 238, label: 'Fibrilaci\u00f3n Auricular' },
+  { hcc: 155, label: 'Depresi\u00f3n Mayor Moderada/Severa' },
+  { hcc: 154, label: 'Trastorno Bipolar' },
+  { hcc: 93, label: 'Artritis Reumatoide' },
+  { hcc: 48, label: 'Obesidad M\u00f3rbida (IMC >= 40)' },
+  { hcc: 127, label: 'Demencia / Alzheimer' },
+  { hcc: 198, label: 'Esclerosis M\u00faltiple' },
+  { hcc: 1, label: 'HIV/AIDS' },
+  { hcc: 199, label: 'Parkinson' },
+  { hcc: 64, label: 'Cirrosis Hep\u00e1tica' },
+  { hcc: 267, label: 'TVP / Embolia Pulmonar' },
+  { hcc: 298, label: 'Retinopat\u00eda Diab\u00e9tica Severa' },
+  { hcc: 249, label: 'ACV / Stroke' },
+  { hcc: 229, label: 'Angina Inestable / Cardiopat\u00eda Isqu\u00e9mica' },
+  { hcc: 228, label: 'Infarto Agudo de Miocardio' },
+  { hcc: 201, label: 'Epilepsia' },
+  { hcc: 139, label: 'Trastorno por Uso de Alcohol' },
+  { hcc: 137, label: 'Trastorno por Uso de Sustancias' },
+  { hcc: 22, label: 'C\u00e1ncer (vejiga, colorectal, otros)' },
+  { hcc: 23, label: 'C\u00e1ncer (pr\u00f3stata, mama, otros)' },
+];
+
+let historicoMbiActual = '';
+
+function abrirHistorico(mbi, nombre) {
+  historicoMbiActual = mbi;
+  document.getElementById('historicoMbi').textContent = `${nombre} — MBI: ${mbi}`;
+
+  // Load existing historic HCCs for this patient
+  api(`/hcc/paciente/${encodeURIComponent(mbi)}`, '_=1').then(pac => {
+    const existentes = new Set(pac.hccs_historico || []);
+    document.getElementById('historicoChecklist').innerHTML = HCC_CONDICIONES_LISTA.map(c => `
+      <div style="padding:6px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;">
+        <input type="checkbox" ${existentes.has(c.hcc) ? 'checked' : ''} data-hcc="${c.hcc}" style="accent-color:var(--teal);width:16px;height:16px;">
+        <span style="font-size:12px;color:var(--dark);flex:1;">${c.label}</span>
+        <span style="font-size:10px;color:var(--muted);">HCC ${c.hcc}</span>
+      </div>
+    `).join('');
+    document.getElementById('historicoModal').style.display = 'flex';
+  }).catch(() => {
+    document.getElementById('historicoChecklist').innerHTML = HCC_CONDICIONES_LISTA.map(c => `
+      <div style="padding:6px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;">
+        <input type="checkbox" data-hcc="${c.hcc}" style="accent-color:var(--teal);width:16px;height:16px;">
+        <span style="font-size:12px;color:var(--dark);flex:1;">${c.label}</span>
+        <span style="font-size:10px;color:var(--muted);">HCC ${c.hcc}</span>
+      </div>
+    `).join('');
+    document.getElementById('historicoModal').style.display = 'flex';
+  });
+}
+
+function cerrarHistorico() {
+  document.getElementById('historicoModal').style.display = 'none';
+}
+
+async function guardarHistorico() {
+  const checks = document.querySelectorAll('#historicoChecklist input[type=checkbox]:checked');
+  const hccs = Array.from(checks).map(c => parseInt(c.dataset.hcc));
+
+  try {
+    await api(`/hcc/paciente/${encodeURIComponent(historicoMbiActual)}/historico`, { hccs_historico: hccs });
+    alert('Hist\u00f3rico guardado: ' + hccs.length + ' HCCs para MBI ' + historicoMbiActual);
+    cerrarHistorico();
+    cargarPacientes();
+  } catch (e) {
+    alert('Error guardando hist\u00f3rico: ' + e.message);
+  }
+}
+
+// ── Upload PDF para MEAT ──
+async function uploadPDFNota() {
+  const fileInput = document.getElementById('meatPdfInput');
+  if (!fileInput.files || fileInput.files.length === 0) return;
+
+  const file = fileInput.files[0];
+  if (file.size > 10 * 1024 * 1024) { alert('Archivo demasiado grande (m\u00e1x 10MB)'); return; }
+
+  const textarea = document.getElementById('meatNota');
+  textarea.value = 'Extrayendo texto del PDF...';
+
+  try {
+    const arrayBuf = await file.arrayBuffer();
+    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuf)));
+
+    const resp = await fetch(`${API}/hcc/extract-pdf`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Vindica-Key': KEY },
+      body: JSON.stringify({ pdf_base64: base64, filename: file.name }),
+    });
+    if (!resp.ok) throw new Error(`Error ${resp.status}`);
+    const data = await resp.json();
+    textarea.value = data.texto || 'No se pudo extraer texto del PDF.';
+  } catch (e) {
+    textarea.value = '';
+    alert('Error extrayendo texto: ' + e.message);
+  }
+}
+
+// ── Firebase Auth ──
+const FIREBASE_CFG = {
+  apiKey:"AIzaSyBKmZkxsdP1p0uxKvmSJBYlQPiRPC0eXJ4",
+  authDomain:"vindica-production.firebaseapp.com",
+  projectId:"vindica-production"
+};
+firebase.initializeApp(FIREBASE_CFG);
+const authFB = firebase.auth();
+
+authFB.onAuthStateChanged(async user => {
+  if (user) {
+    document.getElementById('userEmail').textContent = user.email;
+    // Check module access — for now allow all authenticated users
+    // Future: check Firestore users/{uid}/modules.hcc === true
+    document.getElementById('mainApp').style.display = '';
+  } else {
+    window.location.href = 'index.html';
+  }
+});
+
+function doLogout() { authFB.signOut(); }
 </script>
 </body>
 </html>
