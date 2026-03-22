@@ -1113,30 +1113,31 @@ async function generarBrief(rafData, gapData) {
     html += `</div>`;
   }
 
-  // Condiciones a evaluar (checklist para el médico)
+  // Condiciones a evaluar (checklist interactivo)
   html += `<div style="margin-bottom:14px;">
     <div style="font-size:13px;font-weight:600;color:var(--dark);margin-bottom:6px;border-bottom:1px solid var(--border);padding-bottom:4px;">Checklist para el M&eacute;dico</div>
-    <div style="font-size:11px;color:var(--slate);margin-bottom:6px;">Evaluar si el paciente tiene alguna de estas condiciones no codificadas:</div>`;
+    <div style="font-size:11px;color:var(--slate);margin-bottom:6px;">Marque las condiciones que aplican &mdash; se agregar&aacute;n autom&aacute;ticamente a los diagn&oacute;sticos:</div>`;
 
   const condicionesSugeridas = [
-    { pregunta: '\u00bfTiene nefropat\u00eda o ERC?', icd: 'E1122 / N1832', hcc: '37 / 328' },
-    { pregunta: '\u00bfTiene neuropat\u00eda diab\u00e9tica?', icd: 'E1140', hcc: '37' },
-    { pregunta: '\u00bfTiene depresi\u00f3n moderada o severa?', icd: 'F331', hcc: '155' },
-    { pregunta: '\u00bfTiene EPOC?', icd: 'J449', hcc: '280' },
-    { pregunta: '\u00bfTiene insuficiencia card\u00edaca?', icd: 'I5022', hcc: '226' },
+    { pregunta: '\u00bfTiene nefropat\u00eda o ERC?', icd: 'E1122', desc: 'DM2 con ERC cr\u00f3nica', hcc: 37 },
+    { pregunta: '\u00bfTiene ERC Stage 3+?', icd: 'N1832', desc: 'ERC Stage 3B', hcc: 328 },
+    { pregunta: '\u00bfTiene neuropat\u00eda diab\u00e9tica?', icd: 'E1140', desc: 'DM2 con neuropat\u00eda', hcc: 37 },
+    { pregunta: '\u00bfTiene depresi\u00f3n moderada o severa?', icd: 'F331', desc: 'TDM recurrente moderado', hcc: 155 },
+    { pregunta: '\u00bfTiene EPOC?', icd: 'J449', desc: 'EPOC no especificada', hcc: 280 },
+    { pregunta: '\u00bfTiene insuficiencia card\u00edaca?', icd: 'I5022', desc: 'ICC sist\u00f3lica cr\u00f3nica', hcc: 226 },
+    { pregunta: '\u00bfTiene fibrilaci\u00f3n auricular?', icd: 'I4820', desc: 'FA cr\u00f3nica', hcc: 238 },
+    { pregunta: '\u00bfTiene obesidad m\u00f3rbida (IMC>=40)?', icd: 'E6601', desc: 'Obesidad m\u00f3rbida', hcc: 48 },
+    { pregunta: '\u00bfTiene demencia / Alzheimer?', icd: 'G309', desc: 'Alzheimer no especificado', hcc: 127 },
+    { pregunta: '\u00bfTiene artritis reumatoide?', icd: 'M069', desc: 'AR no especificada', hcc: 93 },
   ];
 
-  // Filter out conditions already documented
   const hccsYaDoc = new Set(rafData.hccs_validos || []);
-  const sugerenciasFiltered = condicionesSugeridas.filter(s => {
-    const hccs = s.hcc.split(' / ').map(Number);
-    return !hccs.some(h => hccsYaDoc.has(h));
-  });
+  const sugerenciasFiltered = condicionesSugeridas.filter(s => !hccsYaDoc.has(s.hcc));
 
   if (sugerenciasFiltered.length > 0) {
     for (const s of sugerenciasFiltered) {
-      html += `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12px;border-bottom:1px solid #f0f0f0;">
-        <span style="font-size:14px;">&#9744;</span>
+      html += `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;font-size:12px;border-bottom:1px solid #f0f0f0;">
+        <input type="checkbox" onchange="briefChecklistToggle(this,'${s.icd}',${s.hcc},'${esc(s.desc)}')" style="accent-color:var(--teal);width:16px;height:16px;cursor:pointer;">
         <span style="flex:1;color:var(--dark);">${s.pregunta}</span>
         <span style="font-size:10px;color:var(--teal-d);">${s.icd} (HCC ${s.hcc})</span>
       </div>`;
@@ -1144,6 +1145,13 @@ async function generarBrief(rafData, gapData) {
   } else {
     html += `<div style="font-size:12px;color:var(--green);padding:6px;">Todas las condiciones comunes est&aacute;n codificadas.</div>`;
   }
+
+  // Campo para agregar condición manual
+  html += `<div style="margin-top:10px;display:flex;gap:8px;align-items:center;">
+    <input type="text" id="briefManualIcd" placeholder="Otro ICD-10 (ej: N184)" style="flex:1;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:12px;font-family:inherit;outline:none;">
+    <button class="btn btn-ghost" onclick="agregarManualDesdeBrief()" style="font-size:11px;padding:8px 14px;white-space:nowrap;">+ Agregar</button>
+  </div>`;
+
   html += `</div>`;
 
   // Footer disclaimer
@@ -1156,6 +1164,36 @@ async function generarBrief(rafData, gapData) {
 
   document.getElementById('briefContent').innerHTML = html;
   document.getElementById('briefCard').style.display = 'block';
+}
+
+// ── Brief Checklist Interactivo ──
+function briefChecklistToggle(checkbox, icd, hcc, desc) {
+  if (checkbox.checked) {
+    agregarDesdeDeteccion(icd, hcc, desc);
+    checkbox.parentElement.style.background = 'var(--green-bg)';
+    checkbox.parentElement.querySelector('span').style.textDecoration = 'line-through';
+  } else {
+    removerCodigo(icd);
+    checkbox.parentElement.style.background = '';
+    checkbox.parentElement.querySelector('span').style.textDecoration = '';
+  }
+}
+
+function agregarManualDesdeBrief() {
+  const input = document.getElementById('briefManualIcd');
+  const codigo = input.value.trim().replace(/\./g, '').toUpperCase();
+  if (!codigo) return;
+
+  api('/hcc/lookup', `icd10=${codigo}`).then(r => {
+    if (r.encontrado) {
+      agregarCodigo(codigo, r.hcc, r.descripcion, r.label || `HCC ${r.hcc}`, r.coeficiente_raf);
+      input.value = '';
+    } else {
+      alert(codigo + ' no tiene HCC en V28 o no es un c\u00f3digo v\u00e1lido.');
+    }
+  }).catch(() => {
+    alert('Error buscando c\u00f3digo ' + codigo);
+  });
 }
 
 // ── HCCs Hist&oacute;ricos Modal ──
