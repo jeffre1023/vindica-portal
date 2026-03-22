@@ -100,6 +100,17 @@ input:focus,select:focus{border-color:var(--teal);}
 .back-link{color:var(--teal-l);text-decoration:none;font-size:12px;display:inline-flex;align-items:center;gap:4px;}
 .back-link:hover{text-decoration:underline;}
 
+@media print {
+  body{background:white !important;}
+  .bg-layer,.header,#actionBar,#meatCard,#reporteCard,#pacientesCard,#historicoModal,.btn,.search-wrap,.icd-list,.empty-msg{display:none !important;}
+  .container{max-width:100% !important;padding:0 !important;}
+  .card{box-shadow:none !important;border:none !important;padding:0 !important;margin:0 !important;}
+  #briefCard{display:block !important;}
+  #rafCard,#gapCard{display:none !important;}
+  #briefCard .btn{display:none !important;}
+  [style*="display:flex"][style*="justify-content:center"][style*="gap:6px"]{display:none !important;}
+}
+
 /* Brief pre-visita */
 .brief-cond{background:var(--light);border:1px solid var(--border);border-radius:10px;padding:14px;margin:8px 0;}
 .brief-cond h4{font-size:13px;color:var(--dark);margin-bottom:6px;}
@@ -229,10 +240,14 @@ input:focus,select:focus{border-color:var(--teal);}
   <button class="btn btn-primary" onclick="calcularRAF()" style="padding:14px 32px;font-size:14px;">Calcular RAF Score</button>
 </div>
 
-<!-- Brief Pre-Visita — hidden for now, Fase 2 -->
+<!-- Brief Pre-Visita -->
 <div class="card" id="briefCard" style="display:none;">
+  <h2><div class="icon" style="background:var(--amber);">&#128196;</div> Brief Pre-Visita</h2>
+  <div style="font-size:10px;color:var(--amber-d);background:var(--amber-bg);padding:8px 12px;border-radius:6px;margin-bottom:12px;border:1px solid var(--amber);">Este brief es una gu&iacute;a para el m&eacute;dico. Las condiciones sugeridas deben ser evaluadas cl&iacute;nicamente. Solo documentar lo que corresponda al estado actual del paciente.</div>
   <div id="briefContent"></div>
-  <div id="briefActions" style="display:none;"></div>
+  <div style="text-align:center;margin-top:14px;">
+    <button class="btn btn-ghost" onclick="window.print()" style="margin-right:8px;">&#128424; Imprimir Brief</button>
+  </div>
 </div>
 
 <!-- Step 6: Post-Visita MEAT -->
@@ -517,6 +532,9 @@ async function calcularRAF() {
     });
     renderGaps(gaps);
     document.getElementById('gapCard').style.display = 'block';
+
+    // Generate brief
+    await generarBrief(data, gaps);
 
     document.getElementById('rafCard').scrollIntoView({ behavior: 'smooth' });
 
@@ -992,6 +1010,152 @@ function agregarDesdeGap(codigo, hcc, desc) {
       agregarCodigo(codigo, hcc, desc, `HCC ${hcc}`, 0);
     }
   });
+}
+
+// ── Brief Pre-Visita ──
+async function generarBrief(rafData, gapData) {
+  const nombre = document.getElementById('pNombre').value || 'Paciente';
+  const mbi = document.getElementById('pMbi').value.trim();
+  const edad = document.getElementById('pEdad').value;
+  const sexo = document.getElementById('pSexo').value === 'M' ? 'Masculino' : 'Femenino';
+  const plan = document.getElementById('pPlan').options[document.getElementById('pPlan').selectedIndex].text;
+  const CAPITATION = 850;
+
+  let html = `<div style="border:2px solid var(--dark);border-radius:12px;padding:20px;background:white;">`;
+
+  // Header
+  html += `<div style="border-bottom:2px solid var(--dark);padding-bottom:10px;margin-bottom:14px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <div style="font-family:'DM Serif Display',serif;font-size:18px;color:var(--dark);">Vindica<span style="color:var(--teal);">Health</span> &mdash; Brief Pre-Visita</div>
+        <div style="font-size:11px;color:var(--muted);">CMS-HCC Model V28 &mdash; CY 2026</div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);text-align:right;">${new Date().toLocaleDateString('es-PR')}</div>
+    </div>
+  </div>`;
+
+  // Patient info
+  html += `<div style="display:flex;gap:20px;margin-bottom:14px;font-size:12px;">
+    <div><strong>Paciente:</strong> ${nombre}</div>
+    <div><strong>MBI:</strong> ${mbi || 'N/A'}</div>
+    <div><strong>Edad:</strong> ${edad} a&ntilde;os</div>
+    <div><strong>Sexo:</strong> ${sexo}</div>
+    <div><strong>Plan:</strong> ${plan}</div>
+  </div>`;
+
+  // RAF Summary
+  html += `<div style="display:flex;gap:12px;margin-bottom:14px;">
+    <div style="flex:1;background:var(--teal-bg);border:1px solid var(--teal-bd);border-radius:8px;padding:10px;text-align:center;">
+      <div style="font-size:20px;font-weight:700;color:var(--teal-d);">${rafData.raf_total.toFixed(3)}</div>
+      <div style="font-size:10px;color:var(--muted);">RAF Total</div>
+    </div>
+    <div style="flex:1;background:var(--light);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;">
+      <div style="font-size:20px;font-weight:700;color:var(--teal-d);">${rafData.hccs_validos.length}</div>
+      <div style="font-size:10px;color:var(--muted);">HCCs Capturados</div>
+    </div>
+    <div style="flex:1;background:var(--light);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;">
+      <div style="font-size:20px;font-weight:700;color:var(--teal-d);">$${Math.round(rafData.raf_total * CAPITATION * 12).toLocaleString()}</div>
+      <div style="font-size:10px;color:var(--muted);">Valor Anual Est.</div>
+    </div>
+  </div>`;
+
+  // Condiciones documentadas
+  html += `<div style="margin-bottom:14px;">
+    <div style="font-size:13px;font-weight:600;color:var(--dark);margin-bottom:6px;border-bottom:1px solid var(--border);padding-bottom:4px;">Condiciones Documentadas</div>`;
+  if (rafData.breakdown && rafData.breakdown.length > 0) {
+    for (const h of rafData.breakdown) {
+      html += `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;border-bottom:1px solid #f0f0f0;">
+        <span style="color:var(--teal-d);font-weight:600;min-width:55px;">HCC ${h.hcc}</span>
+        <span style="flex:1;color:var(--dark);">${h.label}</span>
+        <span style="color:var(--green);font-weight:600;">+${h.coeficiente.toFixed(3)}</span>
+      </div>`;
+    }
+  }
+  html += `</div>`;
+
+  // Oportunidades de especificidad (del gap analysis)
+  if (gapData && gapData.recomendaciones && gapData.recomendaciones.length > 0) {
+    html += `<div style="margin-bottom:14px;">
+      <div style="font-size:13px;font-weight:600;color:var(--amber-d);margin-bottom:6px;border-bottom:1px solid var(--border);padding-bottom:4px;">Oportunidad: C&oacute;digos M&aacute;s Espec&iacute;ficos</div>`;
+    for (const r of gapData.recomendaciones) {
+      html += `<div style="background:var(--amber-bg);border-radius:6px;padding:8px;margin:4px 0;font-size:11px;">
+        <div style="color:var(--amber-d);font-weight:600;">${r.condicion}</div>
+        <div style="color:var(--slate);">Tiene: ${r.codigos_actuales.map(c => c.codigo).join(', ')}</div>
+        <div style="color:var(--teal-d);">Considere: ${r.codigos_recomendados.map(c => c.codigo + ' (' + c.descripcion + ')').join(', ')}</div>
+      </div>`;
+    }
+    html += `</div>`;
+  }
+
+  // Check for historic HCCs
+  let pendientesHistorico = [];
+  if (mbi) {
+    try {
+      const pac = await api(`/hcc/paciente/${encodeURIComponent(mbi)}`, '_=1');
+      if (pac.hccs_historico && pac.hccs_historico.length > 0) {
+        const docSet = new Set(rafData.hccs_validos || []);
+        pendientesHistorico = pac.hccs_historico.filter(h => !docSet.has(h));
+      }
+    } catch (e) { /* no historic data */ }
+  }
+
+  if (pendientesHistorico.length > 0) {
+    html += `<div style="margin-bottom:14px;">
+      <div style="font-size:13px;font-weight:600;color:var(--red);margin-bottom:6px;border-bottom:1px solid var(--border);padding-bottom:4px;">Condiciones del A&ntilde;o Anterior Sin Documentar Este A&ntilde;o</div>`;
+    for (const hcc of pendientesHistorico) {
+      const condNombre = HCC_CONDICIONES_LISTA.find(c => c.hcc === hcc);
+      html += `<div style="display:flex;align-items:center;padding:4px 0;font-size:12px;border-bottom:1px solid #f0f0f0;">
+        <span style="color:var(--red);font-weight:600;min-width:55px;">HCC ${hcc}</span>
+        <span style="flex:1;color:var(--dark);">${condNombre ? condNombre.label : 'Condici\u00f3n HCC ' + hcc}</span>
+        <span style="font-size:11px;color:var(--red);">&#9744; Evaluar hoy</span>
+      </div>`;
+    }
+    html += `</div>`;
+  }
+
+  // Condiciones a evaluar (checklist para el médico)
+  html += `<div style="margin-bottom:14px;">
+    <div style="font-size:13px;font-weight:600;color:var(--dark);margin-bottom:6px;border-bottom:1px solid var(--border);padding-bottom:4px;">Checklist para el M&eacute;dico</div>
+    <div style="font-size:11px;color:var(--slate);margin-bottom:6px;">Evaluar si el paciente tiene alguna de estas condiciones no codificadas:</div>`;
+
+  const condicionesSugeridas = [
+    { pregunta: '\u00bfTiene nefropat\u00eda o ERC?', icd: 'E1122 / N1832', hcc: '37 / 328' },
+    { pregunta: '\u00bfTiene neuropat\u00eda diab\u00e9tica?', icd: 'E1140', hcc: '37' },
+    { pregunta: '\u00bfTiene depresi\u00f3n moderada o severa?', icd: 'F331', hcc: '155' },
+    { pregunta: '\u00bfTiene EPOC?', icd: 'J449', hcc: '280' },
+    { pregunta: '\u00bfTiene insuficiencia card\u00edaca?', icd: 'I5022', hcc: '226' },
+  ];
+
+  // Filter out conditions already documented
+  const hccsYaDoc = new Set(rafData.hccs_validos || []);
+  const sugerenciasFiltered = condicionesSugeridas.filter(s => {
+    const hccs = s.hcc.split(' / ').map(Number);
+    return !hccs.some(h => hccsYaDoc.has(h));
+  });
+
+  if (sugerenciasFiltered.length > 0) {
+    for (const s of sugerenciasFiltered) {
+      html += `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12px;border-bottom:1px solid #f0f0f0;">
+        <span style="font-size:14px;">&#9744;</span>
+        <span style="flex:1;color:var(--dark);">${s.pregunta}</span>
+        <span style="font-size:10px;color:var(--teal-d);">${s.icd} (HCC ${s.hcc})</span>
+      </div>`;
+    }
+  } else {
+    html += `<div style="font-size:12px;color:var(--green);padding:6px;">Todas las condiciones comunes est&aacute;n codificadas.</div>`;
+  }
+  html += `</div>`;
+
+  // Footer disclaimer
+  html += `<div style="border-top:1px solid var(--border);padding-top:8px;font-size:9px;color:var(--muted);text-align:center;">
+    Este brief es orientativo. Las condiciones sugeridas deben ser evaluadas cl&iacute;nicamente. Solo documentar lo que corresponda al estado actual del paciente.<br>
+    Estimado basado en $850/punto RAF/mes. Vindica Health LLC | ${new Date().getFullYear()}
+  </div>`;
+
+  html += `</div>`;
+
+  document.getElementById('briefContent').innerHTML = html;
+  document.getElementById('briefCard').style.display = 'block';
 }
 
 // ── HCCs Hist&oacute;ricos Modal ──
