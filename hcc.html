@@ -80,6 +80,17 @@ input:focus,select:focus{border-color:var(--teal);}
 .hcc-coef{font-weight:600;color:var(--green);min-width:55px;text-align:right;}
 .hcc-sup{text-decoration:line-through;color:var(--muted);}
 
+/* Gap recommendations */
+.gap-card{background:var(--amber-bg);border:1px solid var(--amber);border-radius:10px;padding:14px;margin:8px 0;}
+.gap-card h4{font-size:13px;color:var(--amber-d);margin-bottom:6px;}
+.gap-card .actual{font-size:11px;color:var(--red);margin-bottom:4px;}
+.gap-card .rec{font-size:11px;color:var(--teal-d);cursor:pointer;padding:3px 0;}
+.gap-card .rec:hover{text-decoration:underline;}
+
+/* Categories */
+.cat-section{margin:8px 0;}
+.cat-label{font-size:11px;font-weight:700;color:var(--teal-d);padding:4px 10px;background:var(--teal-bg);border-radius:6px;display:inline-block;margin-bottom:4px;}
+
 /* Spinner */
 .spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:white;border-radius:50%;animation:spin .6s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -151,6 +162,14 @@ input:focus,select:focus{border-color:var(--teal);}
   <h3 style="font-size:13px;color:var(--dark);margin:16px 0 8px;">HCCs Capturados</h3>
   <div id="hccBreakdown"></div>
   <div id="hccSuprimidos" style="margin-top:12px;"></div>
+</div>
+
+<!-- Step 4: Gap Analysis -->
+<div class="card" id="gapCard" style="display:none;">
+  <h2><div class="icon">4</div> Recomendaciones &amp; Categor&iacute;as</h2>
+  <div id="gapRecommendations"></div>
+  <h3 style="font-size:13px;color:var(--dark);margin:16px 0 8px;">Categor&iacute;as Cl&iacute;nicas</h3>
+  <div id="categorias"></div>
 </div>
 
 <!-- Actions -->
@@ -279,6 +298,14 @@ async function calcularRAF() {
 
     renderRAF(data);
     document.getElementById('rafCard').style.display = 'block';
+
+    // Also fetch gap analysis
+    const gaps = await api('/hcc/gaps', {
+      icd10s: pacienteCodigos.map(c => c.icd10),
+    });
+    renderGaps(gaps);
+    document.getElementById('gapCard').style.display = 'block';
+
     document.getElementById('rafCard').scrollIntoView({ behavior: 'smooth' });
   } catch (e) {
     alert('Error calculando RAF: ' + e.message);
@@ -343,6 +370,72 @@ function renderRAF(data) {
   } else {
     sup.innerHTML = '';
   }
+}
+
+function renderGaps(data) {
+  // Recommendations
+  const recDiv = document.getElementById('gapRecommendations');
+  if (data.recomendaciones && data.recomendaciones.length > 0) {
+    recDiv.innerHTML = data.recomendaciones.map(r => `
+      <div class="gap-card">
+        <h4>${r.condicion}</h4>
+        <div class="actual">Tiene: ${r.codigos_actuales.map(c => `<strong>${c.codigo}</strong> (${c.descripcion})`).join(', ')}</div>
+        <div style="font-size:11px;color:var(--amber-d);margin:6px 0 4px;font-weight:600;">Considere c&oacute;digo m&aacute;s espec&iacute;fico:</div>
+        ${r.codigos_recomendados.map(c => `<div class="rec" onclick="agregarDesdeGap('${c.codigo}',${c.hcc},'${esc(c.descripcion)}')">&plus; ${c.codigo} &mdash; ${c.descripcion} (HCC ${c.hcc})</div>`).join('')}
+      </div>
+    `).join('');
+  } else {
+    recDiv.innerHTML = '<div style="font-size:12px;color:var(--green);padding:10px;">Todos los c&oacute;digos son espec&iacute;ficos. No hay recomendaciones de mejora.</div>';
+  }
+
+  // Categories
+  const catDiv = document.getElementById('categorias');
+  if (data.categorias && Object.keys(data.categorias).length > 0) {
+    const catNames = {
+      'HIV_INFECCIONES': 'HIV / Infecciones',
+      'CANCER': 'C&aacute;ncer',
+      'DIABETES': 'Diabetes',
+      'OBESIDAD_METABOLICO': 'Obesidad / Metab&oacute;lico',
+      'HEPATICO': 'Hep&aacute;tico',
+      'GASTROINTESTINAL': 'Gastrointestinal',
+      'MUSCULOESQUELETICO': 'Musculoesquel&eacute;tico',
+      'HEMATOLOGICO': 'Hematol&oacute;gico',
+      'COGNITIVO_DEMENCIA': 'Cognitivo / Demencia',
+      'SALUD_MENTAL': 'Salud Mental',
+      'NEUROLOGICO': 'Neurol&oacute;gico',
+      'CARDIORESPIRATORIO': 'Cardiorespiratorio',
+      'CARDIACO': 'Card&iacute;aco',
+      'CEREBROVASCULAR': 'Cerebrovascular',
+      'VASCULAR': 'Vascular',
+      'PULMONAR': 'Pulmonar',
+      'OJO_DIABETICO': 'Ojo Diab&eacute;tico',
+      'RENAL': 'Renal',
+      'PIEL_ULCERAS': 'Piel / &Uacute;lceras',
+      'TRAUMA_FRACTURA': 'Trauma / Fractura',
+      'OTRO': 'Otro',
+    };
+    catDiv.innerHTML = Object.entries(data.categorias).map(([cat, hccs]) => `
+      <div class="cat-section">
+        <span class="cat-label">${catNames[cat] || cat}</span>
+        ${hccs.map(h => `<div class="hcc-row"><span class="hcc-num">HCC ${h.hcc}</span><span class="hcc-name">${h.label}</span><span class="hcc-coef">+${h.coeficiente_raf.toFixed(3)}</span></div>`).join('')}
+      </div>
+    `).join('');
+  } else {
+    catDiv.innerHTML = '<div style="font-size:12px;color:var(--muted);">Sin categor&iacute;as cl&iacute;nicas</div>';
+  }
+}
+
+// Add code from gap recommendation
+function agregarDesdeGap(codigo, hcc, desc) {
+  const meta = { hcc_label: `HCC ${hcc}`, coeficiente_raf: 0 };
+  // Lookup RAF for this code
+  api('/hcc/lookup', `icd10=${codigo}`).then(r => {
+    if (r.encontrado) {
+      agregarCodigo(codigo, r.hcc, r.descripcion, r.label || `HCC ${r.hcc}`, r.coeficiente_raf);
+    } else {
+      agregarCodigo(codigo, hcc, desc, `HCC ${hcc}`, 0);
+    }
+  });
 }
 </script>
 </body>
