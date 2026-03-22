@@ -646,9 +646,9 @@ async function analizarMEAT() {
     if (data.condiciones_detectadas && data.condiciones_detectadas.no_codificadas && data.condiciones_detectadas.no_codificadas.length > 0) {
       const noCod = data.condiciones_detectadas.no_codificadas;
       const CAPITATION = 850;
-      html += `<div style="background:var(--red-bg);border:1.5px solid var(--red);border-radius:10px;padding:16px;margin-bottom:14px;">
-        <h4 style="font-size:13px;color:var(--red);margin-bottom:8px;">La nota menciona ${noCod.length} condici&oacute;n(es) sin ICD-10 asignado</h4>
-        <p style="font-size:11px;color:var(--slate);margin-bottom:10px;">Verifique si corresponde agregar estos c&oacute;digos al encuentro:</p>`;
+      html += `<div style="background:var(--amber-bg);border:1.5px solid var(--amber);border-radius:10px;padding:16px;margin-bottom:14px;">
+        <h4 style="font-size:13px;color:var(--amber-d);margin-bottom:8px;">Posibles condiciones detectadas en la nota sin ICD-10 asignado</h4>
+        <p style="font-size:11px;color:var(--slate);margin-bottom:10px;">El sistema detect&oacute; frases que podr&iacute;an indicar estas condiciones. Verifique si el paciente las tiene y si corresponde agregar el c&oacute;digo:</p>`;
 
       for (const c of noCod) {
         const icd = c.icd10_recomendado;
@@ -665,16 +665,17 @@ async function analizarMEAT() {
             </div>
             <strong style="font-size:12px;color:var(--amber-d);">+$${c.valor_anual_est.toLocaleString()}/a&ntilde;o</strong>
           </div>
-          <div style="font-size:11px;color:var(--teal-d);margin-top:4px;">Detectado en nota: ${frases}</div>
+          <div style="font-size:11px;color:var(--slate);margin-top:4px;">Frase detectada: ${frases}</div>
           <div style="display:flex;align-items:center;gap:8px;margin-top:6px;">
-            <button class="pac-btn" onclick="agregarDesdeDeteccion('${icdCode}',${icdHcc},'${esc(icdDesc || c.nombre)}')">+ Agregar ${icdCode}</button>
+            <button class="pac-btn" onclick="agregarDesdeDeteccion('${icdCode}',${icdHcc},'${esc(icdDesc || c.nombre)}')">S&iacute;, agregar ${icdCode}</button>
+            <button class="pac-btn" style="background:var(--light);border-color:var(--border);color:var(--muted);" onclick="this.closest('div').closest('div').style.display='none'">No aplica</button>
             <span style="font-size:10px;color:var(--muted);">${icdDesc} (HCC ${icdHcc}, RAF +${c.coeficiente_raf})</span>
           </div>
         </div>`;
       }
 
       const rafTotal = data.condiciones_detectadas.raf_no_codificado;
-      html += `<div style="text-align:center;margin-top:8px;font-size:12px;color:var(--red);font-weight:600;">RAF no capturado: +${rafTotal} &mdash; $${Math.round(rafTotal * CAPITATION * 12).toLocaleString()}/a&ntilde;o</div>`;
+      html += `<div style="text-align:center;margin-top:8px;font-size:12px;color:var(--amber-d);font-weight:600;">RAF potencial si aplican: +${rafTotal} &mdash; $${Math.round(rafTotal * CAPITATION * 12).toLocaleString()}/a&ntilde;o (estimado)</div>`;
       html += `</div>`;
     }
 
