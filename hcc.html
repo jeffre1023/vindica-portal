@@ -416,9 +416,12 @@ async function calcularRAF() {
     renderRAF(data);
     document.getElementById('rafCard').style.display = 'block';
 
-    // Show save confirmation
+    // Show save confirmation (remove previous if exists)
+    const oldMsg = document.getElementById('firestoreMsg');
+    if (oldMsg) oldMsg.remove();
     if (data.guardado) {
       const saveMsg = document.createElement('div');
+      saveMsg.id = 'firestoreMsg';
       saveMsg.style.cssText = 'text-align:center;padding:8px;background:var(--green-bg);border:1px solid var(--green);border-radius:8px;font-size:12px;color:#065F46;margin-top:8px;';
       saveMsg.textContent = data.mensaje_guardado;
       document.getElementById('rafCard').appendChild(saveMsg);
@@ -625,7 +628,7 @@ async function analizarMEAT() {
   if (pacienteCodigos.length === 0) { alert('Agregue al menos un diagn\u00f3stico primero.'); return; }
 
   const results = document.getElementById('meatResults');
-  results.innerHTML = '<div style="text-align:center;padding:20px;"><span class="spinner" style="border-color:rgba(0,0,0,.1);border-top-color:var(--teal);width:20px;height:20px;"></span> Analizando...</div>';
+  results.innerHTML = '<div style="text-align:center;padding:20px;"><span class="spinner" style="border-color:rgba(0,0,0,.1);border-top-color:var(--teal);width:20px;height:20px;"></span> Analizando nota...</div>';
 
   try {
     const data = await api('/hcc/analizar', {
@@ -638,7 +641,47 @@ async function analizarMEAT() {
     });
 
     let html = '';
-    if (data.analisis_nota && data.analisis_nota.condiciones) {
+
+    // ── ALERTA: Condiciones detectadas en la nota sin ICD-10 asignado ──
+    if (data.condiciones_detectadas && data.condiciones_detectadas.no_codificadas && data.condiciones_detectadas.no_codificadas.length > 0) {
+      const noCod = data.condiciones_detectadas.no_codificadas;
+      const CAPITATION = 850;
+      html += `<div style="background:var(--red-bg);border:1.5px solid var(--red);border-radius:10px;padding:16px;margin-bottom:14px;">
+        <h4 style="font-size:13px;color:var(--red);margin-bottom:8px;">La nota menciona ${noCod.length} condici&oacute;n(es) sin ICD-10 asignado</h4>
+        <p style="font-size:11px;color:var(--slate);margin-bottom:10px;">Verifique si corresponde agregar estos c&oacute;digos al encuentro:</p>`;
+
+      for (const c of noCod) {
+        const icd = c.icd10_recomendado;
+        const icdCode = icd ? icd.codigo : '?';
+        const icdDesc = icd ? icd.descripcion : '';
+        const icdHcc = icd ? icd.hcc : c.hcc;
+        const frases = c.frases_detectadas.map(f => `"${f.frase}"`).join(', ');
+
+        html += `<div style="background:white;border-radius:8px;padding:10px;margin:6px 0;border:1px solid var(--border);">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div>
+              <strong style="font-size:12px;color:var(--dark);">${c.nombre}</strong>
+              <span style="font-size:10px;background:var(--mid);color:white;padding:1px 6px;border-radius:8px;margin-left:6px;">HCC ${c.hcc}</span>
+            </div>
+            <strong style="font-size:12px;color:var(--amber-d);">+$${c.valor_anual_est.toLocaleString()}/a&ntilde;o</strong>
+          </div>
+          <div style="font-size:11px;color:var(--teal-d);margin-top:4px;">Detectado en nota: ${frases}</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:6px;">
+            <button class="pac-btn" onclick="agregarDesdeDeteccion('${icdCode}',${icdHcc},'${esc(icdDesc || c.nombre)}')">+ Agregar ${icdCode}</button>
+            <span style="font-size:10px;color:var(--muted);">${icdDesc} (HCC ${icdHcc}, RAF +${c.coeficiente_raf})</span>
+          </div>
+        </div>`;
+      }
+
+      const rafTotal = data.condiciones_detectadas.raf_no_codificado;
+      html += `<div style="text-align:center;margin-top:8px;font-size:12px;color:var(--red);font-weight:600;">RAF no capturado: +${rafTotal} &mdash; $${Math.round(rafTotal * CAPITATION * 12).toLocaleString()}/a&ntilde;o</div>`;
+      html += `</div>`;
+    }
+
+    // ── MEAT por condici&oacute;n codificada ──
+    if (data.analisis_nota && data.analisis_nota.condiciones && data.analisis_nota.condiciones.length > 0) {
+      html += `<h3 style="font-size:13px;color:var(--dark);margin:14px 0 8px;">Verificaci&oacute;n MEAT por condici&oacute;n codificada</h3>`;
+
       for (const cond of data.analisis_nota.condiciones) {
         html += `<div class="meat-cond">
           <h4>${cond.condicion} (HCC ${cond.hcc})</h4>`;
@@ -655,24 +698,42 @@ async function analizarMEAT() {
           const checked = found && found.encontrado ? 'checked' : '';
           const cite = found && found.cita_textual ? found.cita_textual : '';
 
+          // Also check elementos_presentes for textual citations
+          let citaFinal = cite;
+          if (!citaFinal && cond.elementos_presentes) {
+            const ep = cond.elementos_presentes.find(e => (e.elemento || e) === item.key);
+            if (ep && ep.cita_textual) citaFinal = ep.cita_textual;
+          }
+
           html += `<div class="meat-check">
             <input type="checkbox" ${checked} data-cond="${cond.hcc}" data-meat="${item.key}">
             <span class="meat-label">${item.label}</span>
-            ${cite ?
-              `<span class="meat-cite">"${cite}"</span>` :
+            ${citaFinal ?
+              `<span class="meat-cite">"${citaFinal}"</span>` :
               `<span class="meat-miss">No detectado en la nota &mdash; marque si el m&eacute;dico lo document&oacute;</span>`
             }
           </div>`;
         }
 
-        const score = cond.meat_score || 0;
+        const score = cond.meat_score || cond.score || 0;
         const color = score >= 3 ? 'var(--green)' : score >= 2 ? 'var(--amber)' : 'var(--red)';
         html += `<div style="margin-top:8px;font-size:11px;">Elementos detectados: <strong style="color:${color};">${score}/4</strong>
           <span style="color:var(--muted);"> &mdash; Verifique que cada elemento refleja lo evaluado en la visita</span></div>`;
         html += `</div>`;
       }
-    } else {
-      html = '<div style="color:var(--muted);font-size:12px;padding:10px;">No se encontraron condiciones HCC para analizar MEAT.</div>';
+    } else if (!data.condiciones_detectadas || data.condiciones_detectadas.no_codificadas.length === 0) {
+      html += '<div style="color:var(--muted);font-size:12px;padding:10px;">No se detectaron condiciones HCC en la nota ni en los c&oacute;digos asignados.</div>';
+    }
+
+    // ── Condiciones ya codificadas y detectadas ──
+    if (data.condiciones_detectadas && data.condiciones_detectadas.detectadas) {
+      const codificadas = data.condiciones_detectadas.detectadas.filter(d => d.ya_codificada);
+      if (codificadas.length > 0) {
+        html += `<div style="margin-top:10px;padding:10px;background:var(--green-bg);border:1px solid var(--green);border-radius:8px;">
+          <div style="font-size:12px;color:#065F46;font-weight:600;margin-bottom:4px;">Condiciones codificadas y mencionadas en la nota:</div>
+          ${codificadas.map(c => `<div style="font-size:11px;color:#065F46;">&#10003; ${c.nombre} (HCC ${c.hcc}) &mdash; ${c.frases_detectadas.map(f => '"' + f.frase + '"').join(', ')}</div>`).join('')}
+        </div>`;
+      }
     }
 
     results.innerHTML = html;
@@ -817,6 +878,17 @@ function mostrarPostCalculo() {
       }
     }).catch(() => {});
   }
+}
+
+// Add code from MEAT detection alert
+function agregarDesdeDeteccion(codigo, hcc, desc) {
+  api('/hcc/lookup', `icd10=${codigo}`).then(r => {
+    if (r.encontrado) {
+      agregarCodigo(codigo, r.hcc, r.descripcion, r.label || `HCC ${r.hcc}`, r.coeficiente_raf);
+    } else {
+      agregarCodigo(codigo, hcc, desc, `HCC ${hcc}`, 0);
+    }
+  });
 }
 
 // Add code from gap recommendation
