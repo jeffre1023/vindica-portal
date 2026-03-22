@@ -286,7 +286,8 @@ async function calcularRAF() {
 function renderRAF(data) {
   // RAF Grid
   const grid = document.getElementById('rafGrid');
-  const valorAnual = Math.round(data.raf_total * 1000 * 12);
+  const CAPITATION_MENSUAL = 850; // PR promedio estimado
+  const valorAnual = Math.round(data.raf_total * CAPITATION_MENSUAL * 12);
   grid.innerHTML = `
     <div class="raf-box highlight">
       <div class="val">${data.raf_total.toFixed(3)}</div>
@@ -309,6 +310,9 @@ function renderRAF(data) {
       <div class="lbl">Valor Anual Est.</div>
     </div>
   `;
+
+  // Disclaimer
+  grid.innerHTML += `<div style="grid-column:1/-1;font-size:10px;color:var(--muted);text-align:center;padding:4px;border-top:1px solid var(--border);margin-top:4px;">Estimado basado en $850/punto RAF/mes. El valor real depende del contrato espec&iacute;fico del plan con su pr&aacute;ctica.</div>`;
 
   // Breakdown
   const bd = document.getElementById('hccBreakdown');
