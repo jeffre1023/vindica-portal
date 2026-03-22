@@ -200,6 +200,7 @@ input:focus,select:focus{border-color:var(--teal);}
 <!-- Step 3: RAF Results -->
 <div class="card" id="rafCard" style="display:none;">
   <h2><div class="icon">3</div> An&aacute;lisis RAF</h2>
+  <div style="font-size:10px;color:var(--amber-d);background:var(--amber-bg);padding:8px 12px;border-radius:6px;margin-bottom:12px;border:1px solid var(--amber);">Los c&oacute;digos ICD-10 y coeficientes RAF provienen del modelo CMS-HCC V28 oficial (CY 2026). El c&aacute;lculo es orientativo &mdash; el RAF final de CMS puede diferir por interacciones y ajustes no contemplados aqu&iacute;.</div>
   <div class="raf-grid" id="rafGrid"></div>
   <h3 style="font-size:13px;color:var(--dark);margin:16px 0 8px;">HCCs Capturados</h3>
   <div id="hccBreakdown"></div>
@@ -222,7 +223,8 @@ input:focus,select:focus{border-color:var(--teal);}
 <!-- Step 5: Brief Pre-Visita -->
 <div class="card" id="briefCard" style="display:none;">
   <h2><div class="icon" style="background:var(--amber);">5</div> Brief Pre-Visita</h2>
-  <p style="font-size:11px;color:var(--muted);margin-bottom:12px;">Condiciones pendientes de documentar este a&ntilde;o. Imprima o descargue para el m&eacute;dico antes de la visita.</p>
+  <p style="font-size:11px;color:var(--muted);margin-bottom:8px;">Condiciones pendientes de documentar este a&ntilde;o. Imprima o descargue para el m&eacute;dico antes de la visita.</p>
+  <div style="font-size:10px;color:var(--amber-d);background:var(--amber-bg);padding:8px 12px;border-radius:6px;margin-bottom:12px;border:1px solid var(--amber);">Estas recomendaciones son sugerencias basadas en el historial del paciente. El m&eacute;dico debe evaluar cl&iacute;nicamente cada condici&oacute;n y documentar solo lo que corresponda a la visita actual.</div>
   <div id="briefContent"></div>
   <div style="text-align:center;margin-top:14px;" id="briefActions" style="display:none;">
     <button class="btn btn-ghost" onclick="window.print()" style="margin-right:8px;">Imprimir Brief</button>
@@ -231,8 +233,9 @@ input:focus,select:focus{border-color:var(--teal);}
 
 <!-- Step 6: Post-Visita MEAT -->
 <div class="card" id="meatCard" style="display:none;">
-  <h2><div class="icon" style="background:#6366F1;">6</div> Post-Visita &mdash; Verificaci&oacute;n MEAT</h2>
-  <p style="font-size:11px;color:var(--muted);margin-bottom:12px;">Suba la nota cl&iacute;nica o pegue el texto. El sistema pre-llena el checklist MEAT &mdash; confirme cada &iacute;tem antes de guardar.</p>
+  <h2><div class="icon" style="background:#6366F1;">6</div> Post-Visita &mdash; Elementos MEAT Detectados</h2>
+  <p style="font-size:11px;color:var(--muted);margin-bottom:8px;">Pegue el texto de la nota cl&iacute;nica. El sistema detecta elementos MEAT y cita las frases exactas encontradas &mdash; verifique y confirme cada uno.</p>
+  <div style="font-size:10px;color:var(--amber-d);background:var(--amber-bg);padding:8px 12px;border-radius:6px;margin-bottom:12px;border:1px solid var(--amber);">Este an&aacute;lisis es orientativo. Los elementos detectados son sugerencias basadas en criterios MEAT publicados por CMS. El m&eacute;dico es responsable de verificar que la documentaci&oacute;n refleja lo evaluado cl&iacute;nicamente en la visita.</div>
   <div style="margin-bottom:12px;">
     <label>Texto de la nota cl&iacute;nica</label>
     <textarea id="meatNota" rows="6" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:9px;font-size:12px;font-family:inherit;resize:vertical;outline:none;" placeholder="Pegue el texto de la nota del m&eacute;dico aqu&iacute;..."></textarea>
@@ -247,7 +250,8 @@ input:focus,select:focus{border-color:var(--teal);}
 <!-- Step 7: Reporte de la Pr&aacute;ctica -->
 <div class="card" id="reporteCard">
   <h2><div class="icon" style="background:#8B5CF6;">7</div> Reporte de la Pr&aacute;ctica</h2>
-  <p style="font-size:11px;color:var(--muted);margin-bottom:12px;">M&eacute;tricas de captura HCC/RAF de todos los pacientes MA registrados.</p>
+  <p style="font-size:11px;color:var(--muted);margin-bottom:8px;">M&eacute;tricas de captura HCC/RAF de todos los pacientes MA registrados.</p>
+  <div style="font-size:10px;color:var(--amber-d);background:var(--amber-bg);padding:8px 12px;border-radius:6px;margin-bottom:12px;border:1px solid var(--amber);">Las oportunidades identificadas son estimaciones. El valor real depende del contrato espec&iacute;fico del plan con su pr&aacute;ctica y de la documentaci&oacute;n cl&iacute;nica apropiada.</div>
   <button class="btn btn-primary" onclick="cargarReporte()">Generar Reporte</button>
   <div id="reporteContent" style="margin-top:14px;"></div>
 </div>
@@ -663,7 +667,8 @@ async function analizarMEAT() {
 
         const score = cond.meat_score || 0;
         const color = score >= 3 ? 'var(--green)' : score >= 2 ? 'var(--amber)' : 'var(--red)';
-        html += `<div style="margin-top:8px;font-size:11px;">MEAT Score: <strong style="color:${color};">${score}/4</strong></div>`;
+        html += `<div style="margin-top:8px;font-size:11px;">Elementos detectados: <strong style="color:${color};">${score}/4</strong>
+          <span style="color:var(--muted);"> &mdash; Verifique que cada elemento refleja lo evaluado en la visita</span></div>`;
         html += `</div>`;
       }
     } else {
