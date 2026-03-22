@@ -458,10 +458,12 @@ function removerCodigo(icd10) {
 
 // Auto-recalcular cuando se agregan o quitan códigos
 let recalcTimeout = null;
+let isAutoRecalc = false;
 function autoRecalcular() {
   if (pacienteCodigos.length === 0) return;
   clearTimeout(recalcTimeout);
-  recalcTimeout = setTimeout(() => calcularRAF(), 300);
+  isAutoRecalc = true;
+  recalcTimeout = setTimeout(() => { calcularRAF(); }, 300);
 }
 
 function renderCodigos() {
@@ -536,7 +538,10 @@ async function calcularRAF() {
     // Generate brief
     await generarBrief(data, gaps);
 
-    document.getElementById('rafCard').scrollIntoView({ behavior: 'smooth' });
+    if (!isAutoRecalc) {
+      document.getElementById('rafCard').scrollIntoView({ behavior: 'smooth' });
+    }
+    isAutoRecalc = false;
 
     // Show MEAT and Brief sections
     mostrarPostCalculo();
