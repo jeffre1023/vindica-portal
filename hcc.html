@@ -97,6 +97,47 @@ input:focus,select:focus{border-color:var(--teal);}
 
 .back-link{color:var(--teal-l);text-decoration:none;font-size:12px;display:inline-flex;align-items:center;gap:4px;}
 .back-link:hover{text-decoration:underline;}
+
+/* Brief pre-visita */
+.brief-cond{background:var(--light);border:1px solid var(--border);border-radius:10px;padding:14px;margin:8px 0;}
+.brief-cond h4{font-size:13px;color:var(--dark);margin-bottom:6px;}
+.brief-cond .icd-rec{font-size:12px;color:var(--teal-d);font-weight:600;}
+.brief-cond .plantilla{font-size:11px;color:var(--slate);margin-top:6px;background:var(--white);border:1px dashed var(--border);padding:8px;border-radius:6px;white-space:pre-wrap;}
+.brief-cond .valor{font-size:11px;color:var(--amber-d);font-weight:600;margin-top:4px;}
+
+/* MEAT checklist */
+.meat-cond{background:var(--light);border:1px solid var(--border);border-radius:10px;padding:14px;margin:8px 0;}
+.meat-cond h4{font-size:13px;color:var(--dark);margin-bottom:8px;}
+.meat-check{display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;}
+.meat-check:last-child{border:none;}
+.meat-check input[type=checkbox]{margin-top:2px;accent-color:var(--teal);width:16px;height:16px;flex-shrink:0;}
+.meat-check .meat-label{font-weight:600;color:var(--dark);min-width:90px;}
+.meat-check .meat-cite{color:var(--teal-d);font-style:italic;}
+.meat-check .meat-miss{color:var(--red);font-size:11px;}
+
+/* Reporte */
+.reporte-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:14px 0;}
+.reporte-box{background:var(--light);border-radius:10px;padding:12px;text-align:center;border:1px solid var(--border);}
+.reporte-box.danger{border-color:var(--red);background:var(--red-bg);}
+.reporte-box .val{font-size:22px;font-weight:700;color:var(--teal-d);}
+.reporte-box.danger .val{color:var(--red);}
+.reporte-box .lbl{font-size:10px;color:var(--muted);margin-top:2px;}
+.opp-row{display:flex;justify-content:space-between;align-items:center;padding:10px;border-bottom:1px solid var(--border);font-size:12px;cursor:pointer;}
+.opp-row:hover{background:var(--light);}
+.opp-row:last-child{border:none;}
+.opp-name{font-weight:600;color:var(--dark);flex:1;}
+.opp-hccs{color:var(--slate);flex:1;}
+.opp-val{font-weight:700;color:var(--red);min-width:80px;text-align:right;}
+
+/* Pacientes lista */
+.pac-row{display:flex;justify-content:space-between;align-items:center;padding:10px;border-bottom:1px solid var(--border);font-size:12px;}
+.pac-row:hover{background:var(--light);}
+.pac-row:last-child{border:none;}
+.pac-name{font-weight:600;color:var(--dark);flex:1;}
+.pac-mbi{color:var(--muted);min-width:120px;}
+.pac-raf{font-weight:700;color:var(--teal-d);min-width:60px;text-align:right;}
+.pac-btn{font-size:10px;padding:4px 10px;background:var(--teal-bg);border:1px solid var(--teal-bd);border-radius:6px;color:var(--teal-d);cursor:pointer;font-weight:600;margin-left:6px;}
+.pac-btn:hover{background:var(--teal);color:white;}
 </style>
 </head>
 <body>
@@ -174,10 +215,51 @@ input:focus,select:focus{border-color:var(--teal);}
 </div>
 
 <!-- Actions -->
-<div id="actionBar" style="display:none;text-align:center;margin-top:10px;padding-bottom:30px;">
+<div id="actionBar" style="display:none;text-align:center;margin-top:10px;">
   <button class="btn btn-primary" onclick="calcularRAF()" style="padding:14px 32px;font-size:14px;">Calcular RAF Score</button>
 </div>
 
+<!-- Step 5: Brief Pre-Visita -->
+<div class="card" id="briefCard" style="display:none;">
+  <h2><div class="icon" style="background:var(--amber);">5</div> Brief Pre-Visita</h2>
+  <p style="font-size:11px;color:var(--muted);margin-bottom:12px;">Condiciones pendientes de documentar este a&ntilde;o. Imprima o descargue para el m&eacute;dico antes de la visita.</p>
+  <div id="briefContent"></div>
+  <div style="text-align:center;margin-top:14px;" id="briefActions" style="display:none;">
+    <button class="btn btn-ghost" onclick="window.print()" style="margin-right:8px;">Imprimir Brief</button>
+  </div>
+</div>
+
+<!-- Step 6: Post-Visita MEAT -->
+<div class="card" id="meatCard" style="display:none;">
+  <h2><div class="icon" style="background:#6366F1;">6</div> Post-Visita &mdash; Verificaci&oacute;n MEAT</h2>
+  <p style="font-size:11px;color:var(--muted);margin-bottom:12px;">Suba la nota cl&iacute;nica o pegue el texto. El sistema pre-llena el checklist MEAT &mdash; confirme cada &iacute;tem antes de guardar.</p>
+  <div style="margin-bottom:12px;">
+    <label>Texto de la nota cl&iacute;nica</label>
+    <textarea id="meatNota" rows="6" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:9px;font-size:12px;font-family:inherit;resize:vertical;outline:none;" placeholder="Pegue el texto de la nota del m&eacute;dico aqu&iacute;..."></textarea>
+  </div>
+  <button class="btn btn-primary" onclick="analizarMEAT()" style="margin-bottom:14px;">Analizar MEAT</button>
+  <div id="meatResults"></div>
+  <div id="meatConfirmBar" style="display:none;text-align:center;margin-top:14px;">
+    <button class="btn btn-primary" onclick="confirmarMEAT()">Confirmar y Guardar</button>
+  </div>
+</div>
+
+<!-- Step 7: Reporte de la Pr&aacute;ctica -->
+<div class="card" id="reporteCard">
+  <h2><div class="icon" style="background:#8B5CF6;">7</div> Reporte de la Pr&aacute;ctica</h2>
+  <p style="font-size:11px;color:var(--muted);margin-bottom:12px;">M&eacute;tricas de captura HCC/RAF de todos los pacientes MA registrados.</p>
+  <button class="btn btn-primary" onclick="cargarReporte()">Generar Reporte</button>
+  <div id="reporteContent" style="margin-top:14px;"></div>
+</div>
+
+<!-- Pacientes Guardados -->
+<div class="card" id="pacientesCard">
+  <h2><div class="icon" style="background:var(--slate);">&#128203;</div> Pacientes MA Guardados</h2>
+  <button class="btn btn-ghost" onclick="cargarPacientes()" style="margin-bottom:12px;">Actualizar Lista</button>
+  <div id="pacientesLista"><div class="empty-msg">Haga click en "Actualizar Lista" para ver pacientes guardados.</div></div>
+</div>
+
+<div style="height:40px;"></div>
 </div>
 
 <script>
@@ -346,6 +428,9 @@ async function calcularRAF() {
     document.getElementById('gapCard').style.display = 'block';
 
     document.getElementById('rafCard').scrollIntoView({ behavior: 'smooth' });
+
+    // Show MEAT and Brief sections
+    mostrarPostCalculo();
   } catch (e) {
     alert('Error calculando RAF: ' + e.message);
   } finally {
@@ -461,6 +546,271 @@ function renderGaps(data) {
     `).join('');
   } else {
     catDiv.innerHTML = '<div style="font-size:12px;color:var(--muted);">Sin categor&iacute;as cl&iacute;nicas</div>';
+  }
+}
+
+// ── Brief Pre-Visita ──
+async function cargarBriefPreVisita(mbi) {
+  const briefCard = document.getElementById('briefCard');
+  const briefContent = document.getElementById('briefContent');
+  briefContent.innerHTML = '<div style="text-align:center;padding:20px;"><span class="spinner" style="border-color:rgba(0,0,0,.1);border-top-color:var(--teal);width:20px;height:20px;"></span></div>';
+  briefCard.style.display = 'block';
+
+  try {
+    const pac = await api(`/hcc/paciente/${encodeURIComponent(mbi)}`, `_=1`);
+    if (!pac.hccs_historico || pac.hccs_historico.length === 0) {
+      briefContent.innerHTML = '<div style="color:var(--amber-d);font-size:12px;padding:10px;background:var(--amber-bg);border-radius:8px;">Este paciente no tiene HCCs hist&oacute;ricos registrados. Agregue el historial del a&ntilde;o anterior primero.</div>';
+      return;
+    }
+    const brief = await api('/hcc/calcular', {
+      icd10s: pac.icd10s_actuales || [],
+      edad: pac.edad || 70,
+      sexo: pac.sexo || 'F',
+      paciente_nombre: pac.nombre,
+      mbi: mbi,
+      plan: pac.plan,
+    });
+
+    // Identify gaps: historic HCCs not in current documented
+    const docSet = new Set(pac.hccs_documentados || []);
+    const pendientes = (pac.hccs_historico || []).filter(h => !docSet.has(h));
+
+    if (pendientes.length === 0) {
+      briefContent.innerHTML = '<div style="color:var(--green);font-size:12px;padding:10px;background:var(--green-bg);border-radius:8px;">Todas las condiciones hist&oacute;ricas est&aacute;n documentadas este a&ntilde;o.</div>';
+      return;
+    }
+
+    // Get condition details from policy map via gaps endpoint
+    const gapData = await api('/hcc/gaps', { icd10s: pac.icd10s_actuales || ['Z000'] });
+    const CAPITATION = 850;
+
+    let html = `<div style="font-size:12px;color:var(--dark);margin-bottom:10px;"><strong>${pac.nombre}</strong> (MBI: ${mbi}) &mdash; ${pendientes.length} condici&oacute;n(es) pendiente(s)</div>`;
+
+    for (const hcc of pendientes) {
+      const meta = brief.breakdown ? brief.breakdown.find(b => b.hcc === hcc) : null;
+      const coef = meta ? meta.coeficiente : 0;
+      const valorAnual = Math.round(coef * CAPITATION * 12);
+      const label = meta ? meta.label : `HCC ${hcc}`;
+
+      html += `<div class="brief-cond">
+        <h4>HCC ${hcc} &mdash; ${label}</h4>
+        <div class="valor">RAF: +${coef.toFixed(3)} &mdash; Valor estimado: $${valorAnual.toLocaleString()}/a&ntilde;o</div>
+        <div class="plantilla">Plantilla de dictado:\n- Evaluar estado actual de [condici&oacute;n]\n- Documentar plan de tratamiento vigente\n- Registrar estudios/labs relevantes\n- Incluir ICD-10 espec&iacute;fico en el superbill</div>
+      </div>`;
+    }
+
+    const totalRAF = pendientes.reduce((s, h) => {
+      const m = brief.breakdown ? brief.breakdown.find(b => b.hcc === h) : null;
+      return s + (m ? m.coeficiente : 0);
+    }, 0);
+    html += `<div style="text-align:center;padding:10px;background:var(--amber-bg);border-radius:8px;margin-top:10px;">
+      <strong style="color:var(--amber-d);">RAF en juego: +${totalRAF.toFixed(3)} &mdash; $${Math.round(totalRAF * CAPITATION * 12).toLocaleString()}/a&ntilde;o</strong>
+    </div>`;
+
+    briefContent.innerHTML = html;
+    document.getElementById('briefActions').style.display = 'block';
+  } catch (e) {
+    briefContent.innerHTML = `<div style="color:var(--red);font-size:12px;">Error: ${e.message}</div>`;
+  }
+}
+
+// ── Post-Visita MEAT ──
+async function analizarMEAT() {
+  const texto = document.getElementById('meatNota').value.trim();
+  if (!texto) { alert('Pegue el texto de la nota cl\u00ednica primero.'); return; }
+  if (pacienteCodigos.length === 0) { alert('Agregue al menos un diagn\u00f3stico primero.'); return; }
+
+  const results = document.getElementById('meatResults');
+  results.innerHTML = '<div style="text-align:center;padding:20px;"><span class="spinner" style="border-color:rgba(0,0,0,.1);border-top-color:var(--teal);width:20px;height:20px;"></span> Analizando...</div>';
+
+  try {
+    const data = await api('/hcc/analizar', {
+      icd10s: pacienteCodigos.map(c => c.icd10),
+      texto_nota: texto,
+      edad: parseInt(document.getElementById('pEdad').value) || 70,
+      sexo: document.getElementById('pSexo').value,
+      paciente_nombre: document.getElementById('pNombre').value,
+      fecha_visita: new Date().toISOString().split('T')[0],
+    });
+
+    let html = '';
+    if (data.analisis_nota && data.analisis_nota.condiciones) {
+      for (const cond of data.analisis_nota.condiciones) {
+        html += `<div class="meat-cond">
+          <h4>${cond.condicion} (HCC ${cond.hcc})</h4>`;
+
+        const meatItems = [
+          { key: 'M', label: 'Monitoreo', desc: 'Seguimiento de la condici\u00f3n' },
+          { key: 'E', label: 'Evaluaci\u00f3n', desc: 'Labs, estudios, resultados' },
+          { key: 'A', label: 'Assess', desc: 'Evaluaci\u00f3n del estado actual' },
+          { key: 'T', label: 'Tratamiento', desc: 'Plan de tratamiento documentado' },
+        ];
+
+        for (const item of meatItems) {
+          const found = cond.meat_detalle ? cond.meat_detalle[item.key] : null;
+          const checked = found && found.encontrado ? 'checked' : '';
+          const cite = found && found.cita_textual ? found.cita_textual : '';
+
+          html += `<div class="meat-check">
+            <input type="checkbox" ${checked} data-cond="${cond.hcc}" data-meat="${item.key}">
+            <span class="meat-label">${item.label}</span>
+            ${cite ?
+              `<span class="meat-cite">"${cite}"</span>` :
+              `<span class="meat-miss">No detectado en la nota &mdash; marque si el m&eacute;dico lo document&oacute;</span>`
+            }
+          </div>`;
+        }
+
+        const score = cond.meat_score || 0;
+        const color = score >= 3 ? 'var(--green)' : score >= 2 ? 'var(--amber)' : 'var(--red)';
+        html += `<div style="margin-top:8px;font-size:11px;">MEAT Score: <strong style="color:${color};">${score}/4</strong></div>`;
+        html += `</div>`;
+      }
+    } else {
+      html = '<div style="color:var(--muted);font-size:12px;padding:10px;">No se encontraron condiciones HCC para analizar MEAT.</div>';
+    }
+
+    results.innerHTML = html;
+    document.getElementById('meatConfirmBar').style.display = 'block';
+    document.getElementById('meatCard').scrollIntoView({ behavior: 'smooth' });
+  } catch (e) {
+    results.innerHTML = `<div style="color:var(--red);font-size:12px;">Error: ${e.message}</div>`;
+  }
+}
+
+async function confirmarMEAT() {
+  const checks = document.querySelectorAll('#meatResults input[type=checkbox]');
+  const confirmed = {};
+  checks.forEach(ch => {
+    const hcc = ch.dataset.cond;
+    const meat = ch.dataset.meat;
+    if (!confirmed[hcc]) confirmed[hcc] = {};
+    confirmed[hcc][meat] = ch.checked;
+  });
+
+  const mbi = document.getElementById('pMbi').value.trim();
+  if (mbi) {
+    try {
+      const anio = new Date().getFullYear();
+      // Update documented HCCs based on confirmed MEAT
+      const hccsConfirmados = Object.keys(confirmed).filter(hcc => {
+        const m = confirmed[hcc];
+        return (m.M || false) + (m.E || false) + (m.A || false) + (m.T || false) >= 2;
+      }).map(Number);
+
+      if (hccsConfirmados.length > 0) {
+        await api(`/hcc/paciente/${encodeURIComponent(mbi)}/historico`, {
+          hccs_historico: hccsConfirmados,
+        });
+      }
+
+      alert('MEAT verificado y guardado para MBI: ' + mbi);
+    } catch (e) {
+      alert('Error guardando: ' + e.message);
+    }
+  } else {
+    alert('MEAT verificado. Ingrese MBI para guardar en el historial del paciente.');
+  }
+}
+
+// ── Reporte de la Pr&aacute;ctica ──
+async function cargarReporte() {
+  const content = document.getElementById('reporteContent');
+  content.innerHTML = '<div style="text-align:center;padding:20px;"><span class="spinner" style="border-color:rgba(0,0,0,.1);border-top-color:var(--teal);width:20px;height:20px;"></span> Generando reporte...</div>';
+
+  try {
+    const data = await api('/hcc/reporte', '_=1');
+
+    if (data.total_pacientes === 0) {
+      content.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:10px;">No hay pacientes MA registrados. Calcule el RAF de al menos un paciente con MBI para generar el reporte.</div>';
+      return;
+    }
+
+    const CAPITATION = 850;
+    let html = `<div class="reporte-grid">
+      <div class="reporte-box">
+        <div class="val">${data.total_pacientes}</div>
+        <div class="lbl">Pacientes MA</div>
+      </div>
+      <div class="reporte-box ${data.pacientes_con_gap > 0 ? 'danger' : ''}">
+        <div class="val">${data.pacientes_con_gap}</div>
+        <div class="lbl">Con Gap</div>
+      </div>
+      <div class="reporte-box">
+        <div class="val">${data.tasa_captura_pct}</div>
+        <div class="lbl">Tasa Captura</div>
+      </div>
+      <div class="reporte-box">
+        <div class="val">${data.raf_gap_total.toFixed(2)}</div>
+        <div class="lbl">RAF Gap Total</div>
+      </div>
+      <div class="reporte-box danger">
+        <div class="val">$${(data.valor_gap_anual_estimado || 0).toLocaleString()}</div>
+        <div class="lbl">Valor Perdido/A&ntilde;o</div>
+      </div>
+    </div>`;
+
+    if (data.oportunidades_perdidas && data.oportunidades_perdidas.length > 0) {
+      html += `<h3 style="font-size:13px;color:var(--dark);margin:16px 0 8px;">Oportunidades Perdidas (ordenadas por impacto)</h3>`;
+      for (const opp of data.oportunidades_perdidas) {
+        html += `<div class="opp-row" onclick="cargarBriefPreVisita('${opp.paciente_id}')">
+          <span class="opp-name">${opp.nombre || opp.paciente_id}</span>
+          <span class="opp-hccs">${(opp.condiciones || []).join(', ')}</span>
+          <span class="opp-val">-$${(opp.valor_anual_perdido || 0).toLocaleString()}/a&ntilde;o</span>
+        </div>`;
+      }
+    }
+
+    if (data.mensaje_practica) {
+      html += `<div style="margin-top:14px;padding:10px;background:var(--amber-bg);border:1px solid var(--amber);border-radius:8px;font-size:12px;color:var(--amber-d);">${data.mensaje_practica}</div>`;
+    }
+
+    html += `<div style="font-size:10px;color:var(--muted);text-align:center;margin-top:10px;">Estimado basado en $850/punto RAF/mes. El valor real depende del contrato espec&iacute;fico del plan con su pr&aacute;ctica.</div>`;
+
+    content.innerHTML = html;
+  } catch (e) {
+    content.innerHTML = `<div style="color:var(--red);font-size:12px;">Error: ${e.message}</div>`;
+  }
+}
+
+// ── Pacientes Guardados ──
+async function cargarPacientes() {
+  const lista = document.getElementById('pacientesLista');
+  lista.innerHTML = '<div style="text-align:center;padding:20px;"><span class="spinner" style="border-color:rgba(0,0,0,.1);border-top-color:var(--teal);width:20px;height:20px;"></span></div>';
+
+  try {
+    const data = await api('/hcc/pacientes', '_=1');
+
+    if (!data.pacientes || data.pacientes.length === 0) {
+      lista.innerHTML = '<div class="empty-msg">No hay pacientes guardados.</div>';
+      return;
+    }
+
+    lista.innerHTML = data.pacientes.map(p => `
+      <div class="pac-row">
+        <span class="pac-name">${p.nombre}</span>
+        <span class="pac-mbi">${p.mbi}</span>
+        <span style="font-size:11px;color:var(--muted);">${p.ultima_visita || ''}</span>
+        <span class="pac-raf">${(p.raf_total || 0).toFixed(3)}</span>
+        <span class="pac-btn" onclick="cargarBriefPreVisita('${p.mbi}')">Brief</span>
+      </div>
+    `).join('');
+  } catch (e) {
+    lista.innerHTML = `<div style="color:var(--red);font-size:12px;">Error: ${e.message}</div>`;
+  }
+}
+
+// ── Show brief + MEAT after calculate ──
+function mostrarPostCalculo() {
+  const mbi = document.getElementById('pMbi').value.trim();
+  if (mbi) {
+    document.getElementById('meatCard').style.display = 'block';
+    // Check if patient has historic HCCs for brief
+    api(`/hcc/paciente/${encodeURIComponent(mbi)}`, '_=1').then(pac => {
+      if (pac.hccs_historico && pac.hccs_historico.length > 0) {
+        cargarBriefPreVisita(mbi);
+      }
+    }).catch(() => {});
   }
 }
 
