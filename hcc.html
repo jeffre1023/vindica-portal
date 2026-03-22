@@ -229,20 +229,15 @@ input:focus,select:focus{border-color:var(--teal);}
   <button class="btn btn-primary" onclick="calcularRAF()" style="padding:14px 32px;font-size:14px;">Calcular RAF Score</button>
 </div>
 
-<!-- Step 5: Brief Pre-Visita -->
+<!-- Brief Pre-Visita — hidden for now, Fase 2 -->
 <div class="card" id="briefCard" style="display:none;">
-  <h2><div class="icon" style="background:var(--amber);">5</div> Brief Pre-Visita</h2>
-  <p style="font-size:11px;color:var(--muted);margin-bottom:8px;">Condiciones pendientes de documentar este a&ntilde;o. Imprima o descargue para el m&eacute;dico antes de la visita.</p>
-  <div style="font-size:10px;color:var(--amber-d);background:var(--amber-bg);padding:8px 12px;border-radius:6px;margin-bottom:12px;border:1px solid var(--amber);">Estas recomendaciones son sugerencias basadas en el historial del paciente. El m&eacute;dico debe evaluar cl&iacute;nicamente cada condici&oacute;n y documentar solo lo que corresponda a la visita actual.</div>
   <div id="briefContent"></div>
-  <div style="text-align:center;margin-top:14px;" id="briefActions" style="display:none;">
-    <button class="btn btn-ghost" onclick="window.print()" style="margin-right:8px;">Imprimir Brief</button>
-  </div>
+  <div id="briefActions" style="display:none;"></div>
 </div>
 
 <!-- Step 6: Post-Visita MEAT -->
 <div class="card" id="meatCard" style="display:none;">
-  <h2><div class="icon" style="background:#6366F1;">6</div> Post-Visita &mdash; Elementos MEAT Detectados</h2>
+  <h2><div class="icon" style="background:#6366F1;">5</div> Post-Visita &mdash; Elementos MEAT Detectados</h2>
   <p style="font-size:11px;color:var(--muted);margin-bottom:8px;">Pegue el texto de la nota cl&iacute;nica. El sistema detecta elementos MEAT y cita las frases exactas encontradas &mdash; verifique y confirme cada uno.</p>
   <div style="font-size:10px;color:var(--amber-d);background:var(--amber-bg);padding:8px 12px;border-radius:6px;margin-bottom:12px;border:1px solid var(--amber);">Este an&aacute;lisis es orientativo. Los elementos detectados son sugerencias basadas en criterios MEAT publicados por CMS. El m&eacute;dico es responsable de verificar que la documentaci&oacute;n refleja lo evaluado cl&iacute;nicamente en la visita.</div>
   <div style="margin-bottom:12px;">
@@ -265,7 +260,7 @@ input:focus,select:focus{border-color:var(--teal);}
 
 <!-- Step 7: Reporte de la Pr&aacute;ctica -->
 <div class="card" id="reporteCard">
-  <h2><div class="icon" style="background:#8B5CF6;">7</div> Reporte de la Pr&aacute;ctica</h2>
+  <h2><div class="icon" style="background:#8B5CF6;">6</div> Reporte de la Pr&aacute;ctica</h2>
   <p style="font-size:11px;color:var(--muted);margin-bottom:8px;">M&eacute;tricas de captura HCC/RAF de todos los pacientes MA registrados.</p>
   <div style="font-size:10px;color:var(--amber-d);background:var(--amber-bg);padding:8px 12px;border-radius:6px;margin-bottom:12px;border:1px solid var(--amber);">Las oportunidades identificadas son estimaciones. El valor real depende del contrato espec&iacute;fico del plan con su pr&aacute;ctica y de la documentaci&oacute;n cl&iacute;nica apropiada.</div>
   <button class="btn btn-primary" onclick="cargarReporte()">Generar Reporte</button>
@@ -363,11 +358,38 @@ searchInput.addEventListener('blur', () => {
   setTimeout(() => searchResults.classList.remove('show'), 200);
 });
 
+// Códigos comunes sin HCC — para informar al usuario
+const CODIGOS_SIN_HCC = {
+  'I10': { desc: 'Hipertensi\u00f3n Arterial Esencial', nota: 'No tiene HCC en V28. Documentar es buena pr\u00e1ctica cl\u00ednica pero no impacta el RAF.' },
+  'E780': { desc: 'Hiperlipidemia Pura', nota: 'No tiene HCC en V28. No genera reembolso RAF adicional.' },
+  'E781': { desc: 'Hipertrigliceridemia Pura', nota: 'No tiene HCC en V28.' },
+  'E785': { desc: 'Hiperlipidemia No Especificada', nota: 'No tiene HCC en V28. No genera reembolso RAF adicional.' },
+  'E039': { desc: 'Hipotiroidismo No Especificado', nota: 'No tiene HCC en V28. Documentar pero no impacta RAF.' },
+  'E039': { desc: 'Hipotiroidismo No Especificado', nota: 'No tiene HCC en V28.' },
+  'I2510': { desc: 'Enfermedad Arterial Coronaria', nota: 'I25.10 sin complicaci\u00f3n no tiene HCC en V28.' },
+  'M109': { desc: 'Gota No Especificada', nota: 'No tiene HCC en V28.' },
+  'K219': { desc: 'GERD', nota: 'No tiene HCC en V28.' },
+  'G4700': { desc: 'Insomnio', nota: 'No tiene HCC en V28.' },
+  'M5416': { desc: 'Radiculopat\u00eda Lumbar', nota: 'No tiene HCC en V28.' },
+  'F329': { desc: 'Depresi\u00f3n No Especificada', nota: 'F329 NO tiene HCC. Use F321 (moderada) o F322 (severa) para HCC 155.' },
+  'F330': { desc: 'Depresi\u00f3n Recurrente Leve', nota: 'F330 (leve) NO tiene HCC. Use F331 (moderada) o F332 (severa) para HCC 155.' },
+};
+
 async function buscar(q) {
   try {
     const data = await api('/hcc/search', `q=${encodeURIComponent(q)}`);
     if (!data.resultados || data.resultados.length === 0) {
-      searchResults.innerHTML = '<div class="sr-item" style="color:var(--muted);justify-content:center;">No se encontraron resultados con HCC V28</div>';
+      // Check if it's a known code without HCC
+      const qClean = q.replace(/\./g, '').toUpperCase();
+      const sinHcc = CODIGOS_SIN_HCC[qClean];
+      if (sinHcc) {
+        searchResults.innerHTML = `<div class="sr-item" style="flex-direction:column;align-items:flex-start;padding:14px;">
+          <div style="font-size:13px;font-weight:600;color:var(--dark);margin-bottom:4px;">${qClean} &mdash; ${sinHcc.desc}</div>
+          <div style="font-size:11px;color:var(--amber-d);background:var(--amber-bg);padding:6px 10px;border-radius:6px;width:100%;">${sinHcc.nota}</div>
+        </div>`;
+      } else {
+        searchResults.innerHTML = '<div class="sr-item" style="color:var(--muted);justify-content:center;">No se encontraron resultados con HCC V28. Este c\u00f3digo puede no tener impacto en el RAF.</div>';
+      }
       searchResults.classList.add('show');
       return;
     }
