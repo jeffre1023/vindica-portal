@@ -123,7 +123,8 @@ input:focus,select:focus{border-color:var(--teal);}
     <div><label>MBI (Medicare ID) <span style="color:var(--red);font-size:10px;">* requerido</span></label><input type="text" id="pMbi" placeholder="Ej: 1EG4-TE5-MK72"></div>
   </div>
   <div class="row">
-    <div><label>Edad</label><input type="number" id="pEdad" value="70" min="0" max="120"></div>
+    <div><label>Fecha de Nacimiento</label><input type="date" id="pDob"></div>
+    <div><label>Edad</label><input type="number" id="pEdad" value="70" min="0" max="120" readonly style="background:#F1F5F9;"></div>
     <div><label>Sexo</label>
       <select id="pSexo">
         <option value="F">Femenino</option>
@@ -182,7 +183,18 @@ input:focus,select:focus{border-color:var(--teal);}
 <script>
 const API = 'https://vindica-cf-v4-10-5-82635207094.us-east1.run.app';
 const KEY = 'Vind!ca2026$ecure';
-const pacienteCodigos = []; // {icd10, hcc, descripcion, hcc_label, coeficiente_raf}
+const pacienteCodigos = [];
+
+// Auto-calculate age from DOB
+document.getElementById('pDob').addEventListener('change', function() {
+  const dob = new Date(this.value);
+  if (isNaN(dob)) return;
+  const today = new Date();
+  let age = today.getFullYear() - dob.getFullYear();
+  const m = today.getMonth() - dob.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+  document.getElementById('pEdad').value = age;
+}); // {icd10, hcc, descripcion, hcc_label, coeficiente_raf}
 let searchTimeout = null;
 
 // ── API Helper ──
@@ -312,6 +324,7 @@ async function calcularRAF() {
       paciente_nombre: document.getElementById('pNombre').value || 'Paciente',
       mbi,
       plan: document.getElementById('pPlan').value,
+      dob: document.getElementById('pDob').value || null,
     });
 
     renderRAF(data);
