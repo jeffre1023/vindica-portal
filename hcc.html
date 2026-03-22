@@ -222,9 +222,11 @@ async function buscar(q) {
       searchResults.classList.add('show');
       return;
     }
-    searchResults.innerHTML = data.resultados.map(r => {
+    // Store results for click handling
+    window._searchResults = data.resultados;
+    searchResults.innerHTML = data.resultados.map((r, i) => {
       const yaAgregado = pacienteCodigos.some(c => c.icd10 === r.icd10);
-      return `<div class="sr-item ${yaAgregado ? 'style="opacity:.4;"' : ''}" onclick="${yaAgregado ? '' : `agregarCodigo('${r.icd10}',${r.hcc},'${esc(r.descripcion)}','${esc(r.hcc_label)}',${r.coeficiente_raf})`}">
+      return `<div class="sr-item" style="${yaAgregado ? 'opacity:.4;' : ''}" onclick="${yaAgregado ? '' : `seleccionarResultado(${i})`}">
         <span class="sr-code">${r.icd10}</span>
         <span class="sr-desc">${r.descripcion}</span>
         <span class="sr-hcc">HCC ${r.hcc}</span>
@@ -238,6 +240,12 @@ async function buscar(q) {
 }
 
 function esc(s) { return (s || '').replace(/'/g, "\\'").replace(/"/g, '&quot;'); }
+
+function seleccionarResultado(idx) {
+  const r = window._searchResults[idx];
+  if (!r) return;
+  agregarCodigo(r.icd10, r.hcc, r.descripcion, r.hcc_label, r.coeficiente_raf);
+}
 
 // ── Add/Remove codes ──
 function agregarCodigo(icd10, hcc, desc, hccLabel, raf) {
