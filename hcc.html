@@ -356,16 +356,27 @@ function agregarCodigo(icd10, hcc, desc, hccLabel, raf) {
   searchInput.value = '';
   searchResults.classList.remove('show');
   searchInput.focus();
+  autoRecalcular();
 }
 
 function removerCodigo(icd10) {
   const idx = pacienteCodigos.findIndex(c => c.icd10 === icd10);
   if (idx >= 0) pacienteCodigos.splice(idx, 1);
   renderCodigos();
-  // Hide RAF if no codes
   if (pacienteCodigos.length === 0) {
     document.getElementById('rafCard').style.display = 'none';
+    document.getElementById('gapCard').style.display = 'none';
+  } else {
+    autoRecalcular();
   }
+}
+
+// Auto-recalcular cuando se agregan o quitan códigos
+let recalcTimeout = null;
+function autoRecalcular() {
+  if (pacienteCodigos.length === 0) return;
+  clearTimeout(recalcTimeout);
+  recalcTimeout = setTimeout(() => calcularRAF(), 300);
 }
 
 function renderCodigos() {
