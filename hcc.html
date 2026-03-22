@@ -297,6 +297,26 @@ input:focus,select:focus{border-color:var(--teal);}
 </div>
 
 <script>
+// ── Firebase Auth (must be first) ──
+const FIREBASE_CFG = {
+  apiKey:"AIzaSyBKmZkxsdP1p0uxKvmSJBYlQPiRPC0eXJ4",
+  authDomain:"vindica-production.firebaseapp.com",
+  projectId:"vindica-production"
+};
+firebase.initializeApp(FIREBASE_CFG);
+const authFB = firebase.auth();
+
+authFB.onAuthStateChanged(async user => {
+  if (user) {
+    document.getElementById('userEmail').textContent = user.email;
+    document.getElementById('mainApp').style.display = '';
+  } else {
+    window.location.href = 'index.html';
+  }
+});
+
+function doLogout() { authFB.signOut(); }
+
 const API = 'https://vindica-cf-v4-10-5-82635207094.us-east1.run.app';
 const KEY = 'Vind!ca2026$ecure';
 const pacienteCodigos = [];
@@ -1063,27 +1083,7 @@ async function uploadPDFNota() {
   }
 }
 
-// ── Firebase Auth ──
-const FIREBASE_CFG = {
-  apiKey:"AIzaSyBKmZkxsdP1p0uxKvmSJBYlQPiRPC0eXJ4",
-  authDomain:"vindica-production.firebaseapp.com",
-  projectId:"vindica-production"
-};
-firebase.initializeApp(FIREBASE_CFG);
-const authFB = firebase.auth();
 
-authFB.onAuthStateChanged(async user => {
-  if (user) {
-    document.getElementById('userEmail').textContent = user.email;
-    // Check module access — for now allow all authenticated users
-    // Future: check Firestore users/{uid}/modules.hcc === true
-    document.getElementById('mainApp').style.display = '';
-  } else {
-    window.location.href = 'index.html';
-  }
-});
-
-function doLogout() { authFB.signOut(); }
 </script>
 </body>
 </html>
