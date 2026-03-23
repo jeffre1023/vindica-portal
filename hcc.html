@@ -539,6 +539,7 @@ async function descargarBriefPDF(){
         raf_demografico:window._lastRafData.raf_demografico,hccs_validos:window._lastRafData.hccs_validos,
         breakdown:window._lastRafData.breakdown,recomendaciones:window._lastGapData?.recomendaciones||[],
         pendientes_historico:pendientes,texto_nota:document.getElementById('notaTexto').value||'',
+        meat_scores:Object.fromEntries(pacienteCodigos.filter(c=>c.meatScore>=0).map(c=>[c.hcc,c.meatScore])),
       })});
     if(!resp.ok)throw new Error('Error PDF');
     const blob=await resp.blob();
