@@ -191,6 +191,39 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
     <a href="hcc.html" style="padding:8px 20px;border-radius:100px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:var(--muted);font-size:12px;font-weight:600;text-decoration:none;">HCC / RAF</a>
   </div>
 
+  <!-- Sub-nav: Nuevo Caso vs Mis Casos -->
+  <div id="subNav" style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:16px;">
+    <button onclick="showView('nuevo')" id="tabNuevo" style="padding:7px 18px;border-radius:100px;background:rgba(13,148,136,.15);border:1px solid var(--teal);color:var(--teal-l);font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">Nuevo Caso</button>
+    <button onclick="showView('casos')" id="tabCasos" style="padding:7px 18px;border-radius:100px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">Mis Casos</button>
+    <button onclick="showView('dashboard')" id="tabDash" style="padding:7px 18px;border-radius:100px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">Dashboard</button>
+  </div>
+
+  <!-- ═══ MIS CASOS VIEW ═══ -->
+  <div id="viewCasos" style="display:none;">
+    <div class="card" style="padding:24px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h2 style="font-family:'DM Serif Display',serif;font-size:19px;">Mis Casos</h2>
+        <select id="filtroEstado" onchange="loadCasos()" style="width:auto;padding:6px 30px 6px 10px;font-size:12px;border-radius:8px;">
+          <option value="">Todos</option>
+          <option value="borrador">Borrador</option>
+          <option value="sometido">Sometido</option>
+          <option value="aprobado">Aprobado</option>
+          <option value="denegado">Denegado</option>
+          <option value="apelacion">Apelacion</option>
+        </select>
+      </div>
+      <div id="casosLista" style="font-size:13px;color:var(--slate);">Cargando...</div>
+    </div>
+  </div>
+
+  <!-- ═══ DASHBOARD VIEW ═══ -->
+  <div id="viewDashboard" style="display:none;">
+    <div class="card" style="padding:24px;">
+      <h2 style="font-family:'DM Serif Display',serif;font-size:19px;margin-bottom:16px;">Dashboard</h2>
+      <div id="dashContent" style="font-size:13px;color:var(--slate);">Cargando...</div>
+    </div>
+  </div>
+
   <div class="header">
     <div class="logo-mark"><div class="logo-icon"><img src="logo.png" alt="V" style="width:30px;height:30px;border-radius:6px;"></div><div class="logo-text">Vindica<span>Health</span></div></div>
     <h1>Pre-Auth</h1>
@@ -1117,6 +1150,163 @@ function copyBrief() {
     alert('Brief copiado al portapapeles');
   });
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+// MIS CASOS + DASHBOARD
+// ════════════════════════════════════════════════════════════════════════════
+
+function showView(view) {
+  const views = { nuevo: 'viewNuevo', casos: 'viewCasos', dashboard: 'viewDashboard' };
+  // viewNuevo = the card + header (original content)
+  document.querySelector('.header').style.display = view === 'nuevo' ? '' : 'none';
+  document.querySelector('.card').style.display = view === 'nuevo' ? '' : 'none';
+  document.getElementById('viewCasos').style.display = view === 'casos' ? '' : 'none';
+  document.getElementById('viewDashboard').style.display = view === 'dashboard' ? '' : 'none';
+
+  // Tab styling
+  ['tabNuevo','tabCasos','tabDash'].forEach(id => {
+    const el = document.getElementById(id);
+    const isActive = (id === 'tabNuevo' && view === 'nuevo') || (id === 'tabCasos' && view === 'casos') || (id === 'tabDash' && view === 'dashboard');
+    el.style.background = isActive ? 'rgba(13,148,136,.15)' : 'rgba(255,255,255,.05)';
+    el.style.borderColor = isActive ? 'var(--teal)' : 'rgba(255,255,255,.12)';
+    el.style.color = isActive ? 'var(--teal-l)' : 'var(--muted)';
+  });
+
+  if (view === 'casos') loadCasos();
+  if (view === 'dashboard') loadDashboard();
+}
+
+const ESTADO_BADGE = {
+  borrador: { bg: '#F8FAFC', color: '#475569', border: '#E2E8F0', label: 'Borrador' },
+  sometido: { bg: '#FFFBEB', color: '#92400E', border: '#FDE68A', label: 'Sometido' },
+  aprobado: { bg: '#ECFDF5', color: '#065F46', border: '#A7F3D0', label: 'Aprobado' },
+  denegado: { bg: '#FEF2F2', color: '#991B1B', border: '#FECACA', label: 'Denegado' },
+  apelacion: { bg: '#EFF6FF', color: '#1E40AF', border: '#BFDBFE', label: 'Apelacion' },
+};
+
+async function loadCasos() {
+  const el = document.getElementById('casosLista');
+  el.innerHTML = 'Cargando...';
+  try {
+    const filtro = document.getElementById('filtroEstado').value;
+    const params = filtro ? `?estado=${filtro}` : '';
+    const data = await api('/casos' + params, null);  // null body = GET workaround
+    if (!data.casos || data.casos.length === 0) {
+      el.innerHTML = '<p style="text-align:center;padding:20px;color:var(--muted);">No hay casos registrados.</p>';
+      return;
+    }
+    el.innerHTML = data.casos.map(c => {
+      const b = ESTADO_BADGE[c.estado] || ESTADO_BADGE.borrador;
+      const fecha = c.created_at ? new Date(c.created_at).toLocaleDateString('es-PR') : '';
+      return `<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:8px;">
+        <div style="flex:1;min-width:180px;">
+          <div style="font-weight:600;color:var(--dark);font-size:13px;">${c.procedimiento || c.cpt}</div>
+          <div style="font-size:11px;color:var(--muted);">${c.paciente_iniciales || ''} &middot; ${c.icd10} &middot; ${c.plan} &middot; ${fecha}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="padding:4px 10px;border-radius:100px;font-size:11px;font-weight:600;background:${b.bg};color:${b.color};border:1px solid ${b.border};">${b.label}</span>
+          <select onchange="updateEstado('${c.caso_id}',this.value)" style="width:auto;padding:4px 24px 4px 8px;font-size:11px;border-radius:6px;">
+            <option value="">Cambiar...</option>
+            <option value="sometido">Sometido</option>
+            <option value="aprobado">Aprobado</option>
+            <option value="denegado">Denegado</option>
+            <option value="apelacion">Apelacion</option>
+          </select>
+        </div>
+      </div>`;
+    }).join('');
+  } catch (e) {
+    el.innerHTML = `<p style="color:var(--red);">Error: ${e.message}</p>`;
+  }
+}
+
+async function updateEstado(casoId, estado) {
+  if (!estado) return;
+  let body = { estado };
+  if (estado === 'denegado') {
+    const razon = prompt('Razon de denegacion (opcional):');
+    if (razon) body.razon_denegacion = razon;
+    const cat = prompt('Categoria: documentacion_incompleta, terapia_insuficiente, criterio_clinico, codigo_incorrecto, otro');
+    if (cat) body.categoria_denegacion = cat;
+  }
+  try {
+    const token = auth.currentUser ? await auth.currentUser.getIdToken() : '';
+    await fetch(API + '/casos/' + casoId + '/estado', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify(body),
+    });
+    loadCasos();
+  } catch (e) {
+    alert('Error: ' + e.message);
+  }
+}
+
+async function loadDashboard() {
+  const el = document.getElementById('dashContent');
+  el.innerHTML = 'Cargando...';
+  try {
+    const token = auth.currentUser ? await auth.currentUser.getIdToken() : '';
+    const r = await fetch(API + '/casos/dashboard/metricas', {
+      headers: { 'Authorization': 'Bearer ' + token },
+    });
+    const d = await r.json();
+
+    const estadoItems = Object.entries(d.por_estado || {}).map(([k,v]) => {
+      const b = ESTADO_BADGE[k] || ESTADO_BADGE.borrador;
+      return `<div style="text-align:center;padding:12px;background:${b.bg};border:1px solid ${b.border};border-radius:12px;min-width:80px;">
+        <div style="font-size:22px;font-weight:700;color:${b.color};">${v}</div>
+        <div style="font-size:11px;color:${b.color};opacity:.8;">${b.label}</div>
+      </div>`;
+    }).join('');
+
+    const razonesHtml = Object.entries(d.razones_denegacion || {}).length > 0
+      ? Object.entries(d.razones_denegacion).map(([k,v]) => `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;"><span>${k.replace(/_/g,' ')}</span><span style="font-weight:700;">${v}</span></div>`).join('')
+      : '<p style="font-size:12px;color:var(--muted);">Sin denegaciones registradas</p>';
+
+    el.innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:10px;margin-bottom:20px;">
+        <div style="text-align:center;padding:14px;background:var(--teal-bg);border:1px solid var(--teal-bd);border-radius:12px;">
+          <div style="font-size:26px;font-weight:700;color:var(--teal-d);">${d.total || 0}</div>
+          <div style="font-size:11px;color:var(--teal-d);">Total Casos</div>
+        </div>
+        <div style="text-align:center;padding:14px;background:var(--green-bg);border:1px solid #A7F3D0;border-radius:12px;">
+          <div style="font-size:26px;font-weight:700;color:#065F46;">${d.tasa_aprobacion != null ? d.tasa_aprobacion + '%' : '—'}</div>
+          <div style="font-size:11px;color:#065F46;">Tasa Aprobacion</div>
+        </div>
+        <div style="text-align:center;padding:14px;background:var(--amber-bg);border:1px solid #FDE68A;border-radius:12px;">
+          <div style="font-size:26px;font-weight:700;color:var(--amber-d);">${d.dias_resolucion_promedio != null ? d.dias_resolucion_promedio + 'd' : '—'}</div>
+          <div style="font-size:11px;color:var(--amber-d);">Dias Promedio</div>
+        </div>
+      </div>
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:8px;">Por Estado</h3>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;">${estadoItems || '<p style="color:var(--muted);font-size:12px;">Sin datos</p>'}</div>
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:8px;">Razones de Denegacion</h3>
+      ${razonesHtml}
+    `;
+  } catch (e) {
+    el.innerHTML = `<p style="color:var(--red);">Error: ${e.message}</p>`;
+  }
+}
+
+// Override api() for GET requests (casos + dashboard)
+const _origApi = api;
+api = async function(path, body) {
+  if (body === null) {
+    const token = auth.currentUser ? await auth.currentUser.getIdToken() : '';
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 120000);
+    try {
+      const r = await fetch(API + path, {
+        headers: { 'Authorization': 'Bearer ' + token },
+        signal: controller.signal,
+      });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    } finally { clearTimeout(timeout); }
+  }
+  return _origApi(path, body);
+};
 
 updateUI();
 </script>
