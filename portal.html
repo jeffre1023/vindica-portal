@@ -1271,17 +1271,23 @@ async function runEmergencia() {
       archivos.push({ nombre: f.name, base64: b64, mimeType: f.type || 'application/pdf' });
     }
 
-    // Step 1: Analyze fracture documents
+    // Step 1: Analyze docs with BOTH prompts in parallel (fractura + labs)
     let datos_fractura = null;
+    let datos_labs = null;
     if (archivos.length > 0) {
-      datos_fractura = await api('/analizar/fractura', { archivos, cpt, icd10 });
+      const [fractRes, labsRes] = await Promise.all([
+        api('/analizar/fractura', { archivos, cpt, icd10 }),
+        api('/analizar/laboratorios', { archivos }),
+      ]);
+      datos_fractura = fractRes;
+      datos_labs = labsRes;
     }
 
-    // Step 2: Generate emergency brief
+    // Step 2: Generate emergency brief with both datasets
     const brief = await api('/generar/brief-emergencia', {
       cpt, icd10, plan,
       datos_fractura,
-      datos_labs: null,
+      datos_labs,
       comorbilidades_adicionales: [],
     });
 
