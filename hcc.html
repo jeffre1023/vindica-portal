@@ -218,7 +218,6 @@ function doLogout(){authFB.signOut();}
 // CONFIG
 // ═══════════════════════════════════════════════════════════
 const API = 'https://vindica-cf-v4-10-5-82635207094.us-east1.run.app';
-const KEY = 'Vind!ca2026$ecure';
 const pacienteCodigos = []; // {icd10, hcc, descripcion, hcc_label, coeficiente_raf, meatScore}
 let searchTimeout = null;
 
@@ -235,12 +234,16 @@ document.getElementById('pDob').addEventListener('change', function(){
 async function api(path,params){
   const isGet=typeof params==='string';
   const url=isGet?`${API}${path}?${params}`:`${API}${path}`;
-  const email=(typeof authFB!=='undefined'&&authFB.currentUser)?authFB.currentUser.email:'';
-  const opts={method:isGet?'GET':'POST',headers:{'Content-Type':'application/json','X-Vindica-Key':KEY,'X-User-Email':email}};
+  const token=authFB.currentUser?await authFB.currentUser.getIdToken():'';
+  const opts={method:isGet?'GET':'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token}};
   if(!isGet)opts.body=JSON.stringify(params);
-  const r=await fetch(url,opts);
-  if(!r.ok)throw new Error(`Error ${r.status}`);
-  return r.json();
+  const controller=new AbortController();
+  const timeout=setTimeout(()=>controller.abort(),120000);
+  try{
+    const r=await fetch(url,{...opts,signal:controller.signal});
+    if(!r.ok)throw new Error(`Error ${r.status}`);
+    return r.json();
+  }finally{clearTimeout(timeout);}
 }
 
 function esc(s){return(s||'').replace(/'/g,"\\'").replace(/"/g,'&quot;');}
@@ -255,7 +258,8 @@ async function uploadPDF(){
   try{
     const buf=await f.arrayBuffer();
     const b64=btoa(String.fromCharCode(...new Uint8Array(buf)));
-    const r=await fetch(`${API}/hcc/extract-pdf`,{method:'POST',headers:{'Content-Type':'application/json','X-Vindica-Key':KEY},body:JSON.stringify({pdf_base64:b64})});
+    const tkn=authFB.currentUser?await authFB.currentUser.getIdToken():'';
+    const r=await fetch(`${API}/hcc/extract-pdf`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tkn},body:JSON.stringify({pdf_base64:b64})});
     const d=await r.json();
     document.getElementById('notaTexto').value=d.texto||'No se pudo extraer texto.';
   }catch(e){document.getElementById('notaTexto').value='';alert('Error: '+e.message);}
@@ -529,7 +533,8 @@ async function descargarBriefPDF(){
     }
   }catch(e){}}
   try{
-    const resp=await fetch(`${API}/hcc/brief-pdf`,{method:'POST',headers:{'Content-Type':'application/json','X-Vindica-Key':KEY},
+    const tknPdf=authFB.currentUser?await authFB.currentUser.getIdToken():'';
+    const resp=await fetch(`${API}/hcc/brief-pdf`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tknPdf},
       body:JSON.stringify({
         nombre:document.getElementById('pNombre').value||'Paciente',mbi,
         edad:parseInt(document.getElementById('pEdad').value)||70,

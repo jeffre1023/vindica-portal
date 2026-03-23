@@ -347,7 +347,6 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 // CONFIG
 // ════════════════════════════════════════════════════════════════════════════
 const API = 'https://vindica-cf-v4-10-5-82635207094.us-east1.run.app';
-const KEY = 'Vind!ca2026$ecure';
 const FIREBASE_CFG = {
   apiKey:"AIzaSyBKmZkxsdP1p0uxKvmSJBYlQPiRPC0eXJ4",
   authDomain:"vindica-production.firebaseapp.com",
@@ -427,13 +426,19 @@ function unlock(n) { if (!maxUnlocked.includes(n)) maxUnlocked.push(n); step = n
 // API HELPERS
 // ════════════════════════════════════════════════════════════════════════════
 async function api(path, body) {
-  const r = await fetch(API + path, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Vindica-Key': KEY },
-    body: JSON.stringify(body),
-  });
-  if (!r.ok) { const d = await r.json().catch(() => ({})); throw new Error(d.error || 'HTTP ' + r.status); }
-  return r.json();
+  const token = auth.currentUser ? await auth.currentUser.getIdToken() : '';
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 120000);
+  try {
+    const r = await fetch(API + path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+    if (!r.ok) { const d = await r.json().catch(() => ({})); throw new Error(d.error || 'HTTP ' + r.status); }
+    return r.json();
+  } finally { clearTimeout(timeout); }
 }
 
 async function fileToB64(file) {
@@ -1019,9 +1024,10 @@ async function downloadDocx() {
       datos_labs: results[3] || null,
       tipo_admision: admisionRadio ? admisionRadio.value : null,
     };
+    const tokenDocx = auth.currentUser ? await auth.currentUser.getIdToken() : '';
     const r = await fetch(API + '/generar/brief/docx', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Vindica-Key': KEY },
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tokenDocx },
       body: JSON.stringify(body),
     });
     if (!r.ok) throw new Error('Error generando Word');
@@ -1056,9 +1062,10 @@ async function downloadPDF() {
       datos_labs: results[3] || null,
       tipo_admision: admisionRadio ? admisionRadio.value : null,
     };
+    const tokenPdf = auth.currentUser ? await auth.currentUser.getIdToken() : '';
     const r = await fetch(API + '/generar/brief/pdf', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Vindica-Key': KEY },
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tokenPdf },
       body: JSON.stringify(body),
     });
     if (!r.ok) throw new Error('Error generando PDF');
