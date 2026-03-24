@@ -1,0 +1,71 @@
+<svg width="680" height="300" viewBox="0 0 680 300" xmlns="http://www.w3.org/2000/svg" style="background:#ffffff;">
+
+<!-- Hexagon icon -->
+<g transform="translate(100, 150)">
+  <!-- Hex background -->
+  <polygon points="0,-62 54,-31 54,31 0,62 -54,31 -54,-31"
+    fill="#f8f8f8" stroke="#e0e0e0" stroke-width="1.5"/>
+  <!-- Inner hex outline red -->
+  <polygon points="0,-44 38,-22 38,22 0,44 -38,22 -38,-22"
+    fill="none" stroke="#CC0000" stroke-width="1.5" opacity="0.6"/>
+  <!-- Target crosshair -->
+  <line x1="-30" y1="0" x2="30" y2="0" stroke="#CC0000" stroke-width="1" opacity="0.4"/>
+  <line x1="0" y1="-30" x2="0" y2="30" stroke="#CC0000" stroke-width="1" opacity="0.4"/>
+  <!-- Signal arcs -->
+  <path d="M12,-18 A22,22 0 0,1 12,18" fill="none" stroke="#CC0000" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M22,-28 A36,36 0 0,1 22,28" fill="none" stroke="#CC0000" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>
+  <path d="M32,-38 A50,50 0 0,1 32,38" fill="none" stroke="#CC0000" stroke-width="1" stroke-linecap="round" opacity="0.3"/>
+  <!-- Center dot -->
+  <circle cx="0" cy="0" r="5" fill="#CC0000"/>
+  <circle cx="0" cy="0" r="9" fill="none" stroke="#CC0000" stroke-width="1" opacity="0.5"/>
+</g>
+
+<!-- GOV label -->
+<text x="188" y="122"
+  font-family="Arial, Helvetica, sans-serif"
+  font-size="16"
+  font-weight="700"
+  letter-spacing="8"
+  fill="#CC0000">GOV</text>
+
+<!-- RADAR wordmark -->
+<text x="185" y="182"
+  font-family="Arial Black, Arial, Helvetica, sans-serif"
+  font-size="68"
+  font-weight="900"
+  letter-spacing="-3"
+  fill="#111111">RADAR</text>
+
+<!-- Vertical red line -->
+<rect x="183" y="100" width="3" height="90" fill="#CC0000" rx="1"/>
+
+<!-- Tag pill -->
+<rect x="188" y="196" width="248" height="24" rx="12" fill="#f0f0f0"/>
+<text x="312" y="213"
+  font-family="Arial, Helvetica, sans-serif"
+  font-size="10"
+  font-weight="400"
+  letter-spacing="3"
+  text-anchor="middle"
+  fill="#666666">CONTRACT INTELLIGENCE</text>
+
+<!-- Signal dots grid -->
+<g transform="translate(510, 150)">
+  <circle cx="0" cy="-60" r="3" fill="#CC0000" opacity="0.15"/>
+  <circle cx="0" cy="-40" r="3" fill="#CC0000" opacity="0.3"/>
+  <circle cx="0" cy="-20" r="3" fill="#CC0000" opacity="0.6"/>
+  <circle cx="0" cy="0" r="4" fill="#CC0000"/>
+  <circle cx="0" cy="20" r="3" fill="#CC0000" opacity="0.6"/>
+  <circle cx="0" cy="40" r="3" fill="#CC0000" opacity="0.3"/>
+  <circle cx="0" cy="60" r="3" fill="#CC0000" opacity="0.15"/>
+  <circle cx="20" cy="-40" r="2.5" fill="#CC0000" opacity="0.15"/>
+  <circle cx="20" cy="-20" r="2.5" fill="#CC0000" opacity="0.3"/>
+  <circle cx="20" cy="0" r="3" fill="#CC0000" opacity="0.5"/>
+  <circle cx="20" cy="20" r="2.5" fill="#CC0000" opacity="0.3"/>
+  <circle cx="20" cy="40" r="2.5" fill="#CC0000" opacity="0.15"/>
+  <circle cx="40" cy="-20" r="2" fill="#CC0000" opacity="0.15"/>
+  <circle cx="40" cy="0" r="2.5" fill="#CC0000" opacity="0.3"/>
+  <circle cx="40" cy="20" r="2" fill="#CC0000" opacity="0.15"/>
+</g>
+
+</svg>
