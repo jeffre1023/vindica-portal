@@ -138,6 +138,69 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--dark);m
     <div class="stat-card"><div class="stat-num" id="statAvgMargin" style="color:var(--amber);">-</div><div class="stat-label">Margen Prom.</div></div>
   </div>
 
+  <!-- Add Contract Button + Modal -->
+  <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+    <button class="btn btn-primary" onclick="toggleAddForm()">+ Agregar Contrato Manual</button>
+  </div>
+
+  <div id="addContractForm" style="display:none;margin-bottom:20px;">
+    <div style="background:rgba(255,255,255,.97);border-radius:16px;padding:24px;box-shadow:0 4px 6px rgba(0,0,0,.25);">
+      <h3 style="font-family:'DM Serif Display',serif;font-size:18px;color:var(--dark);margin-bottom:16px;">Agregar Contrato Manual</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <label style="font-size:11px;font-weight:600;color:var(--dark);text-transform:uppercase;">Fuente *</label>
+          <select id="addSource" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;">
+            <option value="CT_STATE">CT Estado (BizNet)</option>
+            <option value="CT_MUNICIPAL">Municipal</option>
+            <option value="FEDERAL">Federal</option>
+          </select>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <label style="font-size:11px;font-weight:600;color:var(--dark);text-transform:uppercase;">Municipio (si aplica)</label>
+          <select id="addMunicipio" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;">
+            <option value="">N/A</option>
+            <option value="Hartford">Hartford</option>
+            <option value="Bridgeport">Bridgeport</option>
+            <option value="New Haven">New Haven</option>
+            <option value="Stamford">Stamford</option>
+            <option value="Waterbury">Waterbury</option>
+            <option value="Meriden">Meriden</option>
+            <option value="New Britain">New Britain</option>
+            <option value="West Hartford">West Hartford</option>
+          </select>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;grid-column:1/-1;">
+          <label style="font-size:11px;font-weight:600;color:var(--dark);text-transform:uppercase;">Titulo / Producto *</label>
+          <input type="text" id="addTitle" placeholder="Ej: Office Supplies - Paper, Toner, Folders" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;grid-column:1/-1;">
+          <label style="font-size:11px;font-weight:600;color:var(--dark);text-transform:uppercase;">Descripcion</label>
+          <textarea id="addDesc" rows="2" placeholder="Detalles adicionales del contrato..." style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;resize:vertical;"></textarea>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <label style="font-size:11px;font-weight:600;color:var(--dark);text-transform:uppercase;">Agencia *</label>
+          <input type="text" id="addAgency" placeholder="Ej: Department of Administrative Services" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <label style="font-size:11px;font-weight:600;color:var(--dark);text-transform:uppercase;">Deadline *</label>
+          <input type="date" id="addDeadline" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <label style="font-size:11px;font-weight:600;color:var(--dark);text-transform:uppercase;">URL del contrato</label>
+          <input type="url" id="addUrl" placeholder="https://biznet.ct.gov/..." style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <label style="font-size:11px;font-weight:600;color:var(--dark);text-transform:uppercase;">Valor estimado ($)</label>
+          <input type="number" id="addValue" placeholder="5000" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;">
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end;">
+        <button class="btn btn-ghost" onclick="toggleAddForm()">Cancelar</button>
+        <button class="btn btn-primary" id="btnSaveContract" onclick="saveManualContract()">Guardar Contrato</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Filters -->
   <div class="filters">
     <button class="filter-btn active" onclick="setFilter('all')">Todos</button>
@@ -386,6 +449,82 @@ async function markIgnored(id) {
 }
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+
+function toggleAddForm() {
+  const form = document.getElementById('addContractForm');
+  form.style.display = form.style.display === 'none' ? '' : 'none';
+}
+
+async function saveManualContract() {
+  const title = document.getElementById('addTitle').value.trim();
+  const agency = document.getElementById('addAgency').value.trim();
+  const deadline = document.getElementById('addDeadline').value;
+
+  if (!title || !agency || !deadline) {
+    alert('Completa titulo, agencia, y deadline.');
+    return;
+  }
+
+  const btn = document.getElementById('btnSaveContract');
+  btn.disabled = true; btn.textContent = 'Guardando...';
+
+  try {
+    const source = document.getElementById('addSource').value;
+    const municipio = document.getElementById('addMunicipio').value;
+    const now = new Date();
+    const deadlineDate = new Date(deadline + 'T23:59:59');
+    const diasRestantes = Math.ceil((deadlineDate - now) / (1000*60*60*24));
+    const id = source + '_MANUAL_' + Date.now();
+
+    const contract = {
+      id: id,
+      source: source,
+      sourceUrl: document.getElementById('addUrl').value.trim() || '',
+      noticeId: 'MANUAL-' + Date.now(),
+      title: title,
+      description: document.getElementById('addDesc').value.trim() || '',
+      agency: agency,
+      municipio: municipio,
+      postedDate: now,
+      responseDeadline: deadlineDate,
+      diasRestantes: diasRestantes,
+      naicsCode: '',
+      setAsideType: '',
+      placeOfPerformance: 'CT',
+      contractValueMin: Number(document.getElementById('addValue').value) || null,
+      contractValueMax: Number(document.getElementById('addValue').value) || null,
+      status: 'qualified',
+      disqualifyReason: null,
+      lineItems: [],
+      lineItemSource: 'manual',
+      multiItem: false,
+      benchmarkData: { disponible: false, precioPromedio: null, precioMinimo: null, precioMaximo: null, competidoresPromedio: null, ganadorFrecuente: null, fuente: null },
+      offerData: { encontrada: false, fuente: null, precio: null, shipping: null, precioTotal: null, stock: false, diasEntrega: null, url: null, titulo: '', categoria: null, fuentesBuscadas: '', totalOfertas: 0, verificadoEn: now },
+      calculoData: null,
+      createdAt: now,
+      updatedAt: now
+    };
+
+    await db.collection('contracts').doc(id).set(contract);
+
+    // Clear form
+    document.getElementById('addTitle').value = '';
+    document.getElementById('addDesc').value = '';
+    document.getElementById('addAgency').value = '';
+    document.getElementById('addDeadline').value = '';
+    document.getElementById('addUrl').value = '';
+    document.getElementById('addValue').value = '';
+    toggleAddForm();
+
+    // Reload
+    await loadContracts();
+    alert('Contrato guardado. El pipeline buscara precios en el proximo ciclo.');
+  } catch (err) {
+    alert('Error: ' + err.message);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Guardar Contrato';
+  }
+}
 </script>
 </body>
 </html>
