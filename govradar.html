@@ -243,6 +243,25 @@ function renderContracts() {
   el.innerHTML = list.map(c => renderCard(c)).join('');
 }
 
+function renderLineItems(items) {
+  if (!items || items.length <= 1) return '';
+  let html = '<div style="margin-bottom:10px;border:1.5px solid var(--border);border-radius:8px;overflow:hidden;font-size:11px;">';
+  html += '<div style="display:grid;grid-template-columns:2fr 50px 80px 80px;gap:0;background:var(--dark);color:#fff;padding:6px 10px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.5px;">';
+  html += '<span>Producto</span><span>Qty</span><span>Precio</span><span>Fuente</span></div>';
+  for (const item of items) {
+    const found = item.offer != null;
+    const bg = found ? 'var(--white)' : 'var(--red-bg)';
+    html += '<div style="display:grid;grid-template-columns:2fr 50px 80px 80px;gap:0;padding:5px 10px;border-top:1px solid var(--border);background:' + bg + ';">';
+    html += '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + esc(item.description) + '">' + esc((item.description||'').substring(0,45)) + '</span>';
+    html += '<span>' + (item.quantity||1) + '</span>';
+    html += '<span>' + (found ? '$' + item.offer.precioTotal : '<span style="color:var(--red);">N/A</span>') + '</span>';
+    html += '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + (found ? esc((item.offer.fuente||'').substring(0,15)) : '-') + '</span>';
+    html += '</div>';
+  }
+  html += '</div>';
+  return html;
+}
+
 function renderCard(c) {
   const calc = c.calculoData || {};
   const bench = c.benchmarkData || {};
@@ -293,13 +312,15 @@ function renderCard(c) {
           (c.naicsCode ? '<div class="cc-row"><span>NAICS</span><strong>' + c.naicsCode + '</strong></div>' : '') +
         '</div>' +
         '<div class="cc-section"><h4>&#x1F4CA; Benchmark</h4>' + benchSection + '</div>' +
-        '<div class="cc-section"><h4>&#x1F50D; Mejor Oferta</h4>' +
+        '<div class="cc-section"><h4>&#x1F50D; Mejor Oferta' + (offer.multiItem ? ' <span class="badge badge-blue" style="margin-left:6px;">MULTI-ITEM</span>' : '') + '</h4>' +
           (offer.encontrada
-            ? '<div class="cc-row"><span>Fuente</span><strong>' + esc(offer.fuente || '') + '</strong></div>' +
+            ? (offer.items && offer.items.length > 1 ? renderLineItems(offer.items) : '') +
+              '<div class="cc-row"><span>Fuente</span><strong>' + esc(offer.fuente || '') + '</strong></div>' +
               '<div class="cc-row"><span>Precio total</span><strong>$' + (offer.precioTotal||'N/A') + '</strong></div>' +
               '<div class="cc-row"><span>Stock</span><strong>' + (offer.stock ? 'Disponible' : 'Verificar') + '</strong></div>' +
               '<div class="cc-row"><span>Entrega</span><strong>' + (offer.diasEntrega||'?') + ' dias</strong></div>' +
-              (offer.categoria ? '<div class="cc-row"><span>Categoria</span><strong>' + esc(offer.categoria) + '</strong></div>' : '')
+              (offer.categoria ? '<div class="cc-row"><span>Categoria</span><strong>' + esc(offer.categoria) + '</strong></div>' : '') +
+              (offer.itemsFound != null ? '<div class="cc-row"><span>Items encontrados</span><strong>' + offer.itemsFound + ' de ' + (offer.itemsFound + (offer.itemsMissed||0)) + '</strong></div>' : '')
             : '<div style="font-size:11px;color:var(--muted);font-style:italic;">Sin oferta encontrada</div>') +
         '</div>' +
         '<div class="cc-section"><h4>&#x1F4B0; Calculo</h4>' +
