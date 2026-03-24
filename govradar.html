@@ -248,6 +248,15 @@ function renderContracts() {
   el.innerHTML = list.map(c => renderCard(c)).join('');
 }
 
+function renderQuantityRow(c) {
+  const items = c.lineItems || c.offerData?.items || [];
+  if (items.length === 1) {
+    const qty = items[0].quantity || items[0].offer?.quantity || 1;
+    if (qty > 1) return '<div class="cc-row"><span>Cantidad</span><strong>' + qty + ' unidades</strong></div>';
+  }
+  return '';
+}
+
 function renderLineItems(items) {
   if (!items || items.length <= 1) return '';
   let html = '<div style="margin-bottom:10px;border:1.5px solid var(--border);border-radius:8px;overflow:hidden;font-size:11px;">';
@@ -320,7 +329,10 @@ function renderCard(c) {
         '<div class="cc-section"><h4>&#x1F50D; Mejor Oferta' + (offer.multiItem ? ' <span class="badge badge-blue" style="margin-left:6px;">MULTI-ITEM</span>' : '') + '</h4>' +
           (offer.encontrada
             ? (offer.items && offer.items.length > 1 ? renderLineItems(offer.items) : '') +
+              (offer.titulo ? '<div class="cc-row"><span>Producto</span><strong>' + esc(offer.titulo) + '</strong></div>' : '') +
+              renderQuantityRow(c) +
               '<div class="cc-row"><span>Fuente</span><strong>' + esc(offer.fuente || '') + '</strong></div>' +
+              '<div class="cc-row"><span>Precio unitario</span><strong>$' + (offer.precio||'N/A') + '</strong></div>' +
               '<div class="cc-row"><span>Precio total</span><strong>$' + (offer.precioTotal||'N/A') + '</strong></div>' +
               '<div class="cc-row"><span>Stock</span><strong>' + (offer.stock ? 'Disponible' : 'Verificar') + '</strong></div>' +
               '<div class="cc-row"><span>Entrega</span><strong>' + (offer.diasEntrega||'?') + ' dias</strong></div>' +
