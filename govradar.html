@@ -184,11 +184,16 @@ async function loadContracts() {
   try {
     const snap = await db.collection('contracts')
       .where('status', 'in', ['alerted', 'interested', 'pending_alert', 'qualified'])
-      .orderBy('createdAt', 'desc')
       .limit(100)
       .get();
 
     allContracts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    // Sort client-side to avoid composite index requirement
+    allContracts.sort((a, b) => {
+      const da = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || 0);
+      const db2 = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt || 0);
+      return db2 - da;
+    });
     updateStats();
     renderContracts();
   } catch (err) {
