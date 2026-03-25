@@ -270,7 +270,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--dark);m
         <div class="domain-actions">
           <a class="d-btn d-btn-primary" href="https://web.archive.org/web/*/${d.domain}" target="_blank">Wayback</a>
           <a class="d-btn d-btn-ghost" href="https://ahrefs.com/backlink-checker/?input=${d.domain}" target="_blank">Ahrefs</a>
-          <a class="d-btn d-btn-ghost" href="https://openlinkprofiler.org/r/${d.domain}" target="_blank">OpenLink</a>
+          <a class="d-btn d-btn-ghost" href="https://freetools.seobility.net/en/backlink-checker?url=${d.domain}" target="_blank">SEOBility</a>
           <a class="d-btn d-btn-ghost" href="https://www.google.com/search?q=site:${d.domain}" target="_blank">Google</a>
           ${d.status === 'DETECTED' ? `<button class="d-btn d-btn-success" onclick="markPurchased('${d.id}')">Compre</button>` : ''}
           ${d.status === 'PURCHASED' ? `<button class="d-btn d-btn-success" onclick="markListed('${d.id}')">En venta</button>` : ''}
