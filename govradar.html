@@ -751,11 +751,12 @@ function renderCOCard(co) {
         '</div>' +
       '</div>' +
       '<div style="margin-top:12px;font-size:11px;font-weight:600;color:var(--dark);">Postings recientes:</div>' +
-      '<div style="max-height:160px;overflow-y:auto;margin-top:6px;">' +
+      '<div style="max-height:200px;overflow-y:auto;margin-top:6px;">' +
         (co.opportunities || []).slice(0,10).map(function(o) {
-          return '<div style="display:flex;justify-content:space-between;font-size:11px;padding:4px 0;border-bottom:1px solid var(--border);color:var(--slate);">' +
-            '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60%;" title="' + esc(o.title) + '">' + esc((o.title||'').substring(0,50)) + '</span>' +
+          return '<div style="display:flex;align-items:center;justify-content:space-between;font-size:11px;padding:5px 0;border-bottom:1px solid var(--border);color:var(--slate);">' +
+            '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:50%;" title="' + esc(o.title) + '">' + esc((o.title||'').substring(0,45)) + '</span>' +
             '<span>' + (o.postedDate ? new Date(o.postedDate).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '') + '</span>' +
+            (o.sourceUrl ? '<a href="' + o.sourceUrl + '" target="_blank" style="color:var(--teal);text-decoration:none;font-weight:600;font-size:10px;white-space:nowrap;">Ver Contrato</a>' : '<span>-</span>') +
           '</div>';
         }).join('') +
       '</div>' +
