@@ -114,6 +114,16 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--dark);m
 .empty-state{text-align:center;padding:60px 20px;color:var(--muted);}
 .empty-state h3{font-family:'DM Serif Display',serif;font-size:20px;color:#fff;margin-bottom:8px;}
 
+/* Checkbox */
+.opp-check{width:16px;height:16px;accent-color:var(--accent);cursor:pointer;flex-shrink:0;}
+/* Bulk action bar */
+.bulk-bar{display:none;align-items:center;gap:12px;padding:10px 16px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);border-radius:10px;margin-bottom:12px;}
+.bulk-bar.show{display:flex;}
+.bulk-bar span{color:#FCA5A5;font-size:13px;font-weight:600;}
+.bulk-bar button{padding:7px 16px;border-radius:8px;border:1px solid rgba(239,68,68,.4);background:rgba(239,68,68,.15);color:#FCA5A5;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.bulk-bar button:hover{background:rgba(239,68,68,.3);}
+.bulk-bar .sel-all{border-color:rgba(255,255,255,.2);background:rgba(255,255,255,.05);color:var(--muted);}
+
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
 .opp-card{animation:fadeUp .3s ease both;}
 </style>
@@ -165,6 +175,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--dark);m
     <button class="filter-btn" onclick="setFilter('govplanet')">GovPlanet</button>
     <button class="filter-btn" onclick="setFilter('ironplanet')">IronPlanet</button>
     <button class="filter-btn" onclick="setFilter('hibid')">HiBid</button>
+  </div>
+
+  <!-- Bulk action bar -->
+  <div class="bulk-bar" id="bulkBar">
+    <span id="bulkCount">0 seleccionadas</span>
+    <button onclick="deleteSelected()">Borrar seleccionadas</button>
+    <button onclick="ignoreSelected()">Ignorar seleccionadas</button>
+    <button class="sel-all" onclick="selectAll()">Seleccionar todas</button>
+    <button class="sel-all" onclick="deselectAll()">Deseleccionar</button>
   </div>
 
   <!-- Opportunity list -->
@@ -267,9 +286,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--dark);m
 
       return `
       <div class="opp-card urgent-${o.urgency || 'MEDIUM'}" style="animation-delay:${i*50}ms" id="opp-${o.id}">
-        <div class="opp-head" onclick="toggleCard('${o.id}')">
+        <div class="opp-head">
+          <input type="checkbox" class="opp-check" onclick="event.stopPropagation();selectOpp('${o.id}',this.checked)" />
           <span class="opp-source ${o.source || ''}">${o.source || '?'}</span>
-          <span class="opp-title">${esc(o.itemTitle || '')}</span>
+          <span class="opp-title" onclick="toggleCard('${o.id}')">${esc(o.itemTitle || '')}</span>
           <span class="opp-badges">${badges.join('')}</span>
           <span class="opp-profit">+$${Math.round(o.netProfit || 0).toLocaleString()}</span>
           <span class="opp-margin">${Math.round(o.marginPercent || 0)}%</span>
@@ -359,6 +379,53 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--dark);m
       soldAt: firebase.firestore.FieldValue.serverTimestamp(),
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
+  }
+
+  // ===== Bulk select/delete =====
+  const selectedIds = new Set();
+
+  function selectOpp(id, checked) {
+    if (checked) selectedIds.add(id); else selectedIds.delete(id);
+    updateBulkBar();
+  }
+
+  function updateBulkBar() {
+    const bar = document.getElementById('bulkBar');
+    const count = document.getElementById('bulkCount');
+    if (selectedIds.size > 0) {
+      bar.classList.add('show');
+      count.textContent = selectedIds.size + ' seleccionada' + (selectedIds.size > 1 ? 's' : '');
+    } else {
+      bar.classList.remove('show');
+    }
+  }
+
+  function selectAll() {
+    const filtered = applyFilter(allOpps);
+    filtered.forEach(o => selectedIds.add(o.id));
+    document.querySelectorAll('.opp-check').forEach(cb => cb.checked = true);
+    updateBulkBar();
+  }
+
+  function deselectAll() {
+    selectedIds.clear();
+    document.querySelectorAll('.opp-check').forEach(cb => cb.checked = false);
+    updateBulkBar();
+  }
+
+  function deleteSelected() {
+    if (!selectedIds.size) return;
+    if (!confirm('Borrar ' + selectedIds.size + ' oportunidades permanentemente?')) return;
+    const batch = db.batch();
+    selectedIds.forEach(id => batch.delete(db.collection('opportunities').doc(id)));
+    batch.commit().then(() => { selectedIds.clear(); updateBulkBar(); });
+  }
+
+  function ignoreSelected() {
+    if (!selectedIds.size) return;
+    const batch = db.batch();
+    selectedIds.forEach(id => batch.update(db.collection('opportunities').doc(id), { status: 'IGNORED', updatedAt: firebase.firestore.FieldValue.serverTimestamp() }));
+    batch.commit().then(() => { selectedIds.clear(); updateBulkBar(); });
   }
 </script>
 </body>
