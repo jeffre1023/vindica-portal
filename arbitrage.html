@@ -268,8 +268,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--dark);m
         <div class="domain-recommendation">${esc(d.recommendation || '')}</div>
         <div class="domain-actions">
           <a class="d-btn d-btn-primary" href="https://web.archive.org/web/*/${d.domain}" target="_blank">Wayback</a>
-          <a class="d-btn d-btn-ghost" href="https://who.is/whois/${d.domain}" target="_blank">Whois</a>
-          <a class="d-btn d-btn-ghost" href="https://moz.com/domain-analysis?site=${d.domain}" target="_blank">Moz</a>
+          <a class="d-btn d-btn-ghost" href="https://majestic.com/reports/site-explorer?q=${d.domain}" target="_blank">Backlinks</a>
+          <a class="d-btn d-btn-ghost" href="https://www.google.com/search?q=site:${d.domain}" target="_blank">Google Index</a>
           ${d.status === 'DETECTED' ? `<button class="d-btn d-btn-success" onclick="markPurchased('${d.id}')">Compre</button>` : ''}
           ${d.status === 'PURCHASED' ? `<button class="d-btn d-btn-success" onclick="markListed('${d.id}')">En venta</button>` : ''}
           ${d.status === 'DETECTED' ? `<button class="d-btn d-btn-danger" onclick="markIgnored('${d.id}')">Ignorar</button>` : ''}
