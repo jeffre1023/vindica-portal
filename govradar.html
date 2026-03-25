@@ -132,6 +132,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--dark);m
 .email-box h3{font-family:'DM Serif Display',serif;font-size:18px;color:var(--dark);margin-bottom:16px;}
 .email-box textarea{width:100%;min-height:280px;padding:14px;border:1.5px solid var(--border);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:12px;line-height:1.7;color:var(--dark);resize:vertical;}
 .email-box .email-actions{display:flex;gap:8px;margin-top:14px;justify-content:flex-end;}
+
+/* Price lookup results */
+.price-results{margin-top:12px;border:1.5px solid var(--border);border-radius:10px;overflow:hidden;}
+.price-results-header{display:grid;grid-template-columns:2fr 80px 80px 1fr 60px;gap:0;background:var(--dark);color:#fff;padding:8px 12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;}
+.price-row{display:grid;grid-template-columns:2fr 80px 80px 1fr 60px;gap:0;padding:7px 12px;border-top:1px solid var(--border);font-size:11px;color:var(--slate);align-items:center;}
+.price-row:hover{background:var(--light);}
+.price-row a{color:var(--teal);text-decoration:none;font-weight:600;}
+.price-row a:hover{text-decoration:underline;}
+.price-loading{padding:16px;text-align:center;font-size:12px;color:var(--muted);}
 </style>
 </head>
 <body>
@@ -750,7 +759,9 @@ function renderCOCard(co) {
           '</div>';
         }).join('') +
       '</div>' +
+      '<div id="prices_' + co.id + '"></div>' +
       '<div class="cc-actions">' +
+        '<button class="btn btn-ghost" onclick="lookupPrices(\'' + co.id + '\',this)">&#x1F50D; Buscar Precios</button>' +
         (!co.hasActiveBlackout
           ? '<button class="btn btn-primary" onclick="generateEmail(\'' + co.id + '\')">&#x2709;&#xFE0F; Generar Email</button>'
           : '<button class="btn btn-ghost" disabled style="opacity:.5;">&#x1F6AB; En Blackout</button>') +
@@ -796,11 +807,20 @@ function generateEmail(coId) {
   let prodLine = '';
   if (topProds.length > 0) prodLine = '\n\nBased on your office\'s recent procurement activity, we are prepared to provide competitive pricing on ' + topProds.join(', ') + ', and related items.';
 
+  // If price lookup was done, add pricing examples
+  let pricingLine = '';
+  if (co._priceResults && co._priceResults.length > 0) {
+    pricingLine = '\n\nAs an example of our competitive pricing:\n';
+    for (const r of co._priceResults.slice(0, 3)) {
+      pricingLine += '  - ' + (r.title || r.query).substring(0, 50) + ': $' + (r.priceTotal || r.price) + '\n';
+    }
+  }
+
   const email = 'Subject: Capability Statement \u2014 ' + catLine.split(',')[0].trim().replace(/^\w/,function(c){return c.toUpperCase();}) + ' | Vindica L.L.C.\n\n' +
     'Dear ' + (co.fullName || 'Contracting Officer') + ',\n\n' +
     'My name is [YOUR NAME], owner of Vindica L.L.C., a Connecticut-based small business specializing in ' + catLine + '.\n\n' +
     'I noticed your office has previously procured ' + catLine + ' and wanted to introduce our company as a registered SAM.gov vendor capable of fulfilling similar requirements.' + prodLine + '\n\n' +
-    'Our procurement process includes ongoing price benchmarking to guarantee best-value pricing for our government customers. We offer rapid delivery across the Northeast.\n\n' +
+    'Our procurement process includes ongoing price benchmarking to guarantee best-value pricing for our government customers. We offer rapid delivery across the Northeast.' + pricingLine + '\n\n' +
     'I have attached our Capability Statement for your review. We would welcome the opportunity to be considered for future procurements.\n\n' +
     'Respectfully,\n' +
     '[YOUR NAME]\n' +
@@ -823,6 +843,93 @@ function copyEmail() {
   ta.select();
   document.execCommand('copy');
   alert('Email copiado al clipboard.');
+}
+
+const PRICELOOKUP_URL = 'https://us-east1-vindica-production.cloudfunctions.net/govradar-pricelookup';
+
+async function lookupPrices(coId, btn) {
+  const co = allCOs.find(c => c.id === coId);
+  if (!co) return;
+
+  const priceDiv = document.getElementById('prices_' + coId);
+  if (!priceDiv) return;
+
+  // Build search keywords from top products and categories
+  const keywords = [];
+  const cats = (co.categories || []).map(function(c) { return c.category; });
+  const prods = (co.topProducts || []).slice(0, 5).map(function(p) { return p.word; });
+
+  // Create meaningful search queries
+  if (prods.length >= 2) {
+    // Combine related product words into queries
+    keywords.push(prods.slice(0, 3).join(' '));
+    if (prods.length > 3) keywords.push(prods.slice(3).join(' '));
+  }
+  // Add category-based searches
+  for (const cat of cats) {
+    if (cat === 'Office Supplies') keywords.push('office supplies paper toner');
+    else if (cat === 'Cleaning & Janitorial') keywords.push('janitorial cleaning supplies disinfectant');
+    else if (cat === 'Breakroom & Kitchen') keywords.push('breakroom supplies cups coffee');
+    else if (cat === 'Safety & PPE') keywords.push('safety gloves ppe supplies');
+    else keywords.push(cat.toLowerCase() + ' supplies');
+  }
+
+  // Dedupe and limit to 5
+  const uniqueKeywords = [...new Set(keywords)].slice(0, 5);
+
+  if (uniqueKeywords.length === 0) {
+    priceDiv.innerHTML = '<div class="price-loading">No hay productos para buscar.</div>';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Buscando...';
+  priceDiv.innerHTML = '<div class="price-loading"><span class="spinner"></span> Buscando precios en 15 fuentes...</div>';
+
+  try {
+    const resp = await fetch(PRICELOOKUP_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ keywords: uniqueKeywords })
+    });
+
+    if (!resp.ok) throw new Error('API error ' + resp.status);
+    const data = await resp.json();
+
+    if (!data.results || data.results.length === 0) {
+      priceDiv.innerHTML = '<div class="price-loading">No se encontraron precios.</div>';
+      btn.disabled = false; btn.textContent = 'Buscar Precios';
+      return;
+    }
+
+    let html = '<div class="price-results">';
+    html += '<div class="price-results-header"><span>Producto</span><span>Precio</span><span>Fuente</span><span>Stock</span><span>Link</span></div>';
+
+    for (const r of data.results) {
+      if (!r.found) {
+        html += '<div class="price-row"><span>' + esc(r.query) + '</span><span style="color:var(--red);">N/A</span><span>-</span><span>-</span><span>-</span></div>';
+        continue;
+      }
+      html += '<div class="price-row">' +
+        '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + esc(r.title) + '">' + esc((r.title || r.query).substring(0, 40)) + '</span>' +
+        '<span style="font-weight:700;color:var(--dark);">$' + (r.priceTotal || r.price || 'N/A') + '</span>' +
+        '<span>' + esc(r.source || '-') + '</span>' +
+        '<span>' + (r.stock ? '<span style="color:var(--green);">En stock</span>' : '<span style="color:var(--amber);">Verificar</span>') + '</span>' +
+        '<span>' + (r.url ? '<a href="' + r.url + '" target="_blank">Ver</a>' : '-') + '</span>' +
+      '</div>';
+    }
+    html += '</div>';
+
+    priceDiv.innerHTML = html;
+
+    // Cache results on the CO object for email generation
+    co._priceResults = data.results.filter(function(r) { return r.found; });
+  } catch (err) {
+    priceDiv.innerHTML = '<div class="price-loading" style="color:var(--red);">Error: ' + err.message + '</div>';
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '&#x1F50D; Buscar Precios';
 }
 
 function openMailto() {
