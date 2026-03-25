@@ -854,28 +854,19 @@ async function lookupPrices(coId, btn) {
   const priceDiv = document.getElementById('prices_' + coId);
   if (!priceDiv) return;
 
-  // Build search keywords from top products and categories
-  const keywords = [];
-  const cats = (co.categories || []).map(function(c) { return c.category; });
-  const prods = (co.topProducts || []).slice(0, 5).map(function(p) { return p.word; });
-
-  // Create meaningful search queries
-  if (prods.length >= 2) {
-    // Combine related product words into queries
-    keywords.push(prods.slice(0, 3).join(' '));
-    if (prods.length > 3) keywords.push(prods.slice(3).join(' '));
+  // Use actual contract titles from CO's posting history
+  const opps = co.opportunities || [];
+  const seen = new Set();
+  const uniqueKeywords = [];
+  for (const opp of opps) {
+    // Clean up the title: remove solicitation prefixes like "75--" and generic words
+    let title = (opp.title || '').replace(/^\d+--/,'').replace(/^(solicitation|procurement|rfq|rfi|rfp)\s*(for|of|-)?\s*/i,'').trim();
+    if (title.length > 10 && !seen.has(title.toLowerCase())) {
+      seen.add(title.toLowerCase());
+      uniqueKeywords.push(title);
+    }
+    if (uniqueKeywords.length >= 5) break;
   }
-  // Add category-based searches
-  for (const cat of cats) {
-    if (cat === 'Office Supplies') keywords.push('office supplies paper toner');
-    else if (cat === 'Cleaning & Janitorial') keywords.push('janitorial cleaning supplies disinfectant');
-    else if (cat === 'Breakroom & Kitchen') keywords.push('breakroom supplies cups coffee');
-    else if (cat === 'Safety & PPE') keywords.push('safety gloves ppe supplies');
-    else keywords.push(cat.toLowerCase() + ' supplies');
-  }
-
-  // Dedupe and limit to 5
-  const uniqueKeywords = [...new Set(keywords)].slice(0, 5);
 
   if (uniqueKeywords.length === 0) {
     priceDiv.innerHTML = '<div class="price-loading">No hay productos para buscar.</div>';
