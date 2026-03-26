@@ -457,10 +457,24 @@ function processChain(chain, S, ticker, expDate) {
   const ehpTotal = results.reduce((s, r) => s + r.ehpGex, 0);
   const dealerDeltaTotal = results.reduce((s, r) => s + r.dealerDelta, 0);
 
-  const callWall = results.reduce((b, r) => r.gexCall > b.gexCall ? r : b, results[0]);
-  const putWall = results.reduce((b, r) => Math.abs(r.gexPut) > Math.abs(b.gexPut) ? r : b, results[0]);
+  // Call Wall = strike with highest positive GEX (above spot)
+  const callCandidates = results.filter(r => r.K >= S && r.gexCall > 0);
+  const putCandidates = results.filter(r => r.K <= S && Math.abs(r.gexPut) > 0);
+  const callWall = callCandidates.length
+    ? callCandidates.reduce((b, r) => r.gexCall > b.gexCall ? r : b)
+    : results.reduce((b, r) => r.K > b.K && r.oiC > b.oiC ? r : b, results[results.length-1]);
+  const putWall = putCandidates.length
+    ? putCandidates.reduce((b, r) => Math.abs(r.gexPut) > Math.abs(b.gexPut) ? r : b)
+    : results.reduce((b, r) => r.K < b.K && r.oiP > b.oiP ? r : b, results[0]);
+  // Ensure they're different
+  if (callWall.K === putWall.K) {
+    const aboveSpot = results.filter(r => r.K > S).sort((a,b) => b.oiC - a.oiC);
+    const belowSpot = results.filter(r => r.K < S).sort((a,b) => b.oiP - a.oiP);
+    if (aboveSpot.length) callWall.K = aboveSpot[0].K;
+    if (belowSpot.length) putWall.K = belowSpot[0].K;
+  }
 
-  // Flip point
+  // Flip point — where cumulative GEX crosses zero
   let flipPoint = null;
   let cumGex = 0;
   for (let i = 0; i < results.length; i++) {
@@ -471,6 +485,11 @@ function processChain(chain, S, ticker, expDate) {
       flipPoint = results[i-1].K + ratio * (results[i].K - results[i-1].K);
       break;
     }
+  }
+  // If no crossover found, use strike with GEX closest to zero as approximate flip
+  if (!flipPoint) {
+    const closest = results.reduce((b, r) => Math.abs(r.gexNet) < Math.abs(b.gexNet) ? r : b, results[0]);
+    flipPoint = closest.K;
   }
 
   const ehpDiff = gexTotal !== 0 ? Math.abs(gexTotal - ehpTotal) / Math.abs(gexTotal) * 100 : 0;
@@ -604,7 +623,8 @@ function renderSetups() {
   const isLong = R.gexTotal > 0;
   const deltaDir = R.dealerDeltaTotal > 0 ? 'alcista' : 'bajista';
   const pw = R.putWall.K, cw = R.callWall.K, fp = R.flipPoint, S = R.S;
-  const spxMult = R.ticker === 'SPY' ? 10 : 1;
+  const spxMult = R.ticker === 'SPY' ? 10 : (R.ticker === 'QQQ' ? 5 : 1);
+  const range = Math.max(cw - pw, S * 0.01); // min 1% of spot to avoid division by zero
 
   // Distance from spot to walls
   const distPW = (S - pw).toFixed(2);
@@ -615,8 +635,8 @@ function renderSetups() {
   let html = '';
 
   // Setup A: Mean reversion at Put Wall
-  const targetA = fp || (pw + (cw - pw) * 0.5);
-  const stopA = pw - (cw - pw) * 0.15;
+  const targetA = fp || (pw + range * 0.5);
+  const stopA = pw - range * 0.15;
   const rrA = ((targetA - pw) / (pw - stopA)).toFixed(1);
   html += `
   <div class="setup a fade-in">
@@ -631,14 +651,14 @@ function renderSetups() {
       <div class="setup-item"><strong>MES P&L:</strong> Win +$${((targetA-pw)*spxMult*mesPointValue).toFixed(0)} / Loss -$${((pw-stopA)*spxMult*mesPointValue).toFixed(0)}</div>
       <div class="setup-item"><strong>Confianza:</strong> ${isLong ? '70-75%' : '60-65%'} ${isLong ? '(dealers defienden)' : '(sin defensa de dealers)'}</div>
     </div>
-    <div class="setup-status ${Math.abs(S-pw) < (cw-pw)*0.15 ? 'status-pill warn' : 'status-pill ok'}">
-      ${Math.abs(S-pw) < (cw-pw)*0.15 ? '&#9889; ACERCANDOSE' : '&#9203; ESPERANDO — spot a $'+distPW+' del trigger'}
+    <div class="setup-status ${Math.abs(S-pw) < range*0.15 ? 'status-pill warn' : 'status-pill ok'}">
+      ${Math.abs(S-pw) < range*0.15 ? '&#9889; ACERCANDOSE' : '&#9203; ESPERANDO — spot a $'+distPW+' del trigger'}
     </div>
   </div>`;
 
   // Setup B: Breakout over Call Wall
-  const targetB = cw + (cw - pw) * 0.4;
-  const stopB = cw - (cw - pw) * 0.1;
+  const targetB = cw + range * 0.4;
+  const stopB = cw - range * 0.1;
   const rrB = ((targetB - cw) / (cw - stopB)).toFixed(1);
   html += `
   <div class="setup b fade-in" style="animation-delay:.1s;">
@@ -653,14 +673,14 @@ function renderSetups() {
       <div class="setup-item"><strong>MES P&L:</strong> Win +$${((targetB-cw)*spxMult*mesPointValue).toFixed(0)} / Loss -$${((cw-stopB)*spxMult*mesPointValue).toFixed(0)}</div>
       <div class="setup-item"><strong>Confianza:</strong> ${!isLong ? '58-63%' : '50-55%'} ${!isLong ? '(gamma squeeze)' : '(dealers frenan)'}</div>
     </div>
-    <div class="setup-status ${Math.abs(S-cw) < (cw-pw)*0.15 ? 'status-pill warn' : 'status-pill ok'}">
-      ${Math.abs(S-cw) < (cw-pw)*0.15 ? '&#9889; ACERCANDOSE' : '&#9203; ESPERANDO — spot a $'+distCW+' del trigger'}
+    <div class="setup-status ${Math.abs(S-cw) < range*0.15 ? 'status-pill warn' : 'status-pill ok'}">
+      ${Math.abs(S-cw) < range*0.15 ? '&#9889; ACERCANDOSE' : '&#9203; ESPERANDO — spot a $'+distCW+' del trigger'}
     </div>
   </div>`;
 
   // Setup C: Breakdown below Put Wall
-  const targetC = pw - (cw - pw) * 0.4;
-  const stopC = pw + (cw - pw) * 0.1;
+  const targetC = pw - range * 0.4;
+  const stopC = pw + range * 0.1;
   const rrC = ((pw - targetC) / (stopC - pw)).toFixed(1);
   html += `
   <div class="setup c fade-in" style="animation-delay:.2s;">
