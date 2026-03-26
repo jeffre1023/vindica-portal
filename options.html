@@ -383,10 +383,20 @@ async function getTradesForStrike(ticker, expDate, strikePrice, contractType) {
 function analyzeTradeFlow(trades, vwap, bid, ask) {
   if (!trades.length) return { pHedge: 0.65, instPct: 0, multiLegPct: 0, avgSize: 0, aboveVwap: 0, buyPct: 0.5, sellPct: 0.5 };
   let instVol = 0, multiLegVol = 0, totalVol = 0, aboveVwapVol = 0, largeVol = 0;
-  let buyVol = 0, sellVol = 0, midVol = 0;
+  let buyVol = 0, sellVol = 0;
 
-  // Mid price for aggressor classification
+  // Mid price for aggressor classification (bid/ask from snapshot)
   const mid = (bid && ask && ask > bid) ? (bid + ask) / 2 : null;
+
+  // If no bid/ask, compute median trade price as threshold
+  let medianPrice = null;
+  if (!mid && trades.length > 1) {
+    const prices = trades.filter(t => t.price != null).map(t => t.price).sort((a, b) => a - b);
+    if (prices.length) medianPrice = prices[Math.floor(prices.length / 2)];
+  }
+
+  // The effective threshold: prefer bid/ask mid, fallback to VWAP, then median
+  const threshold = mid || vwap || medianPrice;
 
   for (const t of trades) {
     const sz = t.size || 0;
@@ -400,15 +410,20 @@ function analyzeTradeFlow(trades, vwap, bid, ask) {
     if (vwap && t.price >= vwap) aboveVwapVol += sz;
 
     // ═══ Aggressor side detection ═══
-    // Compare trade price vs NBBO to infer direction:
-    //   price >= ask  → buyer lifted the offer  (bullish, dealer goes short)
-    //   price <= bid  → seller hit the bid      (bearish, dealer goes long)
-    //   between       → use mid as threshold
-    if (mid && t.price != null) {
-      if (t.price >= ask) buyVol += sz;
-      else if (t.price <= bid) sellVol += sz;
-      else if (t.price >= mid) buyVol += sz;
-      else sellVol += sz;
+    // Priority: bid/ask spread → VWAP → median price
+    if (threshold && t.price != null) {
+      if (mid) {
+        // Best case: have bid/ask
+        if (t.price >= ask) buyVol += sz;
+        else if (t.price <= bid) sellVol += sz;
+        else if (t.price >= mid) buyVol += sz;
+        else sellVol += sz;
+      } else {
+        // Fallback: above threshold = buy, below = sell
+        if (t.price > threshold) buyVol += sz;
+        else if (t.price < threshold) sellVol += sz;
+        // price == threshold → skip (ambiguous)
+      }
     }
   }
   if (totalVol === 0) return { pHedge: 0.65, instPct: 0, multiLegPct: 0, avgSize: 0, aboveVwap: 0, buyPct: 0.5, sellPct: 0.5 };
@@ -561,6 +576,10 @@ async function loadChain(refresh) {
     // Load chain
     const chain = await getOptionsChain(ticker, expDate, strikeMin, strikeMax);
     if (!chain.length) throw new Error('No options data for ' + expDate);
+
+    // Debug: log first contract structure to see available fields
+    console.log('[GEX] Sample contract keys:', JSON.stringify(Object.keys(chain[0])));
+    console.log('[GEX] Sample contract:', JSON.stringify(chain[0], null, 2));
 
     // Process — fetch trade tape for top OI strikes
     document.getElementById('loadBtn').innerHTML = '<span class="loader"></span> Analizando trades...';
