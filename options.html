@@ -580,7 +580,7 @@ async function loadChain(refresh) {
     const spot = await getSpotPrice(spotTicker);
     if (!spot) throw new Error('No spot data for ' + spotTicker);
     let S = spot.c;
-    let prevC = spot.o;
+    let prevC = spot.prevClose || spot.o;
 
     // If analyzing index, convert ETF price to index level
     if (spotMultiplier[ticker]) {
@@ -734,23 +734,27 @@ async function processChain(chain, S, ticker, expDate) {
         st.oiC > 0 ? getTradesForStrike(ticker, expDate, st.K, 'call') : [],
         st.oiP > 0 ? getTradesForStrike(ticker, expDate, st.K, 'put') : []
       ]);
-      return { K: st.K, flow: analyzeTradeFlow([...callTrades, ...putTrades], st.vwap, st.bid, st.ask) };
+      // Analyze combined for EHP, separate for dealer delta signs
+      const flow = analyzeTradeFlow([...callTrades, ...putTrades], st.vwap, st.bid, st.ask);
+      const callFlow = callTrades.length ? analyzeTradeFlow(callTrades, st.vwap, st.bid, st.ask) : null;
+      const putFlow = putTrades.length ? analyzeTradeFlow(putTrades, st.vwap, st.bid, st.ask) : null;
+      return { K: st.K, flow, callDealerSign: callFlow ? callFlow.dealerSign : -1, putDealerSign: putFlow ? putFlow.dealerSign : -1 };
     }));
     tradeResults.push(...batchResults);
     if (i + 3 < topStrikes.length) await new Promise(r => setTimeout(r, 500)); // pace between batches
   }
   const tradeMap = {};
-  for (const tr of tradeResults) tradeMap[tr.K] = tr.flow;
+  for (const tr of tradeResults) tradeMap[tr.K] = tr;
 
   // Update EHP + Dealer Delta with real trade data (200 trades per strike)
   for (const r of results) {
     if (tradeMap[r.K]) {
-      r.tradeFlow = tradeMap[r.K];
-      r.pHedge = tradeMap[r.K].pHedge;
-      // Recalculate dealer delta using volume-weighted aggressor from all trades
-      // dealerSign: -1 (all bought at ask) to +1 (all sold at bid)
-      const ds = tradeMap[r.K].dealerSign;
-      r.dealerDelta = (ds * r.oiC * r.deltaCall * 100) + (ds * r.oiP * r.deltaPut * 100);
+      r.tradeFlow = tradeMap[r.K].flow;
+      r.pHedge = tradeMap[r.K].flow.pHedge;
+      // Separate dealer signs for call and put legs
+      const cds = tradeMap[r.K].callDealerSign;
+      const pds = tradeMap[r.K].putDealerSign;
+      r.dealerDelta = (cds * r.oiC * r.deltaCall * 100) + (pds * r.oiP * r.deltaPut * 100);
     } else {
       // Fallback heuristic for strikes without trade data
       const moneyness = Math.abs(r.K - S) / (S * (r.iv || 0.20) * Math.sqrt(T));
@@ -768,18 +772,18 @@ async function processChain(chain, S, ticker, expDate) {
   // Call Wall = strike with highest positive GEX (above spot)
   const callCandidates = results.filter(r => r.K >= S && r.gexCall > 0);
   const putCandidates = results.filter(r => r.K <= S && Math.abs(r.gexPut) > 0);
-  const callWall = callCandidates.length
-    ? callCandidates.reduce((b, r) => r.gexCall > b.gexCall ? r : b)
-    : results.reduce((b, r) => r.K > b.K && r.oiC > b.oiC ? r : b, results[results.length-1]);
-  const putWall = putCandidates.length
-    ? putCandidates.reduce((b, r) => Math.abs(r.gexPut) > Math.abs(b.gexPut) ? r : b)
-    : results.reduce((b, r) => r.K < b.K && r.oiP > b.oiP ? r : b, results[0]);
-  // Ensure they're different
+  let callWall = callCandidates.length
+    ? { ...callCandidates.reduce((b, r) => r.gexCall > b.gexCall ? r : b) }
+    : { ...results.reduce((b, r) => r.K > b.K && r.oiC > b.oiC ? r : b, results[results.length-1]) };
+  let putWall = putCandidates.length
+    ? { ...putCandidates.reduce((b, r) => Math.abs(r.gexPut) > Math.abs(b.gexPut) ? r : b) }
+    : { ...results.reduce((b, r) => r.K < b.K && r.oiP > b.oiP ? r : b, results[0]) };
+  // Ensure they're different (use copies to avoid mutating results)
   if (callWall.K === putWall.K) {
     const aboveSpot = results.filter(r => r.K > S).sort((a,b) => b.oiC - a.oiC);
     const belowSpot = results.filter(r => r.K < S).sort((a,b) => b.oiP - a.oiP);
-    if (aboveSpot.length) callWall.K = aboveSpot[0].K;
-    if (belowSpot.length) putWall.K = belowSpot[0].K;
+    if (aboveSpot.length) callWall = { ...callWall, K: aboveSpot[0].K };
+    if (belowSpot.length) putWall = { ...putWall, K: belowSpot[0].K };
   }
 
   // Flip point — where cumulative GEX crosses zero
