@@ -324,7 +324,7 @@ async function getTradesForStrike(ticker, expDate, strikePrice, contractType) {
 }
 
 function analyzeTradeFlow(trades, vwap) {
-  if (!trades.length) return { pHedge: 0.5, instPct: 0, multiLegPct: 0, avgSize: 0, aboveVwap: 0 };
+  if (!trades.length) return { pHedge: 0.65, instPct: 0, multiLegPct: 0, avgSize: 0, aboveVwap: 0 };
   let instVol = 0, multiLegVol = 0, totalVol = 0, aboveVwapVol = 0, largeVol = 0;
   for (const t of trades) {
     const sz = t.size || 0;
@@ -334,26 +334,35 @@ function analyzeTradeFlow(trades, vwap) {
     const isInst = conds.some(c => INSTITUTIONAL_CONDITIONS.has(c));
     if (isMultiLeg) multiLegVol += sz;
     if (isInst) instVol += sz;
-    if (sz >= 50) largeVol += sz;
-    if (vwap && t.price >= vwap) aboveVwapVol += sz; // bought at or above VWAP = aggressive buy
+    if (sz >= 10) largeVol += sz;
+    if (vwap && t.price >= vwap) aboveVwapVol += sz;
   }
-  if (totalVol === 0) return { pHedge: 0.5, instPct: 0, multiLegPct: 0, avgSize: 0, aboveVwap: 0 };
+  if (totalVol === 0) return { pHedge: 0.65, instPct: 0, multiLegPct: 0, avgSize: 0, aboveVwap: 0 };
 
-  const instPct = instVol / totalVol;        // institutional sweep/auction %
-  const multiLegPct = multiLegVol / totalVol; // multi-leg % (no dealer hedging)
-  const largePct = largeVol / totalVol;       // large trade %
-  const aboveVwap = aboveVwapVol / totalVol;  // aggressive buy %
+  const instPct = instVol / totalVol;
+  const multiLegPct = multiLegVol / totalVol;
+  const largePct = largeVol / totalVol;
+  const aboveVwap = aboveVwapVol / totalVol;
   const avgSize = totalVol / trades.length;
 
-  // P(Hedge) = probability this OI generates real dealer hedging
-  // High when: single-leg, institutional, large, aggressive buy (at ask/above VWAP)
-  // Low when: multi-leg (spreads), small retail, at bid
-  const singleLegFactor = 1 - multiLegPct;       // multi-leg = no hedging needed
-  const instFactor = 0.3 + 0.7 * instPct;        // institutional = more likely hedged
-  const sizeFactor = Math.min(1, avgSize / 50);   // large avg size = institutional
-  const aggrFactor = 0.4 + 0.6 * aboveVwap;      // above VWAP = bought aggressively = dealer short
+  // ═══ EHP Model v2 ═══
+  // Base assumption: all single-leg trades create dealer hedging obligation.
+  // The dealer MUST hedge when they take the other side of a single-leg trade.
+  // Only multi-leg trades (spreads) reduce hedging because both legs offset.
+  //
+  // Start at 85% base (most OI is hedgeable) then adjust:
+  //   - Subtract for multi-leg trades (spreads = no dealer exposure)
+  //   - Add for institutional flow (ISOs, auctions = definitely hedged)
+  //   - Add for large trades (>10 contracts = not small retail scratching)
+  //   - Add for aggressive buying (above VWAP = directional, dealer is short)
 
-  const pHedge = Math.min(0.98, singleLegFactor * 0.35 + instFactor * 0.25 + sizeFactor * 0.20 + aggrFactor * 0.20);
+  const base = 0.85;
+  const multiLegPenalty = -multiLegPct * 0.50;  // 100% multi-leg → drops to 35%
+  const instBonus = instPct * 0.10;              // institutional sweeps boost confidence
+  const sizeBonus = Math.min(0.08, largePct * 0.10); // large trades boost
+  const aggrBonus = (aboveVwap > 0.5 ? 0.05 : 0); // majority buying above VWAP = directional
+
+  const pHedge = Math.max(0.15, Math.min(0.98, base + multiLegPenalty + instBonus + sizeBonus + aggrBonus));
   return { pHedge, instPct, multiLegPct, avgSize, aboveVwap, totalTrades: trades.length };
 }
 
