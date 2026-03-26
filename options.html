@@ -827,17 +827,26 @@ async function processChain(chain, S, ticker, expDate) {
   const oiConc = totalOIAll > 0 ? top3OI / totalOIAll : 0;
   const oiConcentration = Math.min(100, oiConc * 200);
 
-  // Weighted MPS — Wall Proximity is gatekeeper
-  // Without proximity, max MPS is ~65 (never ALERTA)
+  // Weighted MPS — weights adapt to DTE
+  const dteDays = Math.round(T * 365);
+  const isSwing = dteDays > 7;
+  const mpsMode = isSwing ? 'SWING' : 'SCALP';
+
+  // SCALP (0-7 DTE): Wall Proximity is gatekeeper
+  // SWING (8+ DTE): OI Concentration + Premium dominate
+  const w = isSwing
+    ? { gamma: 0.10, premium: 0.30, wall: 0.15, delta: 0.15, oi: 0.30 }
+    : { gamma: 0.20, premium: 0.20, wall: 0.35, delta: 0.15, oi: 0.10 };
+
   const mps = Math.round(
-    gammaScore * 0.20 +
-    premImbalance * 0.20 +
-    wallProximity * 0.35 +
-    deltaExtreme * 0.15 +
-    oiConcentration * 0.10
+    gammaScore * w.gamma +
+    premImbalance * w.premium +
+    wallProximity * w.wall +
+    deltaExtreme * w.delta +
+    oiConcentration * w.oi
   );
 
-  const mpsDetails = { gammaScore: Math.round(gammaScore), premImbalance: Math.round(premImbalance), wallProximity: Math.round(wallProximity), deltaExtreme: Math.round(deltaExtreme), oiConcentration: Math.round(oiConcentration), premDominantSide, nearestWallSide, premRatio };
+  const mpsDetails = { gammaScore: Math.round(gammaScore), premImbalance: Math.round(premImbalance), wallProximity: Math.round(wallProximity), deltaExtreme: Math.round(deltaExtreme), oiConcentration: Math.round(oiConcentration), premDominantSide, nearestWallSide, premRatio, mpsMode, dteDays };
 
   RESULT = { results, gexTotal, ehpTotal, dealerDeltaTotal, callWall, putWall, flipPoint, S, ticker, expDate, ehpDiff, T, aggBuyPct, mps, mpsDetails };
 
@@ -1171,23 +1180,31 @@ function renderMetrics() {
   const targetLabel = d.premDominantSide === 'puts' ? 'Put Wall' : 'Call Wall';
   const dirLabel = d.premDominantSide === 'puts' ? 'bajista' : 'alcista';
 
+  const modeTag = `<span style="font-size:11px;padding:3px 8px;border-radius:4px;margin-left:8px;background:rgba(139,92,246,.15);color:#C4B5FD;">${d.mpsMode} ${d.dteDays}d</span>`;
+
   let alertClass, alertTitle, alertSub;
   if (m >= 80) {
     alertClass = 'background:rgba(239,68,68,.1);border:2px solid rgba(239,68,68,.4);';
-    alertTitle = `<span style="color:#FCA5A5;font-family:\'DM Serif Display\',serif;font-size:22px;">ALERTA ROJA — MPS ${m}</span>`;
-    alertSub = `Spot cerca de ${targetLabel} ($${targetWall.toFixed(0)}, ${targetDist}%). ${d.premDominantSide.toUpperCase()} dominan ${d.premRatio.toFixed(1)}x. Espera reaccion en wall para entry.`;
+    alertTitle = `<span style="color:#FCA5A5;font-family:\'DM Serif Display\',serif;font-size:22px;">ALERTA ROJA — MPS ${m}</span>${modeTag}`;
+    alertSub = d.mpsMode === 'SWING'
+      ? `OI concentrado + ${d.premDominantSide.toUpperCase()} dominan ${d.premRatio.toFixed(1)}x. Sesgo ${dirLabel} para los proximos dias. Target: ${targetLabel} ($${targetWall.toFixed(0)}).`
+      : `Spot cerca de ${targetLabel} ($${targetWall.toFixed(0)}, ${targetDist}%). ${d.premDominantSide.toUpperCase()} dominan ${d.premRatio.toFixed(1)}x. Espera reaccion en wall para entry.`;
   } else if (m >= 60) {
     alertClass = 'background:rgba(245,158,11,.08);border:2px solid rgba(245,158,11,.35);';
-    alertTitle = `<span style="color:#FBBF24;font-family:\'DM Serif Display\',serif;font-size:22px;">WATCH — MPS ${m}</span>`;
-    alertSub = `Sesgo ${dirLabel}. ${d.premDominantSide.toUpperCase()} dominan ${d.premRatio.toFixed(1)}x. Target: ${targetLabel} ($${targetWall.toFixed(0)}, ${targetDist}% de distancia). No operar hasta que llegue a wall.`;
+    alertTitle = `<span style="color:#FBBF24;font-family:\'DM Serif Display\',serif;font-size:22px;">WATCH — MPS ${m}</span>${modeTag}`;
+    alertSub = d.mpsMode === 'SWING'
+      ? `Sesgo ${dirLabel}. ${d.premDominantSide.toUpperCase()} dominan ${d.premRatio.toFixed(1)}x. OI construyendose en ${targetLabel} ($${targetWall.toFixed(0)}). Monitorear proximos dias.`
+      : `Sesgo ${dirLabel}. ${d.premDominantSide.toUpperCase()} dominan ${d.premRatio.toFixed(1)}x. Target: ${targetLabel} ($${targetWall.toFixed(0)}, ${targetDist}%). No operar hasta que llegue a wall.`;
   } else if (m >= 40) {
     alertClass = 'background:rgba(139,92,246,.06);border:2px solid rgba(139,92,246,.25);';
-    alertTitle = `<span style="color:#C4B5FD;font-family:\'DM Serif Display\',serif;font-size:22px;">NEUTRAL — MPS ${m}</span>`;
-    alertSub = `Sin condiciones claras. Spot lejos de walls. ${d.premDominantSide.toUpperCase()} ${d.premRatio.toFixed(1)}x pero sin proximidad.`;
+    alertTitle = `<span style="color:#C4B5FD;font-family:\'DM Serif Display\',serif;font-size:22px;">NEUTRAL — MPS ${m}</span>${modeTag}`;
+    alertSub = `Sin condiciones claras. ${d.premDominantSide.toUpperCase()} ${d.premRatio.toFixed(1)}x pero sin confirmacion.`;
   } else {
     alertClass = 'background:rgba(16,185,129,.06);border:2px solid rgba(16,185,129,.25);';
-    alertTitle = `<span style="color:#6EE7B7;font-family:\'DM Serif Display\',serif;font-size:22px;">RANGE — MPS ${m}</span>`;
-    alertSub = 'Mercado en rango. Dealer frena movimientos. No operar breakouts.';
+    alertTitle = `<span style="color:#6EE7B7;font-family:\'DM Serif Display\',serif;font-size:22px;">RANGE — MPS ${m}</span>${modeTag}`;
+    alertSub = d.mpsMode === 'SWING'
+      ? 'Sin posicionamiento claro. OI distribuido, sin concentracion.'
+      : 'Mercado en rango. Dealer frena movimientos. No operar breakouts.';
   }
 
   // ═══ Entry Checklist ═══
