@@ -600,29 +600,17 @@ async function processChain(chain, S, ticker, expDate) {
     const oiP = st.put ? st.put.open_interest : 0;
     if (oiC === 0 && oiP === 0) continue;
 
-    // Use Polygon Greeks if available, else calculate
-    let deltaCall, deltaPut, gamma, iv;
-    if (st.call && st.call.greeks && st.call.greeks.delta) {
-      deltaCall = st.call.greeks.delta;
-      gamma = st.call.greeks.gamma;
-      iv = st.call.implied_volatility;
-    } else if (st.put && st.put.greeks && st.put.greeks.delta) {
-      deltaPut = st.put.greeks.delta;
-      gamma = st.put.greeks.gamma;
-      iv = st.put.implied_volatility;
-    }
+    // Get IV from Polygon snapshot (delayed is fine for IV — moves slowly)
+    // Then recalculate delta/gamma with B-S using real-time spot
+    let iv = null;
+    if (st.call && st.call.implied_volatility) iv = st.call.implied_volatility;
+    else if (st.put && st.put.implied_volatility) iv = st.put.implied_volatility;
+    if (!iv || iv <= 0) iv = 0.20; // default fallback
 
-    if (gamma === undefined) {
-      // Fallback to BS calc
-      iv = 0.20;
-      const g = bsGreeks(S, st.K, T, iv, r);
-      deltaCall = g.deltaCall;
-      deltaPut = g.deltaPut;
-      gamma = g.gamma;
-    } else {
-      if (deltaCall === undefined) deltaCall = deltaPut !== undefined ? deltaPut + 1 : ncdf((Math.log(S/st.K)+(r+0.5*iv*iv)*T)/(iv*Math.sqrt(T)));
-      if (deltaPut === undefined) deltaPut = st.put && st.put.greeks && st.put.greeks.delta ? st.put.greeks.delta : deltaCall - 1;
-    }
+    const g = bsGreeks(S, st.K, T, iv, r);
+    const deltaCall = g.deltaCall;
+    const deltaPut = g.deltaPut;
+    const gamma = g.gamma;
 
     // GEX
     const gexCall = oiC * gamma * 100 * S;
