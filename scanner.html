@@ -253,7 +253,8 @@ function analyzeTradeFlow(trades, vwap, bid, ask) {
   const aggrAdj = (buyPct - 0.5) * 0.16;
   const aggrBonus = (aboveVwap > 0.5 && buyPct > 0.5) ? 0.05 : 0;
   const pHedge = Math.max(0.15, Math.min(0.98, base + multiLegPenalty + instBonus + sizeBonus + aggrAdj + aggrBonus));
-  return { pHedge, instPct, multiLegPct, avgSize: totalVol / trades.length, aboveVwap, buyPct, sellPct, totalTrades: trades.length };
+  const dealerSign = classifiedVol > 0 ? -((buyVol - sellVol) / classifiedVol) : -1;
+  return { pHedge, instPct, multiLegPct, avgSize: totalVol / trades.length, aboveVwap, buyPct, sellPct, dealerSign, totalTrades: trades.length };
 }
 
 function getExpDate(dte) {
@@ -375,7 +376,7 @@ async function scanTicker(ticker, expDate, isSwing) {
     const premC = volC * 100 * midC;
     const premP = volP * 100 * midP;
 
-    results.push({ K: st.K, oiC, oiP, gexCall, gexPut, gexNet, dealerDelta, bid, ask, iv, premC, premP,
+    results.push({ K: st.K, oiC, oiP, gexCall, gexPut, gexNet, dealerDelta, deltaCall: g.deltaCall, deltaPut: g.deltaPut, bid, ask, iv, premC, premP,
       vwap: st.call && st.call.day ? st.call.day.vwap : (st.put && st.put.day ? st.put.day.vwap : null)
     });
   }
@@ -397,6 +398,12 @@ async function scanTicker(ticker, expDate, isSwing) {
       if (flow.totalTrades > 0) {
         totalBuyVol += flow.buyPct * flow.totalTrades;
         totalClassifiedVol += flow.totalTrades;
+        // Recalculate dealer delta for this strike using all trades
+        const r = results.find(r => r.K === st.K);
+        if (r) {
+          const ds = flow.dealerSign;
+          r.dealerDelta = (ds * r.oiC * r.deltaCall * 100) + (ds * r.oiP * r.deltaPut * 100);
+        }
       }
     } catch {}
     await new Promise(r => setTimeout(r, 300));

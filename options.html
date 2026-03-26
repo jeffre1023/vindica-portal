@@ -474,7 +474,14 @@ function analyzeTradeFlow(trades, vwap, bid, ask) {
   const aggrBonus = (aboveVwap > 0.5 && buyPct > 0.5) ? 0.05 : 0;
 
   const pHedge = Math.max(0.15, Math.min(0.98, base + multiLegPenalty + instBonus + sizeBonus + aggrAdj + aggrBonus));
-  return { pHedge, instPct, multiLegPct, avgSize, aboveVwap, buyPct, sellPct, totalTrades: trades.length };
+
+  // Dealer delta sign based on all trades:
+  // buyPct > 0.5 → majority bought at ask → dealer sold → sign = -1
+  // buyPct < 0.5 → majority sold at bid → dealer bought → sign = +1
+  // Weighted: -1 to +1 range (not binary)
+  const dealerSign = classifiedVol > 0 ? -((buyVol - sellVol) / classifiedVol) : -1;
+
+  return { pHedge, instPct, multiLegPct, avgSize, aboveVwap, buyPct, sellPct, dealerSign, totalTrades: trades.length };
 }
 
 async function getOptionsChain(ticker, expDate, strikeMin, strikeMax) {
@@ -735,15 +742,20 @@ async function processChain(chain, S, ticker, expDate) {
   const tradeMap = {};
   for (const tr of tradeResults) tradeMap[tr.K] = tr.flow;
 
-  // Update EHP with real trade data
+  // Update EHP + Dealer Delta with real trade data (200 trades per strike)
   for (const r of results) {
     if (tradeMap[r.K]) {
       r.tradeFlow = tradeMap[r.K];
       r.pHedge = tradeMap[r.K].pHedge;
+      // Recalculate dealer delta using volume-weighted aggressor from all trades
+      // dealerSign: -1 (all bought at ask) to +1 (all sold at bid)
+      const ds = tradeMap[r.K].dealerSign;
+      r.dealerDelta = (ds * r.oiC * r.deltaCall * 100) + (ds * r.oiP * r.deltaPut * 100);
     } else {
       // Fallback heuristic for strikes without trade data
       const moneyness = Math.abs(r.K - S) / (S * (r.iv || 0.20) * Math.sqrt(T));
       r.pHedge = Math.min(0.95, 0.3 + 0.5 * Math.exp(-0.5 * moneyness * moneyness));
+      // Keep original dealer delta from last_trade method for non-top strikes
     }
     r.ehpGex = r.gexNet * r.pHedge;
   }
