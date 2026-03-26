@@ -198,14 +198,29 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--light);
       <option value="MSTR">MSTR — MicroStrategy</option>
     </select>
     <input id="customTicker" class="tws-input" placeholder="O escribe ticker..." style="width:150px;" onkeydown="if(event.key==='Enter')loadChain()">
-    <select id="dteSelect">
-      <option value="0">0DTE (Hoy)</option>
-      <option value="1" selected>1DTE (Manana)</option>
-      <option value="2">2DTE</option>
-      <option value="3">3DTE</option>
-      <option value="5">5DTE (Semanal)</option>
-      <option value="30">30DTE (Mensual)</option>
-    </select>
+    <select id="dteSelect"></select>
+    <script>
+    // Populate DTE dropdown with actual dates
+    (function() {
+      const sel = document.getElementById('dteSelect');
+      const dtes = [0,1,2,3,5,7,14,30];
+      const labels = {0:'0DTE (Hoy)',1:'1DTE',2:'2DTE',3:'3DTE',5:'5DTE',7:'7DTE',14:'14DTE',30:'30DTE'};
+      const dayNames = ['Dom','Lun','Mar','Mie','Jue','Vie','Sab'];
+      const monthNames = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+      dtes.forEach(dte => {
+        const d = new Date();
+        d.setDate(d.getDate() + dte);
+        if (d.getDay() === 0) d.setDate(d.getDate() + 1);
+        if (d.getDay() === 6) d.setDate(d.getDate() + 2);
+        const dateStr = `${dayNames[d.getDay()]} ${d.getDate()} ${monthNames[d.getMonth()]}`;
+        const opt = document.createElement('option');
+        opt.value = dte;
+        opt.textContent = `${labels[dte]} — ${dateStr}`;
+        if (dte === 1) opt.selected = true;
+        sel.appendChild(opt);
+      });
+    })();
+    </script>
     <button class="btn btn-purple" id="loadBtn" onclick="loadChain()">Cargar Chain</button>
     <button class="btn btn-ghost" onclick="loadChain(true)">Refresh</button>
     <div class="spot-display" id="spotDisplay">—</div>
