@@ -201,7 +201,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--light);
     <select id="dteSelect">
       <option value="0">0DTE (Hoy)</option>
       <option value="1" selected>1DTE (Manana)</option>
-      <option value="auto">Auto (Proxima exp.)</option>
+      <option value="2">2DTE</option>
+      <option value="3">3DTE</option>
+      <option value="5">5DTE (Semanal)</option>
+      <option value="30">30DTE (Mensual)</option>
     </select>
     <button class="btn btn-purple" id="loadBtn" onclick="loadChain()">Cargar Chain</button>
     <button class="btn btn-ghost" onclick="loadChain(true)">Refresh</button>
@@ -322,13 +325,19 @@ function bsGreeks(S,K,T,sigma,r) {
 // ═══════════════════════════════════════
 // Polygon API
 // ═══════════════════════════════════════
-async function authFetch(path) {
+async function authFetch(path, retries) {
+  retries = retries || 0;
   const user = auth.currentUser;
   if (!user) throw new Error('No autenticado');
   const token = await user.getIdToken();
   const res = await fetch(`${VINDICA_API}${path}`, {
     headers: { 'Authorization': 'Bearer ' + token }
   });
+  if (res.status === 429 && retries < 3) {
+    // Rate limited — wait and retry
+    await new Promise(r => setTimeout(r, 2000 * (retries + 1)));
+    return authFetch(path, retries + 1);
+  }
   if (!res.ok) throw new Error(`API ${res.status}`);
   return res.json();
 }
@@ -405,18 +414,15 @@ async function getOptionsChain(ticker, expDate, strikeMin, strikeMax) {
 function getExpDate(dteOption) {
   const now = new Date();
   let d = new Date(now);
-  if (dteOption === '0') {
-    // today
-  } else if (dteOption === '1') {
-    d.setDate(d.getDate() + 1);
-    // skip weekend
-    if (d.getDay() === 0) d.setDate(d.getDate() + 1);
-    if (d.getDay() === 6) d.setDate(d.getDate() + 2);
-  } else {
-    d.setDate(d.getDate() + 1);
-    if (d.getDay() === 0) d.setDate(d.getDate() + 1);
-    if (d.getDay() === 6) d.setDate(d.getDate() + 2);
-  }
+  const days = parseInt(dteOption) || 0;
+
+  // Add calendar days
+  d.setDate(d.getDate() + days);
+
+  // If landing on weekend, move to next Monday
+  if (d.getDay() === 0) d.setDate(d.getDate() + 1);
+  if (d.getDay() === 6) d.setDate(d.getDate() + 2);
+
   return d.toISOString().split('T')[0];
 }
 
@@ -551,17 +557,21 @@ async function processChain(chain, S, ticker, expDate) {
     });
   }
 
-  // Fetch trade tape for top 15 strikes by OI (to stay within rate limits)
-  const topStrikes = [...results].sort((a, b) => (b.oiC + b.oiP) - (a.oiC + a.oiP)).slice(0, 15);
-  const tradePromises = topStrikes.map(async (st) => {
-    const [callTrades, putTrades] = await Promise.all([
-      st.oiC > 0 ? getTradesForStrike(ticker, expDate, st.K, 'call') : [],
-      st.oiP > 0 ? getTradesForStrike(ticker, expDate, st.K, 'put') : []
-    ]);
-    const allTrades = [...callTrades, ...putTrades];
-    return { K: st.K, flow: analyzeTradeFlow(allTrades, st.vwap) };
-  });
-  const tradeResults = await Promise.all(tradePromises);
+  // Fetch trade tape for top 10 strikes by OI, in batches of 3 to avoid 429
+  const topStrikes = [...results].sort((a, b) => (b.oiC + b.oiP) - (a.oiC + a.oiP)).slice(0, 10);
+  const tradeResults = [];
+  for (let i = 0; i < topStrikes.length; i += 3) {
+    const batch = topStrikes.slice(i, i + 3);
+    const batchResults = await Promise.all(batch.map(async (st) => {
+      const [callTrades, putTrades] = await Promise.all([
+        st.oiC > 0 ? getTradesForStrike(ticker, expDate, st.K, 'call') : [],
+        st.oiP > 0 ? getTradesForStrike(ticker, expDate, st.K, 'put') : []
+      ]);
+      return { K: st.K, flow: analyzeTradeFlow([...callTrades, ...putTrades], st.vwap) };
+    }));
+    tradeResults.push(...batchResults);
+    if (i + 3 < topStrikes.length) await new Promise(r => setTimeout(r, 500)); // pace between batches
+  }
   const tradeMap = {};
   for (const tr of tradeResults) tradeMap[tr.K] = tr.flow;
 
