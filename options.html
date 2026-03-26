@@ -1215,22 +1215,21 @@ function renderMetrics() {
   const spotNearCW = !spotNearPW;
 
   // Dealer delta alignment check
-  // For put wall break (short): need dealer delta NEGATIVE (dealer sells with you)
-  // For call wall break (long): need dealer delta POSITIVE (dealer buys with you)
-  // For put wall bounce (long): dealer delta positive is OK
-  const dealerDeltaSign = R.dealerDeltaTotal >= 0 ? 'positive' : 'negative';
+  // Bearish bias (puts dominate): need dealer delta NEGATIVE (dealer sells with you)
+  //   If positive → dealer amortigua caida → conflict
+  // Bullish bias (calls dominate): need dealer delta POSITIVE (dealer buys with you)
+  //   If negative → dealer frena subida → conflict
   let deltaAligned, deltaConflict;
-  if (d.premDominantSide === 'puts' && spotNearPW) {
-    // Bearish near put wall — need negative delta for breakdown
+  if (d.premDominantSide === 'puts') {
     deltaAligned = R.dealerDeltaTotal < 0;
-    deltaConflict = R.dealerDeltaTotal > 0 ? 'Dealer Delta positivo amortigua caida. Solo operar rebote al alza, no breakdown.' : '';
-  } else if (d.premDominantSide === 'calls' && spotNearCW) {
-    // Bullish near call wall — need positive delta for breakout
-    deltaAligned = R.dealerDeltaTotal > 0;
-    deltaConflict = R.dealerDeltaTotal < 0 ? 'Dealer Delta negativo frena subida. Solo operar rechazo a la baja, no breakout.' : '';
+    deltaConflict = R.dealerDeltaTotal >= 0
+      ? `Dealer Delta positivo (+${(R.dealerDeltaTotal/1000).toFixed(1)}K) amortigua caida. Breakdowns seran lentos o fallidos.`
+      : '';
   } else {
-    deltaAligned = true;
-    deltaConflict = '';
+    deltaAligned = R.dealerDeltaTotal > 0;
+    deltaConflict = R.dealerDeltaTotal <= 0
+      ? `Dealer Delta negativo (${(R.dealerDeltaTotal/1000).toFixed(1)}K) frena subida. Breakouts seran lentos o fallidos.`
+      : '';
   }
 
   const allChecks = isShortGamma && nearWall && premStrong && deltaAligned;
