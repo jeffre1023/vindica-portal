@@ -711,7 +711,18 @@ async function processChain(chain, S, ticker, expDate) {
 
   const ehpDiff = gexTotal !== 0 ? Math.abs(gexTotal - ehpTotal) / Math.abs(gexTotal) * 100 : 0;
 
-  RESULT = { results, gexTotal, ehpTotal, dealerDeltaTotal, callWall, putWall, flipPoint, S, ticker, expDate, ehpDiff, T };
+  // Aggregate buyPct weighted by volume across strikes with trade data
+  let totalBuyVol = 0, totalClassifiedVol = 0;
+  for (const r of results) {
+    if (r.tradeFlow && r.tradeFlow.totalTrades > 0) {
+      const vol = r.tradeFlow.totalTrades;
+      totalBuyVol += r.tradeFlow.buyPct * vol;
+      totalClassifiedVol += vol;
+    }
+  }
+  const aggBuyPct = totalClassifiedVol > 0 ? totalBuyVol / totalClassifiedVol : 0.5;
+
+  RESULT = { results, gexTotal, ehpTotal, dealerDeltaTotal, callWall, putWall, flipPoint, S, ticker, expDate, ehpDiff, T, aggBuyPct };
 
   renderAll();
 }
@@ -1016,7 +1027,12 @@ function renderMetrics() {
   gexEl.textContent = fmtM(R.gexTotal);
   gexEl.className = 'v ' + (isLong ? 'green' : 'red');
 
-  document.getElementById('mcEhp').textContent = fmtM(R.ehpTotal);
+  const ehpEl = document.getElementById('mcEhp');
+  const bp = R.aggBuyPct;
+  const ehpArrow = bp > 0.60 ? ' <span style="color:#6EE7B7">&#9650;</span>'
+                 : bp < 0.40 ? ' <span style="color:#FCA5A5">&#9660;</span>'
+                 : ' <span style="color:var(--muted)">&#9644;</span>';
+  ehpEl.innerHTML = fmtM(R.ehpTotal) + ehpArrow;
 
   const dK = R.dealerDeltaTotal / 1000;
   const deltaEl = document.getElementById('mcDelta');
