@@ -1242,17 +1242,20 @@ function renderMetrics() {
     // ═══ SHORT GAMMA: Buy breakout checklist ═══
     const nearWall = d.wallProximity >= 60;
     const premStrong = d.premRatio >= 3;
+    // Dealer delta alignment (validated with IWM 3/26):
+    // With smart dealer delta (200 trades + bid/ask):
+    //   Negative delta = dealer net short → amplifies moves in BOTH directions
+    //   Positive delta = dealer net long → amortiguates moves
+    // So for ANY breakout direction, negative delta = aligned
     let deltaAligned, deltaConflict;
-    if (d.premDominantSide === 'puts') {
-      deltaAligned = R.dealerDeltaTotal < 0;
-      deltaConflict = R.dealerDeltaTotal >= 0
-        ? `Dealer Delta positivo (+${(R.dealerDeltaTotal/1000).toFixed(1)}K) amortigua caida. Breakdowns seran lentos o fallidos.`
-        : '';
+    const dK = (R.dealerDeltaTotal/1000).toFixed(1);
+    deltaAligned = R.dealerDeltaTotal < 0;
+    if (R.dealerDeltaTotal >= 0) {
+      deltaConflict = d.premDominantSide === 'puts'
+        ? `Dealer Delta positivo (+${dK}K) — dealer amortigua caida. Breakdowns seran lentos o fallidos.`
+        : `Dealer Delta positivo (+${dK}K) — dealer amortigua subida. Breakouts seran lentos o fallidos.`;
     } else {
-      deltaAligned = R.dealerDeltaTotal > 0;
-      deltaConflict = R.dealerDeltaTotal <= 0
-        ? `Dealer Delta negativo (${(R.dealerDeltaTotal/1000).toFixed(1)}K) frena subida. Breakouts seran lentos o fallidos.`
-        : '';
+      deltaConflict = '';
     }
     const allChecks = isShortGamma && nearWall && premStrong && deltaAligned;
 
