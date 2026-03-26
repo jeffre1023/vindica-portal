@@ -106,11 +106,21 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--light);
       <div class="logo-text">GEX<span>Scanner</span></div>
     </div>
     <h1>In-Play Scanner</h1>
-    <p>Escanea multiples tickers para condiciones de movimiento | Score 0-5 | Short/Long Gamma + Walls + Flow</p>
+    <p>Escanea multiples tickers | MPS adaptativo SCALP/SWING | Gamma + Walls + Premium + Dealer Delta</p>
   </div>
 
   <!-- Toolbar -->
   <div class="toolbar">
+    <select id="scanDte" style="background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:9px 14px;color:#fff;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;">
+      <option value="0">0DTE — Scalp</option>
+      <option value="1" selected>1DTE — Scalp</option>
+      <option value="2">2DTE</option>
+      <option value="7">7DTE</option>
+      <option value="14">14DTE — Swing</option>
+      <option value="21">21DTE — Swing</option>
+      <option value="30">30DTE — Swing</option>
+      <option value="45">45DTE — Swing</option>
+    </select>
     <button class="btn btn-purple" id="scanBtn" onclick="runScan()">Escanear</button>
     <button class="btn btn-ghost" id="autoScanBtn" onclick="toggleAutoScan()" style="min-width:110px;">Auto: OFF</button>
     <span id="autoScanTimer" style="font-size:11px;color:var(--muted);min-width:30px;"></span>
@@ -246,10 +256,19 @@ function analyzeTradeFlow(trades, vwap, bid, ask) {
   return { pHedge, instPct, multiLegPct, avgSize: totalVol / trades.length, aboveVwap, buyPct, sellPct, totalTrades: trades.length };
 }
 
-function getExpDate0DTE() {
+function getExpDate(dte) {
+  const days = parseInt(dte) || 0;
   const d = new Date();
-  if (d.getDay() === 0) d.setDate(d.getDate() + 1);
-  if (d.getDay() === 6) d.setDate(d.getDate() + 2);
+  d.setDate(d.getDate() + days);
+  if (days <= 7) {
+    if (d.getDay() === 0) d.setDate(d.getDate() + 1);
+    if (d.getDay() === 6) d.setDate(d.getDate() + 2);
+  } else {
+    const dow = d.getDay();
+    if (dow === 0) d.setDate(d.getDate() + 5);
+    else if (dow === 6) d.setDate(d.getDate() + 6);
+    else if (dow < 5) d.setDate(d.getDate() + (5 - dow));
+  }
   const yyyy = d.getFullYear();
   const mm = String(d.getMonth() + 1).padStart(2, '0');
   const dd = String(d.getDate()).padStart(2, '0');
@@ -268,7 +287,7 @@ function fmtM(n) {
 // ═══════════════════════════════════════
 let _scanning = false;
 
-async function scanTicker(ticker, expDate) {
+async function scanTicker(ticker, expDate, isSwing) {
   // 1. Spot
   const spotData = await authFetch(`/options/spot?ticker=${ticker}`);
   if (!spotData.spot || !spotData.spot.c) return null;
@@ -436,18 +455,24 @@ async function scanTicker(ticker, expDate) {
   const oiConc = totalOIAll > 0 ? top3OI / totalOIAll : 0;
   const oiConcentration = Math.min(100, oiConc * 200);
 
+  const w = isSwing
+    ? { gamma: 0.10, premium: 0.30, wall: 0.15, delta: 0.15, oi: 0.30 }
+    : { gamma: 0.20, premium: 0.20, wall: 0.35, delta: 0.15, oi: 0.10 };
+
   const mps = Math.round(
-    gammaScore * 0.20 +
-    premImbalance * 0.20 +
-    wallProximity * 0.35 +
-    deltaExtreme * 0.15 +
-    oiConcentration * 0.10
+    gammaScore * w.gamma +
+    premImbalance * w.premium +
+    wallProximity * w.wall +
+    deltaExtreme * w.delta +
+    oiConcentration * w.oi
   );
+
+  const mpsMode = isSwing ? 'SWING' : 'SCALP';
 
   return {
     ticker, S, prevC, gexTotal, ehpTotal, ehpRatio, dealerDeltaTotal,
     callWall, putWall, nearestWall, nearestDist, distCW, distPW,
-    isShortGamma, aggBuyPct, mps, premDominantSide, premRatio
+    isShortGamma, aggBuyPct, mps, mpsMode, premDominantSide, premRatio
   };
 }
 
@@ -460,7 +485,10 @@ async function runScan() {
   document.getElementById('progressWrap').style.display = '';
   document.getElementById('scanStatus').textContent = 'Iniciando scan...';
 
-  const expDate = getExpDate0DTE();
+  const scanDte = document.getElementById('scanDte').value;
+  const expDate = getExpDate(scanDte);
+  const dteDays = parseInt(scanDte) || 0;
+  const isSwing = dteDays > 7;
   const scanResults = [];
   const body = document.getElementById('scanBody');
 
@@ -471,7 +499,7 @@ async function runScan() {
     document.getElementById('scanStatus').textContent = `Escaneando ${ticker} (${i + 1}/${SCAN_TICKERS.length})...`;
 
     try {
-      const result = await scanTicker(ticker, expDate);
+      const result = await scanTicker(ticker, expDate, isSwing);
       if (result) scanResults.push(result);
     } catch (err) {
       console.warn(`[Scanner] ${ticker} failed:`, err.message);
@@ -487,7 +515,8 @@ async function runScan() {
   // Render
   renderResults(scanResults);
 
-  document.getElementById('scanStatus').textContent = `${scanResults.length} tickers escaneados — ${new Date().toLocaleTimeString()}`;
+  const modeLabel = isSwing ? 'SWING' : 'SCALP';
+  document.getElementById('scanStatus').textContent = `${scanResults.length} tickers — ${modeLabel} ${scanDte}DTE — ${new Date().toLocaleTimeString()}`;
   document.getElementById('progressWrap').style.display = 'none';
   btn.innerHTML = 'Escanear';
   btn.disabled = false;
