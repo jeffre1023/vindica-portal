@@ -234,7 +234,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--light);
     <div class="panel-t">Resultados por Strike</div>
     <div style="overflow-x:auto;">
       <table class="rtbl">
-        <thead><tr><th>Strike</th><th>OI Call</th><th>OI Put</th><th>IV</th><th>Delta C</th><th>Delta P</th><th>Gamma</th><th>GEX Net</th><th>P(Hedge)</th><th>EHP-GEX</th></tr></thead>
+        <thead><tr><th>Strike</th><th>OI Call</th><th>OI Put</th><th>IV</th><th>Gamma</th><th>GEX Net</th><th>P(Hedge)</th><th>EHP-GEX</th><th>Inst%</th><th>MultiLeg%</th><th>Avg Size</th></tr></thead>
         <tbody id="resultsBody"></tbody>
       </table>
     </div>
@@ -306,6 +306,55 @@ async function polyGet(path) {
 async function getSpotPrice(ticker) {
   const d = await polyGet(`/v2/aggs/ticker/${ticker}/prev?adjusted=true`);
   return d.results && d.results[0] ? d.results[0] : null;
+}
+
+// Multi-leg condition codes = spread trades that don't create dealer hedging
+const MULTI_LEG_CONDITIONS = new Set([232,233,234,235,236,237,238,239,240,241,242,243,244,245,246,247]);
+const INSTITUTIONAL_CONDITIONS = new Set([219,227,228,231]); // ISOs, auctions, floor trades
+
+async function getTradesForStrike(ticker, expDate, strikePrice, contractType) {
+  const expFmt = expDate.replace(/-/g,'').slice(2); // 2026-03-26 → 260326
+  const strikeFmt = String(Math.round(strikePrice * 1000)).padStart(8,'0');
+  const typeLetter = contractType === 'call' ? 'C' : 'P';
+  const optTicker = `O:${ticker}${expFmt}${typeLetter}${strikeFmt}`;
+  try {
+    const d = await polyGet(`/v3/trades/${optTicker}?limit=200&order=desc`);
+    return d.results || [];
+  } catch { return []; }
+}
+
+function analyzeTradeFlow(trades, vwap) {
+  if (!trades.length) return { pHedge: 0.5, instPct: 0, multiLegPct: 0, avgSize: 0, aboveVwap: 0 };
+  let instVol = 0, multiLegVol = 0, totalVol = 0, aboveVwapVol = 0, largeVol = 0;
+  for (const t of trades) {
+    const sz = t.size || 0;
+    totalVol += sz;
+    const conds = t.conditions || [];
+    const isMultiLeg = conds.some(c => MULTI_LEG_CONDITIONS.has(c));
+    const isInst = conds.some(c => INSTITUTIONAL_CONDITIONS.has(c));
+    if (isMultiLeg) multiLegVol += sz;
+    if (isInst) instVol += sz;
+    if (sz >= 50) largeVol += sz;
+    if (vwap && t.price >= vwap) aboveVwapVol += sz; // bought at or above VWAP = aggressive buy
+  }
+  if (totalVol === 0) return { pHedge: 0.5, instPct: 0, multiLegPct: 0, avgSize: 0, aboveVwap: 0 };
+
+  const instPct = instVol / totalVol;        // institutional sweep/auction %
+  const multiLegPct = multiLegVol / totalVol; // multi-leg % (no dealer hedging)
+  const largePct = largeVol / totalVol;       // large trade %
+  const aboveVwap = aboveVwapVol / totalVol;  // aggressive buy %
+  const avgSize = totalVol / trades.length;
+
+  // P(Hedge) = probability this OI generates real dealer hedging
+  // High when: single-leg, institutional, large, aggressive buy (at ask/above VWAP)
+  // Low when: multi-leg (spreads), small retail, at bid
+  const singleLegFactor = 1 - multiLegPct;       // multi-leg = no hedging needed
+  const instFactor = 0.3 + 0.7 * instPct;        // institutional = more likely hedged
+  const sizeFactor = Math.min(1, avgSize / 50);   // large avg size = institutional
+  const aggrFactor = 0.4 + 0.6 * aboveVwap;      // above VWAP = bought aggressively = dealer short
+
+  const pHedge = Math.min(0.98, singleLegFactor * 0.35 + instFactor * 0.25 + sizeFactor * 0.20 + aggrFactor * 0.20);
+  return { pHedge, instPct, multiLegPct, avgSize, aboveVwap, totalTrades: trades.length };
 }
 
 async function getOptionsChain(ticker, expDate, strikeMin, strikeMax) {
@@ -387,8 +436,9 @@ async function loadChain(refresh) {
     const chain = await getOptionsChain(ticker, expDate, strikeMin, strikeMax);
     if (!chain.length) throw new Error('No options data for ' + expDate);
 
-    // Process
-    processChain(chain, S, ticker, expDate);
+    // Process — fetch trade tape for top OI strikes
+    document.getElementById('loadBtn').innerHTML = '<span class="loader"></span> Analizando trades...';
+    await processChain(chain, S, ticker, expDate);
 
   } catch (e) {
     alert('Error: ' + e.message);
@@ -398,7 +448,7 @@ async function loadChain(refresh) {
   }
 }
 
-function processChain(chain, S, ticker, expDate) {
+async function processChain(chain, S, ticker, expDate) {
   // Group by strike
   const byStrike = {};
   for (const opt of chain) {
@@ -457,23 +507,43 @@ function processChain(chain, S, ticker, expDate) {
     // Dealer delta
     const dealerDelta = -(oiC * deltaCall * 100) - (oiP * deltaPut * 100);
 
-    // EHP
-    const oiWeight = (oiC + oiP) / (totalOI || 1);
-    const moneyness = Math.abs(st.K - S) / (S * (iv || 0.20) * Math.sqrt(T));
-    const atmProx = Math.exp(-0.5 * moneyness * moneyness);
-
-    // Trade size factor (use volume as proxy)
+    // Volume
     const vol = (st.call ? (st.call.day && st.call.day.volume || 0) : 0) + (st.put ? (st.put.day && st.put.day.volume || 0) : 0);
-    const volRatio = vol / (oiC + oiP || 1);
-    const tradeSizeFactor = Math.min(1, volRatio * 2); // high turnover = more active hedging
+    const vwap = st.call && st.call.day ? st.call.day.vwap : (st.put && st.put.day ? st.put.day.vwap : null);
 
-    const pHedge = Math.min(1, 0.35 * (oiWeight * strikes.length) + 0.40 * atmProx + 0.25 * tradeSizeFactor);
-    const ehpGex = gexNet * pHedge;
-
+    // EHP placeholder — will be updated with trade tape data
     results.push({
       K: st.K, oiC, oiP, iv: iv || 0, deltaCall, deltaPut, gamma,
-      gexCall, gexPut, gexNet, dealerDelta, pHedge, ehpGex, vol
+      gexCall, gexPut, gexNet, dealerDelta, pHedge: 0.5, ehpGex: gexNet * 0.5, vol, vwap,
+      tradeFlow: null
     });
+  }
+
+  // Fetch trade tape for top 15 strikes by OI (to stay within rate limits)
+  const topStrikes = [...results].sort((a, b) => (b.oiC + b.oiP) - (a.oiC + a.oiP)).slice(0, 15);
+  const tradePromises = topStrikes.map(async (st) => {
+    const [callTrades, putTrades] = await Promise.all([
+      st.oiC > 0 ? getTradesForStrike(ticker, expDate, st.K, 'call') : [],
+      st.oiP > 0 ? getTradesForStrike(ticker, expDate, st.K, 'put') : []
+    ]);
+    const allTrades = [...callTrades, ...putTrades];
+    return { K: st.K, flow: analyzeTradeFlow(allTrades, st.vwap) };
+  });
+  const tradeResults = await Promise.all(tradePromises);
+  const tradeMap = {};
+  for (const tr of tradeResults) tradeMap[tr.K] = tr.flow;
+
+  // Update EHP with real trade data
+  for (const r of results) {
+    if (tradeMap[r.K]) {
+      r.tradeFlow = tradeMap[r.K];
+      r.pHedge = tradeMap[r.K].pHedge;
+    } else {
+      // Fallback heuristic for strikes without trade data
+      const moneyness = Math.abs(r.K - S) / (S * (r.iv || 0.20) * Math.sqrt(T));
+      r.pHedge = Math.min(0.95, 0.3 + 0.5 * Math.exp(-0.5 * moneyness * moneyness));
+    }
+    r.ehpGex = r.gexNet * r.pHedge;
   }
 
   // Aggregates
@@ -784,20 +854,27 @@ function setChartMode(m) {
 
 function renderResultsTable() {
   const R = RESULT;
-  document.getElementById('resultsBody').innerHTML = R.results.map(s => `
-    <tr>
+  document.getElementById('resultsBody').innerHTML = R.results.map(s => {
+    const tf = s.tradeFlow;
+    const instPct = tf ? (tf.instPct * 100).toFixed(0) + '%' : '—';
+    const mlPct = tf ? (tf.multiLegPct * 100).toFixed(0) + '%' : '—';
+    const avgSz = tf ? tf.avgSize.toFixed(1) : '—';
+    // Color P(Hedge): green >70%, yellow 40-70%, red <40%
+    const phColor = s.pHedge > 0.70 ? '#6EE7B7' : (s.pHedge > 0.40 ? '#FBBF24' : '#FCA5A5');
+    return `<tr>
       <td style="font-weight:700;color:#fff;">$${s.K.toFixed(0)}</td>
       <td>${s.oiC.toLocaleString()}</td>
       <td>${s.oiP.toLocaleString()}</td>
       <td>${(s.iv*100).toFixed(1)}%</td>
-      <td>${s.deltaCall.toFixed(3)}</td>
-      <td>${s.deltaPut.toFixed(3)}</td>
       <td>${s.gamma.toFixed(5)}</td>
       <td style="color:${s.gexNet>=0?'#6EE7B7':'#FCA5A5'};font-weight:700;">${fmtM(s.gexNet)}</td>
-      <td style="color:#C4B5FD;">${(s.pHedge*100).toFixed(0)}%</td>
+      <td style="color:${phColor};font-weight:700;">${(s.pHedge*100).toFixed(0)}%</td>
       <td style="color:${s.ehpGex>=0?'#C4B5FD':'#FBBF24'};font-weight:700;">${fmtM(s.ehpGex)}</td>
-    </tr>
-  `).join('');
+      <td style="color:${tf && tf.instPct > 0.3 ? '#6EE7B7' : 'var(--muted)'};">${instPct}</td>
+      <td style="color:${tf && tf.multiLegPct > 0.4 ? '#FCA5A5' : 'var(--muted)'};">${mlPct}</td>
+      <td>${avgSz}</td>
+    </tr>`;
+  }).join('');
 }
 
 function renderMES() {
