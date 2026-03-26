@@ -383,8 +383,8 @@ async function scanTicker(ticker, expDate, isSwing) {
 
   if (!results.length) return null;
 
-  // 4. Trade flow for top 3 strikes only (save API calls)
-  const topStrikes = [...results].sort((a, b) => (b.oiC + b.oiP) - (a.oiC + a.oiP)).slice(0, 3);
+  // 4. Trade flow for top 5 strikes
+  const topStrikes = [...results].sort((a, b) => (b.oiC + b.oiP) - (a.oiC + a.oiP)).slice(0, 5);
   let totalBuyVol = 0, totalClassifiedVol = 0;
   for (const st of topStrikes) {
     const expFmt = expDate.replace(/-/g,'').slice(2);
