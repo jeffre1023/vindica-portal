@@ -1209,51 +1209,73 @@ function renderMetrics() {
   } else {
     alertClass = 'background:rgba(16,185,129,.06);border:2px solid rgba(16,185,129,.25);';
     alertTitle = `<span style="color:#6EE7B7;font-family:\'DM Serif Display\',serif;font-size:22px;">RANGE — MPS ${m}</span>${modeTag}`;
-    alertSub = d.mpsMode === 'SWING'
-      ? 'Sin posicionamiento claro. OI distribuido, sin concentracion.'
-      : 'Mercado en rango. Dealer frena movimientos. No operar breakouts.';
+    alertSub = R.gexTotal > 0
+      ? `Long Gamma — dealer frena movimientos. Rango entre walls $${R.putWall.K.toFixed(0)}-$${R.callWall.K.toFixed(0)}. Vender prima.`
+      : d.mpsMode === 'SWING'
+        ? 'Sin posicionamiento claro. OI distribuido, sin concentracion.'
+        : 'Sin condiciones para breakout. Esperar.';
   }
 
-  // ═══ Entry Checklist ═══
+  // ═══ Entry Checklist — adapts to regime ═══
   const isShortGamma = R.gexTotal < 0;
-  const nearWall = d.wallProximity >= 60;
-  const premStrong = d.premRatio >= 3;
-  const spotNearPW = Math.abs(R.S - R.putWall.K) < Math.abs(R.S - R.callWall.K);
-  const spotNearCW = !spotNearPW;
-
-  // Dealer delta alignment check
-  // Bearish bias (puts dominate): need dealer delta NEGATIVE (dealer sells with you)
-  //   If positive → dealer amortigua caida → conflict
-  // Bullish bias (calls dominate): need dealer delta POSITIVE (dealer buys with you)
-  //   If negative → dealer frena subida → conflict
-  let deltaAligned, deltaConflict;
-  if (d.premDominantSide === 'puts') {
-    deltaAligned = R.dealerDeltaTotal < 0;
-    deltaConflict = R.dealerDeltaTotal >= 0
-      ? `Dealer Delta positivo (+${(R.dealerDeltaTotal/1000).toFixed(1)}K) amortigua caida. Breakdowns seran lentos o fallidos.`
-      : '';
-  } else {
-    deltaAligned = R.dealerDeltaTotal > 0;
-    deltaConflict = R.dealerDeltaTotal <= 0
-      ? `Dealer Delta negativo (${(R.dealerDeltaTotal/1000).toFixed(1)}K) frena subida. Breakouts seran lentos o fallidos.`
-      : '';
-  }
-
-  const allChecks = isShortGamma && nearWall && premStrong && deltaAligned;
+  const isLongGamma = !isShortGamma;
 
   const chk = (pass) => pass
     ? '<span style="color:#6EE7B7;font-size:14px;">&#10003;</span>'
     : '<span style="color:#FCA5A5;font-size:14px;">&#10007;</span>';
 
-  const checklistHTML = `
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 24px;text-align:left;max-width:500px;margin:12px auto 0;font-size:12px;">
-      <div>${chk(isShortGamma)} Short Gamma</div>
-      <div>${chk(nearWall)} Spot cerca de Wall</div>
-      <div>${chk(premStrong)} Premium ${d.premRatio.toFixed(1)}x ${d.premDominantSide}</div>
-      <div>${chk(deltaAligned)} Dealer Delta alineado</div>
-    </div>
-    ${deltaConflict ? `<div style="margin-top:8px;padding:8px 14px;border-radius:8px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);font-size:11px;color:#FBBF24;max-width:500px;margin-left:auto;margin-right:auto;">${deltaConflict}</div>` : ''}
-    ${allChecks ? `<div style="margin-top:8px;padding:8px 14px;border-radius:8px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);font-size:12px;color:#6EE7B7;font-weight:700;max-width:500px;margin-left:auto;margin-right:auto;">TODAS LAS CONDICIONES CUMPLIDAS — Espera reaccion en wall para entry</div>` : ''}`;
+  let checklistHTML;
+
+  if (isShortGamma) {
+    // ═══ SHORT GAMMA: Buy breakout checklist ═══
+    const nearWall = d.wallProximity >= 60;
+    const premStrong = d.premRatio >= 3;
+    let deltaAligned, deltaConflict;
+    if (d.premDominantSide === 'puts') {
+      deltaAligned = R.dealerDeltaTotal < 0;
+      deltaConflict = R.dealerDeltaTotal >= 0
+        ? `Dealer Delta positivo (+${(R.dealerDeltaTotal/1000).toFixed(1)}K) amortigua caida. Breakdowns seran lentos o fallidos.`
+        : '';
+    } else {
+      deltaAligned = R.dealerDeltaTotal > 0;
+      deltaConflict = R.dealerDeltaTotal <= 0
+        ? `Dealer Delta negativo (${(R.dealerDeltaTotal/1000).toFixed(1)}K) frena subida. Breakouts seran lentos o fallidos.`
+        : '';
+    }
+    const allChecks = isShortGamma && nearWall && premStrong && deltaAligned;
+
+    checklistHTML = `
+      <div style="font-size:11px;color:var(--muted);margin:8px 0 4px;text-transform:uppercase;letter-spacing:1px;">Comprar Breakout</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 24px;text-align:left;max-width:500px;margin:4px auto 0;font-size:12px;">
+        <div>${chk(true)} Short Gamma</div>
+        <div>${chk(nearWall)} Spot cerca de Wall</div>
+        <div>${chk(premStrong)} Premium ${d.premRatio.toFixed(1)}x ${d.premDominantSide}</div>
+        <div>${chk(deltaAligned)} Dealer Delta alineado</div>
+      </div>
+      ${deltaConflict ? `<div style="margin-top:8px;padding:8px 14px;border-radius:8px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);font-size:11px;color:#FBBF24;max-width:500px;margin-left:auto;margin-right:auto;">${deltaConflict}</div>` : ''}
+      ${allChecks ? `<div style="margin-top:8px;padding:8px 14px;border-radius:8px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);font-size:12px;color:#6EE7B7;font-weight:700;max-width:500px;margin-left:auto;margin-right:auto;">TODAS LAS CONDICIONES CUMPLIDAS — Espera reaccion en wall para entry</div>` : ''}`;
+  } else {
+    // ═══ LONG GAMMA: Sell premium checklist ═══
+    const spotInMiddle = d.wallProximity < 50; // spot NOT near walls = in the middle
+    const wallsWide = Math.abs(R.callWall.K - R.putWall.K) / R.S * 100; // wall spread as %
+    const goodRange = wallsWide >= 1.5; // walls at least 1.5% apart
+    const premDefined = d.premRatio >= 1.5; // some directional bias helps pick side
+    const allChecks = isLongGamma && spotInMiddle && goodRange;
+
+    const dirSuggestion = d.premDominantSide === 'puts'
+      ? `Vende Put Credit Spread debajo de Put Wall ($${R.putWall.K.toFixed(0)})`
+      : `Vende Call Credit Spread encima de Call Wall ($${R.callWall.K.toFixed(0)})`;
+
+    checklistHTML = `
+      <div style="font-size:11px;color:var(--muted);margin:8px 0 4px;text-transform:uppercase;letter-spacing:1px;">Vender Prima (Rango)</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 24px;text-align:left;max-width:500px;margin:4px auto 0;font-size:12px;">
+        <div>${chk(true)} Long Gamma (dealer frena)</div>
+        <div>${chk(spotInMiddle)} Spot entre walls</div>
+        <div>${chk(goodRange)} Walls separadas ${wallsWide.toFixed(1)}%</div>
+        <div>${chk(premDefined)} Sesgo ${d.premRatio.toFixed(1)}x ${d.premDominantSide}</div>
+      </div>
+      ${allChecks ? `<div style="margin-top:8px;padding:8px 14px;border-radius:8px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);font-size:12px;color:#6EE7B7;font-weight:700;max-width:500px;margin-left:auto;margin-right:auto;">${dirSuggestion}</div>` : ''}`;
+  }
 
   alertEl.style.cssText = alertClass + 'border-radius:14px;padding:20px;text-align:center;';
   alertEl.innerHTML = `${alertTitle}
