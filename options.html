@@ -223,6 +223,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--light);
     </script>
     <button class="btn btn-purple" id="loadBtn" onclick="loadChain()">Cargar Chain</button>
     <button class="btn btn-ghost" onclick="loadChain(true)">Refresh</button>
+    <button class="btn btn-ghost" id="autoRefreshBtn" onclick="toggleAutoRefresh()" style="min-width:110px;">Auto: OFF</button>
+    <span id="autoRefreshTimer" style="font-size:11px;color:var(--muted);min-width:30px;"></span>
     <div class="spot-display" id="spotDisplay">—</div>
   </div>
 
@@ -377,9 +379,14 @@ async function getTradesForStrike(ticker, expDate, strikePrice, contractType) {
   } catch { return []; }
 }
 
-function analyzeTradeFlow(trades, vwap) {
-  if (!trades.length) return { pHedge: 0.65, instPct: 0, multiLegPct: 0, avgSize: 0, aboveVwap: 0 };
+function analyzeTradeFlow(trades, vwap, bid, ask) {
+  if (!trades.length) return { pHedge: 0.65, instPct: 0, multiLegPct: 0, avgSize: 0, aboveVwap: 0, buyPct: 0.5, sellPct: 0.5 };
   let instVol = 0, multiLegVol = 0, totalVol = 0, aboveVwapVol = 0, largeVol = 0;
+  let buyVol = 0, sellVol = 0, midVol = 0;
+
+  // Mid price for aggressor classification
+  const mid = (bid && ask && ask > bid) ? (bid + ask) / 2 : null;
+
   for (const t of trades) {
     const sz = t.size || 0;
     totalVol += sz;
@@ -390,34 +397,55 @@ function analyzeTradeFlow(trades, vwap) {
     if (isInst) instVol += sz;
     if (sz >= 10) largeVol += sz;
     if (vwap && t.price >= vwap) aboveVwapVol += sz;
+
+    // ═══ Aggressor side detection ═══
+    // Compare trade price vs NBBO to infer direction:
+    //   price >= ask  → buyer lifted the offer  (bullish, dealer goes short)
+    //   price <= bid  → seller hit the bid      (bearish, dealer goes long)
+    //   between       → use mid as threshold
+    if (mid && t.price != null) {
+      if (t.price >= ask) buyVol += sz;
+      else if (t.price <= bid) sellVol += sz;
+      else if (t.price >= mid) buyVol += sz;
+      else sellVol += sz;
+    }
   }
-  if (totalVol === 0) return { pHedge: 0.65, instPct: 0, multiLegPct: 0, avgSize: 0, aboveVwap: 0 };
+  if (totalVol === 0) return { pHedge: 0.65, instPct: 0, multiLegPct: 0, avgSize: 0, aboveVwap: 0, buyPct: 0.5, sellPct: 0.5 };
 
   const instPct = instVol / totalVol;
   const multiLegPct = multiLegVol / totalVol;
   const largePct = largeVol / totalVol;
   const aboveVwap = aboveVwapVol / totalVol;
   const avgSize = totalVol / trades.length;
+  const classifiedVol = buyVol + sellVol;
+  const buyPct = classifiedVol > 0 ? buyVol / classifiedVol : 0.5;
+  const sellPct = classifiedVol > 0 ? sellVol / classifiedVol : 0.5;
 
-  // ═══ EHP Model v2 ═══
-  // Base assumption: all single-leg trades create dealer hedging obligation.
-  // The dealer MUST hedge when they take the other side of a single-leg trade.
-  // Only multi-leg trades (spreads) reduce hedging because both legs offset.
+  // ═══ EHP Model v3 ═══
+  // Incorporates aggressor side for directional hedging pressure.
   //
-  // Start at 85% base (most OI is hedgeable) then adjust:
-  //   - Subtract for multi-leg trades (spreads = no dealer exposure)
-  //   - Add for institutional flow (ISOs, auctions = definitely hedged)
-  //   - Add for large trades (>10 contracts = not small retail scratching)
-  //   - Add for aggressive buying (above VWAP = directional, dealer is short)
+  // Base: 85% of OI is hedgeable, then adjust:
+  //   - Multi-leg trades (spreads) reduce hedging — legs offset
+  //   - Institutional flow boosts hedging confidence
+  //   - Large trades boost (not retail noise)
+  //   - Aggressor imbalance: strong buy-side = dealer short gamma (must hedge)
+  //     strong sell-side = dealer long gamma (less urgent hedging)
+  //   - Above VWAP confirms aggressive buying
 
   const base = 0.85;
-  const multiLegPenalty = -multiLegPct * 0.50;  // 100% multi-leg → drops to 35%
-  const instBonus = instPct * 0.10;              // institutional sweeps boost confidence
-  const sizeBonus = Math.min(0.08, largePct * 0.10); // large trades boost
-  const aggrBonus = (aboveVwap > 0.5 ? 0.05 : 0); // majority buying above VWAP = directional
+  const multiLegPenalty = -multiLegPct * 0.50;   // 100% multi-leg → drops to 35%
+  const instBonus = instPct * 0.10;               // institutional sweeps boost confidence
+  const sizeBonus = Math.min(0.08, largePct * 0.10);
 
-  const pHedge = Math.max(0.15, Math.min(0.98, base + multiLegPenalty + instBonus + sizeBonus + aggrBonus));
-  return { pHedge, instPct, multiLegPct, avgSize, aboveVwap, totalTrades: trades.length };
+  // Aggressor adjustment: net buy pressure increases hedging urgency
+  // buyPct=1.0 → +0.08, buyPct=0.5 → 0, buyPct=0.0 → -0.08
+  const aggrAdj = (buyPct - 0.5) * 0.16;
+
+  // Above VWAP confirms directional pressure (only if also buying)
+  const aggrBonus = (aboveVwap > 0.5 && buyPct > 0.5) ? 0.05 : 0;
+
+  const pHedge = Math.max(0.15, Math.min(0.98, base + multiLegPenalty + instBonus + sizeBonus + aggrAdj + aggrBonus));
+  return { pHedge, instPct, multiLegPct, avgSize, aboveVwap, buyPct, sellPct, totalTrades: trades.length };
 }
 
 async function getOptionsChain(ticker, expDate, strikeMin, strikeMax) {
@@ -451,6 +479,43 @@ function getExpDate(dteOption) {
 let RESULT = null;
 let gexChart = null;
 let chartMode = 'classic';
+
+// ═══ Auto-refresh ═══
+let _autoRefreshId = null;
+let _autoCountdownId = null;
+let _autoSeconds = 0;
+
+function toggleAutoRefresh() {
+  const btn = document.getElementById('autoRefreshBtn');
+  const timer = document.getElementById('autoRefreshTimer');
+  if (_autoRefreshId) {
+    // Turn off
+    clearInterval(_autoRefreshId);
+    clearInterval(_autoCountdownId);
+    _autoRefreshId = null;
+    _autoCountdownId = null;
+    btn.textContent = 'Auto: OFF';
+    btn.style.borderColor = 'rgba(255,255,255,.15)';
+    btn.style.color = '';
+    timer.textContent = '';
+  } else {
+    // Turn on — requires initial load first
+    if (!RESULT) { loadChain(); }
+    _autoSeconds = 60;
+    timer.textContent = '60s';
+    _autoCountdownId = setInterval(() => {
+      _autoSeconds--;
+      timer.textContent = _autoSeconds + 's';
+    }, 1000);
+    _autoRefreshId = setInterval(() => {
+      _autoSeconds = 60;
+      loadChain(true);
+    }, 60000);
+    btn.textContent = 'Auto: ON';
+    btn.style.borderColor = 'rgba(16,185,129,.5)';
+    btn.style.color = '#6EE7B7';
+  }
+}
 
 async function loadChain(refresh) {
   const btn = document.getElementById('loadBtn');
@@ -568,11 +633,17 @@ async function processChain(chain, S, ticker, expDate) {
     const vol = (st.call ? (st.call.day && st.call.day.volume || 0) : 0) + (st.put ? (st.put.day && st.put.day.volume || 0) : 0);
     const vwap = st.call && st.call.day ? st.call.day.vwap : (st.put && st.put.day ? st.put.day.vwap : null);
 
+    // Extract bid/ask from snapshot for aggressor side detection
+    const callQuote = st.call && st.call.last_quote;
+    const putQuote = st.put && st.put.last_quote;
+    const bid = callQuote ? callQuote.bid : (putQuote ? putQuote.bid : null);
+    const ask = callQuote ? callQuote.ask : (putQuote ? putQuote.ask : null);
+
     // EHP placeholder — will be updated with trade tape data
     results.push({
       K: st.K, oiC, oiP, iv: iv || 0, deltaCall, deltaPut, gamma,
       gexCall, gexPut, gexNet, dealerDelta, pHedge: 0.5, ehpGex: gexNet * 0.5, vol, vwap,
-      tradeFlow: null
+      bid, ask, tradeFlow: null
     });
   }
 
@@ -586,7 +657,7 @@ async function processChain(chain, S, ticker, expDate) {
         st.oiC > 0 ? getTradesForStrike(ticker, expDate, st.K, 'call') : [],
         st.oiP > 0 ? getTradesForStrike(ticker, expDate, st.K, 'put') : []
       ]);
-      return { K: st.K, flow: analyzeTradeFlow([...callTrades, ...putTrades], st.vwap) };
+      return { K: st.K, flow: analyzeTradeFlow([...callTrades, ...putTrades], st.vwap, st.bid, st.ask) };
     }));
     tradeResults.push(...batchResults);
     if (i + 3 < topStrikes.length) await new Promise(r => setTimeout(r, 500)); // pace between batches
