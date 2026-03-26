@@ -577,10 +577,6 @@ async function loadChain(refresh) {
     const chain = await getOptionsChain(ticker, expDate, strikeMin, strikeMax);
     if (!chain.length) throw new Error('No options data for ' + expDate);
 
-    // Debug: log first contract structure to see available fields
-    console.log('[GEX] Sample contract keys:', JSON.stringify(Object.keys(chain[0])));
-    console.log('[GEX] Sample contract:', JSON.stringify(chain[0], null, 2));
-
     // Process — fetch trade tape for top OI strikes
     document.getElementById('loadBtn').innerHTML = '<span class="loader"></span> Analizando trades...';
     await processChain(chain, S, ticker, expDate);
