@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vindica — Options GEX Analyzer</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --teal:#0D9488;--teal-l:#14B8A6;--teal-d:#0F766E;
+  --dark:#0F172A;--mid:#1E293B;--slate:#475569;
+  --muted:#94A3B8;--light:#F8FAFC;--white:#FFFFFF;
+  --border:rgba(255,255,255,.08);
+  --amber:#F59E0B;--amber-l:#FBBF24;
+  --red:#EF4444;--green:#10B981;--purple:#8B5CF6;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--light);min-height:100vh;}
+.bg-layer{position:fixed;inset:0;background:
+  radial-gradient(ellipse 70% 60% at 5% 15%,rgba(139,92,246,.12) 0%,transparent 55%),
+  radial-gradient(ellipse 50% 70% at 95% 85%,rgba(13,148,136,.08) 0%,transparent 55%),
+  linear-gradient(160deg,#0F172A 0%,#1E293B 50%,#0F172A 100%);z-index:0;}
+.grid-overlay{position:fixed;inset:0;background-image:
+  linear-gradient(rgba(139,92,246,.025) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(139,92,246,.025) 1px,transparent 1px);
+  background-size:40px 40px;z-index:0;}
+.outer{position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:28px 20px 80px;}
+.user-bar{display:flex;align-items:center;justify-content:flex-end;gap:12px;margin-bottom:12px;}
+.user-badge{display:flex;align-items:center;gap:8px;padding:6px 14px;border-radius:100px;background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.25);color:#fff;font-size:12px;}
+.user-badge span{color:#C4B5FD;font-weight:600;}
+.logout-btn{padding:6px 14px;border-radius:100px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.08);color:#FCA5A5;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.header{text-align:center;margin-bottom:20px;}
+.logo-mark{display:inline-flex;align-items:center;gap:12px;margin-bottom:10px;}
+.logo-icon{width:42px;height:42px;background:linear-gradient(135deg,#6D28D9,var(--purple));border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 0 28px rgba(139,92,246,.45);}
+.logo-text{font-family:'DM Serif Display',serif;font-size:22px;color:#fff;}
+.logo-text span{color:#C4B5FD;}
+.header h1{font-family:'DM Serif Display',serif;font-size:22px;color:#fff;margin-bottom:4px;}
+.header p{color:var(--muted);font-size:12px;}
+
+/* Ticker bar */
+.ticker-bar{display:flex;align-items:center;gap:10px;margin-bottom:16px;padding:14px 18px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:14px;flex-wrap:wrap;}
+.ticker-bar select,.ticker-bar input{background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:9px 14px;color:#fff;font-size:13px;font-family:'DM Sans',sans-serif;}
+.ticker-bar select:focus,.ticker-bar input:focus{outline:none;border-color:rgba(139,92,246,.5);}
+.ticker-bar select{cursor:pointer;}
+.btn{padding:8px 18px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;border:none;transition:all .2s;}
+.btn-purple{background:var(--purple);color:#fff;}
+.btn-purple:hover{background:#7C3AED;}
+.btn-ghost{background:transparent;border:1px solid rgba(255,255,255,.15);color:var(--muted);}
+.btn-ghost:hover{border-color:var(--purple);color:#C4B5FD;}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+.spot-display{font-family:'DM Serif Display',serif;font-size:26px;color:#fff;margin-left:auto;}
+.spot-display .chg{font-size:14px;margin-left:6px;}
+.spot-display .chg.up{color:var(--green);}
+.spot-display .chg.dn{color:var(--red);}
+
+/* Status pill */
+.status-pill{display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:100px;font-size:11px;font-weight:700;letter-spacing:.3px;}
+.status-pill.ok{background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.3);color:#6EE7B7;}
+.status-pill.warn{background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);color:#FBBF24;}
+.status-pill.bad{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);color:#FCA5A5;}
+
+/* Metric cards */
+.cards-row{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:16px;}
+@media(max-width:900px){.cards-row{grid-template-columns:repeat(3,1fr);}}
+@media(max-width:500px){.cards-row{grid-template-columns:repeat(2,1fr);}}
+.mc{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center;transition:border-color .2s;}
+.mc:hover{border-color:rgba(139,92,246,.3);}
+.mc .v{font-family:'DM Serif Display',serif;font-size:20px;color:#fff;margin-bottom:2px;}
+.mc .l{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
+.mc .v.green{color:var(--green);}.mc .v.red{color:var(--red);}.mc .v.purple{color:#C4B5FD;}.mc .v.amber{color:var(--amber-l);}
+
+/* Panels */
+.panel{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:14px;}
+.panel-t{font-family:'DM Serif Display',serif;font-size:15px;color:#fff;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+
+/* Price bar visual */
+.price-bar-wrap{margin-bottom:16px;padding:16px 18px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:14px;}
+.price-bar{position:relative;height:48px;background:rgba(255,255,255,.04);border-radius:8px;margin:12px 0 8px;overflow:visible;}
+.pb-zone{position:absolute;top:0;height:100%;border-radius:6px;}
+.pb-put{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.2);left:0;}
+.pb-neutral{background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.15);}
+.pb-call{background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.2);right:0;}
+.pb-marker{position:absolute;top:-6px;bottom:-6px;width:3px;border-radius:2px;z-index:5;}
+.pb-marker.wall{background:rgba(255,255,255,.4);}
+.pb-marker.flip{background:var(--amber-l);box-shadow:0 0 8px rgba(245,158,11,.5);}
+.pb-marker.spot{background:var(--purple);box-shadow:0 0 12px rgba(139,92,246,.6);width:4px;}
+.pb-label{position:absolute;top:-20px;font-size:9px;font-weight:700;transform:translateX(-50%);white-space:nowrap;}
+.pb-label.put-l{color:#FCA5A5;}.pb-label.call-l{color:#6EE7B7;}.pb-label.flip-l{color:var(--amber-l);}.pb-label.spot-l{color:#C4B5FD;}
+.pb-legend{display:flex;gap:16px;justify-content:center;font-size:11px;color:var(--muted);}
+.pb-legend span{display:flex;align-items:center;gap:4px;}
+.pb-legend .dot{width:8px;height:8px;border-radius:50%;}
+
+/* Setups */
+.setup{border-radius:12px;padding:18px;margin-bottom:12px;transition:border-color .2s;}
+.setup.a{background:rgba(16,185,129,.05);border:1px solid rgba(16,185,129,.15);}
+.setup.b{background:rgba(139,92,246,.05);border:1px solid rgba(139,92,246,.15);}
+.setup.c{background:rgba(239,68,68,.05);border:1px solid rgba(239,68,68,.15);}
+.setup h3{font-family:'DM Serif Display',serif;font-size:16px;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.setup.a h3{color:#6EE7B7;}.setup.b h3{color:#C4B5FD;}.setup.c h3{color:#FCA5A5;}
+.setup-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+@media(max-width:600px){.setup-grid{grid-template-columns:1fr;}}
+.setup-item{font-size:12px;color:var(--light);padding:6px 0;}
+.setup-item strong{color:#fff;}
+.setup-status{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;margin-top:8px;}
+
+/* Filters */
+.filters-panel{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;}
+@media(max-width:600px){.filters-panel{grid-template-columns:repeat(2,1fr);}}
+.filter-item{display:flex;align-items:center;gap:8px;padding:10px 14px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;font-size:12px;color:var(--light);}
+.filter-item .fi-icon{font-size:16px;}
+.filter-item.pass{border-color:rgba(16,185,129,.2);}.filter-item.fail{border-color:rgba(239,68,68,.2);background:rgba(239,68,68,.04);}
+
+/* Chart */
+.chart-wrap{position:relative;height:280px;}
+
+/* Results table */
+.rtbl{width:100%;border-collapse:collapse;}
+.rtbl th{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;padding:7px 5px;text-align:center;border-bottom:1px solid var(--border);}
+.rtbl td{padding:7px 5px;text-align:center;font-size:11px;color:var(--light);border-bottom:1px solid rgba(255,255,255,.03);}
+.rtbl tr:hover{background:rgba(255,255,255,.02);}
+
+.hidden{display:none;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.fade-in{animation:fadeUp .3s ease both;}
+.loader{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.2);border-top-color:var(--purple);border-radius:50%;animation:spin .6s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+<div class="bg-layer"></div>
+<div class="grid-overlay"></div>
+
+<div class="outer" id="mainApp" style="display:none;">
+  <div class="user-bar">
+    <div class="user-badge"><span id="userEmail"></span></div>
+    <button class="logout-btn" onclick="doLogout()">Cerrar sesion</button>
+  </div>
+
+  <!-- Nav -->
+  <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:20px;flex-wrap:wrap;">
+    <a href="portal.html" style="padding:8px 20px;border-radius:100px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:var(--muted);font-size:12px;font-weight:600;text-decoration:none;">Pre-Auth</a>
+    <a href="hcc.html" style="padding:8px 20px;border-radius:100px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:var(--muted);font-size:12px;font-weight:600;text-decoration:none;">HCC / RAF</a>
+    <a href="govradar.html" style="padding:8px 20px;border-radius:100px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:var(--muted);font-size:12px;font-weight:600;text-decoration:none;">GovRadar</a>
+    <a href="arbitrage.html" style="padding:8px 20px;border-radius:100px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:var(--muted);font-size:12px;font-weight:600;text-decoration:none;">ArbitrageRadar</a>
+    <a href="options.html" style="padding:8px 20px;border-radius:100px;background:var(--purple);color:white;font-size:12px;font-weight:600;text-decoration:none;">Options GEX</a>
+  </div>
+
+  <div class="header">
+    <div class="logo-mark">
+      <div class="logo-icon">&#9080;</div>
+      <div class="logo-text">Options<span>GEX</span></div>
+    </div>
+    <h1>Gamma Exposure & EHP Analyzer</h1>
+    <p>Analisis SPX/SPY 0DTE con GEX + EHP | Ejecucion en MES | Walls + Flip Point + Setups</p>
+  </div>
+
+  <!-- Ticker bar -->
+  <div class="ticker-bar">
+    <select id="tickerSelect">
+      <option value="SPY" selected>SPY (S&P 500 ETF)</option>
+      <option value="QQQ">QQQ (Nasdaq ETF)</option>
+      <option value="IWM">IWM (Russell 2000)</option>
+      <option value="SPX">SPX (S&P 500 Index)</option>
+    </select>
+    <select id="dteSelect">
+      <option value="0">0DTE (Hoy)</option>
+      <option value="1" selected>1DTE (Manana)</option>
+      <option value="auto">Auto (Proxima exp.)</option>
+    </select>
+    <button class="btn btn-purple" id="loadBtn" onclick="loadChain()">Cargar Chain</button>
+    <button class="btn btn-ghost" onclick="loadChain(true)">Refresh</button>
+    <div class="spot-display" id="spotDisplay">—</div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters-panel hidden" id="filtersPanel"></div>
+
+  <!-- Metric cards -->
+  <div class="cards-row hidden" id="metricsRow">
+    <div class="mc"><div class="v" id="mcRegime">—</div><div class="l">Regimen</div></div>
+    <div class="mc"><div class="v" id="mcGex">—</div><div class="l">GEX Total</div></div>
+    <div class="mc"><div class="v purple" id="mcEhp">—</div><div class="l">EHP-GEX</div></div>
+    <div class="mc"><div class="v" id="mcDelta">—</div><div class="l">Dealer Delta</div></div>
+    <div class="mc"><div class="v" id="mcCallWall">—</div><div class="l">Call Wall</div></div>
+    <div class="mc"><div class="v" id="mcPutWall">—</div><div class="l">Put Wall</div></div>
+  </div>
+
+  <!-- Price bar visual -->
+  <div class="price-bar-wrap hidden" id="priceBarWrap">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-size:13px;font-weight:600;color:#fff;">Mapa de Niveles</span>
+      <span id="flipLabel" style="font-size:11px;color:var(--amber-l);">Flip Point: —</span>
+    </div>
+    <div class="price-bar" id="priceBar"></div>
+    <div class="pb-legend">
+      <span><div class="dot" style="background:#EF4444;"></div> Put Wall</span>
+      <span><div class="dot" style="background:#F59E0B;"></div> Flip Point</span>
+      <span><div class="dot" style="background:#8B5CF6;"></div> Spot</span>
+      <span><div class="dot" style="background:#10B981;"></div> Call Wall</span>
+    </div>
+  </div>
+
+  <!-- Setups -->
+  <div id="setupsContainer" class="hidden"></div>
+
+  <!-- Chart -->
+  <div class="panel hidden" id="chartPanel">
+    <div class="panel-t">GEX por Strike</div>
+    <div style="display:flex;gap:6px;margin-bottom:10px;">
+      <button class="btn btn-purple" style="font-size:11px;padding:5px 12px;" onclick="setChartMode('classic')" id="cBtnClassic">GEX</button>
+      <button class="btn btn-ghost" style="font-size:11px;padding:5px 12px;" onclick="setChartMode('ehp')" id="cBtnEhp">EHP</button>
+      <button class="btn btn-ghost" style="font-size:11px;padding:5px 12px;" onclick="setChartMode('both')" id="cBtnBoth">Ambos</button>
+    </div>
+    <div class="chart-wrap"><canvas id="gexChart"></canvas></div>
+  </div>
+
+  <!-- Results table -->
+  <div class="panel hidden" id="resultsPanel">
+    <div class="panel-t">Resultados por Strike</div>
+    <div style="overflow-x:auto;">
+      <table class="rtbl">
+        <thead><tr><th>Strike</th><th>OI Call</th><th>OI Put</th><th>IV</th><th>Delta C</th><th>Delta P</th><th>Gamma</th><th>GEX Net</th><th>P(Hedge)</th><th>EHP-GEX</th></tr></thead>
+        <tbody id="resultsBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- MES conversion -->
+  <div class="panel hidden" id="mesPanel">
+    <div class="panel-t">Niveles MES / ES</div>
+    <div id="mesLevels" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;"></div>
+  </div>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════
+// Config
+// ═══════════════════════════════════════
+const POLY_KEY = 'WGnYtR0YvmDZvophN0JDfqR_FOYUDxYR';
+const API = 'https://api.polygon.io';
+
+// FOMC dates 2026 (known scheduled)
+const FOMC_DATES = ['2026-01-28','2026-03-18','2026-05-06','2026-06-17','2026-07-29','2026-09-16','2026-11-04','2026-12-16'];
+const CPI_DATES = ['2026-01-14','2026-02-11','2026-03-11','2026-04-14','2026-05-12','2026-06-10','2026-07-14','2026-08-12','2026-09-11','2026-10-13','2026-11-12','2026-12-10'];
+const NFP_DATES = ['2026-01-09','2026-02-06','2026-03-06','2026-04-03','2026-05-08','2026-06-05','2026-07-02','2026-08-07','2026-09-04','2026-10-02','2026-11-06','2026-12-04'];
+
+// ═══════════════════════════════════════
+// Firebase Auth
+// ═══════════════════════════════════════
+const firebaseConfig = {
+  apiKey:"AIzaSyBKmZkxsdP1p0uxKvmSJBYlQPiRPC0eXJ4",authDomain:"vindica-production.firebaseapp.com",
+  projectId:"vindica-production",storageBucket:"vindica-production.firebasestorage.app",
+  messagingSenderId:"82635207094",appId:"1:82635207094:web:59efd62fe671b764695117"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+auth.onAuthStateChanged(u => {
+  if (!u) { window.location.href = 'index.html'; return; }
+  document.getElementById('mainApp').style.display = '';
+  document.getElementById('userEmail').textContent = u.email;
+});
+function doLogout() { auth.signOut().then(() => window.location.href = 'index.html'); }
+
+// ═══════════════════════════════════════
+// Black-Scholes helpers (fallback if Polygon Greeks missing)
+// ═══════════════════════════════════════
+function phi(x) { return Math.exp(-0.5*x*x) / Math.sqrt(2*Math.PI); }
+function ncdf(x) {
+  const a1=0.254829592,a2=-0.284496736,a3=1.421413741,a4=-1.453152027,a5=1.061405429,p=0.3275911;
+  const s=x<0?-1:1; x=Math.abs(x);
+  const t=1/(1+p*x), y=1-(((((a5*t+a4)*t)+a3)*t+a2)*t+a1)*t*Math.exp(-x*x/2);
+  return 0.5*(1+s*y);
+}
+function bsGreeks(S,K,T,sigma,r) {
+  if(T<=0||sigma<=0) return {deltaCall:0,deltaPut:0,gamma:0};
+  const sqT=Math.sqrt(T), d1=(Math.log(S/K)+(r+0.5*sigma*sigma)*T)/(sigma*sqT);
+  return {deltaCall:ncdf(d1),deltaPut:ncdf(d1)-1,gamma:phi(d1)/(S*sigma*sqT)};
+}
+
+// ═══════════════════════════════════════
+// Polygon API
+// ═══════════════════════════════════════
+async function polyGet(path) {
+  const sep = path.includes('?') ? '&' : '?';
+  const res = await fetch(`${API}${path}${sep}apiKey=${POLY_KEY}`);
+  if (!res.ok) throw new Error(`API ${res.status}`);
+  return res.json();
+}
+
+async function getSpotPrice(ticker) {
+  const d = await polyGet(`/v2/aggs/ticker/${ticker}/prev?adjusted=true`);
+  return d.results && d.results[0] ? d.results[0] : null;
+}
+
+async function getOptionsChain(ticker, expDate, strikeMin, strikeMax) {
+  let all = [];
+  let url = `/v3/snapshot/options/${ticker}?expiration_date=${expDate}&strike_price.gte=${strikeMin}&strike_price.lte=${strikeMax}&limit=250`;
+  while (url) {
+    const d = await polyGet(url);
+    if (d.results) all = all.concat(d.results);
+    if (d.next_url) {
+      url = d.next_url.replace(API, '');
+    } else break;
+  }
+  return all;
+}
+
+function getExpDate(dteOption) {
+  const now = new Date();
+  let d = new Date(now);
+  if (dteOption === '0') {
+    // today
+  } else if (dteOption === '1') {
+    d.setDate(d.getDate() + 1);
+    // skip weekend
+    if (d.getDay() === 0) d.setDate(d.getDate() + 1);
+    if (d.getDay() === 6) d.setDate(d.getDate() + 2);
+  } else {
+    d.setDate(d.getDate() + 1);
+    if (d.getDay() === 0) d.setDate(d.getDate() + 1);
+    if (d.getDay() === 6) d.setDate(d.getDate() + 2);
+  }
+  return d.toISOString().split('T')[0];
+}
+
+// ═══════════════════════════════════════
+// Load & Calculate
+// ═══════════════════════════════════════
+let RESULT = null;
+let gexChart = null;
+let chartMode = 'classic';
+
+async function loadChain(refresh) {
+  const btn = document.getElementById('loadBtn');
+  btn.innerHTML = '<span class="loader"></span> Cargando...';
+  btn.disabled = true;
+
+  try {
+    const ticker = document.getElementById('tickerSelect').value;
+    const dteOpt = document.getElementById('dteSelect').value;
+    const expDate = getExpDate(dteOpt);
+
+    // Get spot
+    const spot = await getSpotPrice(ticker);
+    if (!spot) throw new Error('No spot data');
+    const S = spot.c; // close
+    const prevC = spot.o;
+    const chg = ((S - prevC) / prevC * 100);
+
+    document.getElementById('spotDisplay').innerHTML =
+      `$${S.toFixed(2)} <span class="chg ${chg>=0?'up':'dn'}">${chg>=0?'+':''}${chg.toFixed(2)}%</span>`;
+
+    // Determine strike range: +/- 5% from spot
+    const range = ticker === 'SPX' ? 0.03 : 0.05;
+    const strikeMin = Math.floor(S * (1 - range));
+    const strikeMax = Math.ceil(S * (1 + range));
+
+    // Load chain
+    const chain = await getOptionsChain(ticker, expDate, strikeMin, strikeMax);
+    if (!chain.length) throw new Error('No options data for ' + expDate);
+
+    // Process
+    processChain(chain, S, ticker, expDate);
+
+  } catch (e) {
+    alert('Error: ' + e.message);
+  } finally {
+    btn.innerHTML = 'Cargar Chain';
+    btn.disabled = false;
+  }
+}
+
+function processChain(chain, S, ticker, expDate) {
+  // Group by strike
+  const byStrike = {};
+  for (const opt of chain) {
+    const K = opt.details.strike_price;
+    const type = opt.details.contract_type;
+    if (!byStrike[K]) byStrike[K] = { K, call: null, put: null };
+    byStrike[K][type] = opt;
+  }
+
+  const strikes = Object.values(byStrike).sort((a, b) => a.K - b.K);
+  const r = 0.0525; // risk-free rate
+  const now = new Date();
+  const exp = new Date(expDate);
+  const T = Math.max(1, Math.round((exp - now) / 86400000)) / 365;
+
+  // Calculate GEX for each strike
+  const totalOI = strikes.reduce((s, st) => {
+    return s + (st.call ? st.call.open_interest : 0) + (st.put ? st.put.open_interest : 0);
+  }, 0);
+
+  const results = [];
+  for (const st of strikes) {
+    const oiC = st.call ? st.call.open_interest : 0;
+    const oiP = st.put ? st.put.open_interest : 0;
+    if (oiC === 0 && oiP === 0) continue;
+
+    // Use Polygon Greeks if available, else calculate
+    let deltaCall, deltaPut, gamma, iv;
+    if (st.call && st.call.greeks && st.call.greeks.delta) {
+      deltaCall = st.call.greeks.delta;
+      gamma = st.call.greeks.gamma;
+      iv = st.call.implied_volatility;
+    } else if (st.put && st.put.greeks && st.put.greeks.delta) {
+      deltaPut = st.put.greeks.delta;
+      gamma = st.put.greeks.gamma;
+      iv = st.put.implied_volatility;
+    }
+
+    if (gamma === undefined) {
+      // Fallback to BS calc
+      iv = 0.20;
+      const g = bsGreeks(S, st.K, T, iv, r);
+      deltaCall = g.deltaCall;
+      deltaPut = g.deltaPut;
+      gamma = g.gamma;
+    } else {
+      if (deltaCall === undefined) deltaCall = deltaPut !== undefined ? deltaPut + 1 : ncdf((Math.log(S/st.K)+(r+0.5*iv*iv)*T)/(iv*Math.sqrt(T)));
+      if (deltaPut === undefined) deltaPut = st.put && st.put.greeks && st.put.greeks.delta ? st.put.greeks.delta : deltaCall - 1;
+    }
+
+    // GEX
+    const gexCall = oiC * gamma * 100 * S;
+    const gexPut = -oiP * gamma * 100 * S;
+    const gexNet = gexCall + gexPut;
+
+    // Dealer delta
+    const dealerDelta = -(oiC * deltaCall * 100) - (oiP * deltaPut * 100);
+
+    // EHP
+    const oiWeight = (oiC + oiP) / (totalOI || 1);
+    const moneyness = Math.abs(st.K - S) / (S * (iv || 0.20) * Math.sqrt(T));
+    const atmProx = Math.exp(-0.5 * moneyness * moneyness);
+
+    // Trade size factor (use volume as proxy)
+    const vol = (st.call ? (st.call.day && st.call.day.volume || 0) : 0) + (st.put ? (st.put.day && st.put.day.volume || 0) : 0);
+    const volRatio = vol / (oiC + oiP || 1);
+    const tradeSizeFactor = Math.min(1, volRatio * 2); // high turnover = more active hedging
+
+    const pHedge = Math.min(1, 0.35 * (oiWeight * strikes.length) + 0.40 * atmProx + 0.25 * tradeSizeFactor);
+    const ehpGex = gexNet * pHedge;
+
+    results.push({
+      K: st.K, oiC, oiP, iv: iv || 0, deltaCall, deltaPut, gamma,
+      gexCall, gexPut, gexNet, dealerDelta, pHedge, ehpGex, vol
+    });
+  }
+
+  // Aggregates
+  const gexTotal = results.reduce((s, r) => s + r.gexNet, 0);
+  const ehpTotal = results.reduce((s, r) => s + r.ehpGex, 0);
+  const dealerDeltaTotal = results.reduce((s, r) => s + r.dealerDelta, 0);
+
+  const callWall = results.reduce((b, r) => r.gexCall > b.gexCall ? r : b, results[0]);
+  const putWall = results.reduce((b, r) => Math.abs(r.gexPut) > Math.abs(b.gexPut) ? r : b, results[0]);
+
+  // Flip point
+  let flipPoint = null;
+  let cumGex = 0;
+  for (let i = 0; i < results.length; i++) {
+    const prev = cumGex;
+    cumGex += results[i].gexNet;
+    if (i > 0 && prev * cumGex < 0) {
+      const ratio = Math.abs(prev) / (Math.abs(prev) + Math.abs(cumGex));
+      flipPoint = results[i-1].K + ratio * (results[i].K - results[i-1].K);
+      break;
+    }
+  }
+
+  const ehpDiff = gexTotal !== 0 ? Math.abs(gexTotal - ehpTotal) / Math.abs(gexTotal) * 100 : 0;
+
+  RESULT = { results, gexTotal, ehpTotal, dealerDeltaTotal, callWall, putWall, flipPoint, S, ticker, expDate, ehpDiff, T };
+
+  renderAll();
+}
+
+// ═══════════════════════════════════════
+// Render Everything
+// ═══════════════════════════════════════
+function fmtM(n) {
+  if (Math.abs(n)>=1e9) return (n/1e9).toFixed(2)+'B';
+  if (Math.abs(n)>=1e6) return (n/1e6).toFixed(2)+'M';
+  if (Math.abs(n)>=1e3) return (n/1e3).toFixed(1)+'K';
+  return n.toFixed(0);
+}
+
+function renderAll() {
+  renderFilters();
+  renderMetrics();
+  renderPriceBar();
+  renderSetups();
+  renderChart();
+  renderResultsTable();
+  renderMES();
+  // Show all
+  ['metricsRow','priceBarWrap','setupsContainer','chartPanel','resultsPanel','mesPanel','filtersPanel'].forEach(id =>
+    document.getElementById(id).classList.remove('hidden'));
+}
+
+function renderFilters() {
+  const R = RESULT;
+  const today = new Date().toISOString().split('T')[0];
+  const tomorrow = new Date(Date.now()+86400000).toISOString().split('T')[0];
+
+  const fomcToday = FOMC_DATES.includes(today);
+  const fomcTmrw = FOMC_DATES.includes(tomorrow);
+  const cpiToday = CPI_DATES.includes(today);
+  const nfpToday = NFP_DATES.includes(today);
+  const nextFomc = FOMC_DATES.find(d => d >= today) || '—';
+
+  // VIX estimate from ATM IV
+  const atmIV = R.results.find(r => Math.abs(r.K - R.S) < R.S * 0.005);
+  const vixEst = atmIV ? (atmIV.iv * 100).toFixed(1) : '?';
+  const vixOk = atmIV ? atmIV.iv * 100 < 28 : true;
+
+  const ehpOk = R.ehpDiff < 20;
+  const dayOfWeek = new Date().getDay();
+  const dayName = ['Dom','Lun','Mar','Mie','Jue','Vie','Sab'][dayOfWeek];
+  const dayOk = dayOfWeek >= 1 && dayOfWeek <= 5;
+
+  const allOk = !fomcToday && !cpiToday && !nfpToday && vixOk && ehpOk && dayOk;
+
+  const items = [
+    { label: `FOMC: ${fomcToday ? 'HOY' : 'No'}`, pass: !fomcToday, detail: `Prox: ${nextFomc}` },
+    { label: `CPI: ${cpiToday ? 'HOY' : 'No'}`, pass: !cpiToday, detail: '' },
+    { label: `NFP: ${nfpToday ? 'HOY' : 'No'}`, pass: !nfpToday, detail: '' },
+    { label: `IV (VIX est.): ${vixEst}`, pass: vixOk, detail: vixOk ? '< 28' : '> 28 PELIGRO' },
+    { label: `EHP: ${(100-R.ehpDiff).toFixed(0)}% hedgeado`, pass: ehpOk, detail: ehpOk ? 'OK' : 'OI debil' },
+    { label: `Dia: ${dayName}`, pass: dayOk, detail: dayOk ? 'Buena liquidez' : 'Sin mercado' },
+  ];
+
+  let verdictHTML = allOk
+    ? '<div class="filter-item pass" style="grid-column:1/-1;justify-content:center;font-weight:700;font-size:14px;">DIA OPERABLE</div>'
+    : '<div class="filter-item fail" style="grid-column:1/-1;justify-content:center;font-weight:700;font-size:14px;">PRECAUCION — Revisa filtros</div>';
+
+  document.getElementById('filtersPanel').innerHTML = items.map(f =>
+    `<div class="filter-item ${f.pass?'pass':'fail'}">
+      <span class="fi-icon">${f.pass?'&#9989;':'&#9888;'}</span>
+      <div><div style="font-weight:600;">${f.label}</div><div style="font-size:10px;color:var(--muted);">${f.detail}</div></div>
+    </div>`
+  ).join('') + verdictHTML;
+}
+
+function renderMetrics() {
+  const R = RESULT;
+  const isLong = R.gexTotal > 0;
+
+  const regEl = document.getElementById('mcRegime');
+  regEl.textContent = isLong ? 'LONG GAMMA' : 'SHORT GAMMA';
+  regEl.className = 'v ' + (isLong ? 'green' : 'red');
+
+  const gexEl = document.getElementById('mcGex');
+  gexEl.textContent = fmtM(R.gexTotal);
+  gexEl.className = 'v ' + (isLong ? 'green' : 'red');
+
+  document.getElementById('mcEhp').textContent = fmtM(R.ehpTotal);
+
+  const dK = R.dealerDeltaTotal / 1000;
+  const deltaEl = document.getElementById('mcDelta');
+  deltaEl.textContent = (dK>=0?'+':'') + dK.toFixed(1) + 'K';
+  deltaEl.className = 'v ' + (dK >= 0 ? 'green' : 'red');
+
+  document.getElementById('mcCallWall').textContent = '$' + R.callWall.K.toFixed(0);
+  document.getElementById('mcPutWall').textContent = '$' + R.putWall.K.toFixed(0);
+}
+
+function renderPriceBar() {
+  const R = RESULT;
+  const bar = document.getElementById('priceBar');
+  const pw = R.putWall.K, cw = R.callWall.K, fp = R.flipPoint, S = R.S;
+
+  // Range
+  const padding = (cw - pw) * 0.3;
+  const lo = pw - padding, hi = cw + padding;
+  const pct = v => ((v - lo) / (hi - lo) * 100);
+
+  let html = '';
+
+  // Put zone
+  html += `<div class="pb-zone pb-put" style="left:0;width:${pct(pw)}%;"></div>`;
+  // Neutral zone
+  html += `<div class="pb-zone pb-neutral" style="left:${pct(pw)}%;width:${pct(cw)-pct(pw)}%;"></div>`;
+  // Call zone
+  html += `<div class="pb-zone pb-call" style="left:${pct(cw)}%;width:${100-pct(cw)}%;"></div>`;
+
+  // Markers
+  html += `<div class="pb-marker wall" style="left:${pct(pw)}%;"><span class="pb-label put-l">$${pw.toFixed(0)}</span></div>`;
+  html += `<div class="pb-marker wall" style="left:${pct(cw)}%;"><span class="pb-label call-l">$${cw.toFixed(0)}</span></div>`;
+  if (fp) html += `<div class="pb-marker flip" style="left:${pct(fp)}%;"><span class="pb-label flip-l">$${fp.toFixed(1)}</span></div>`;
+  html += `<div class="pb-marker spot" style="left:${pct(S)}%;"><span class="pb-label spot-l">$${S.toFixed(2)}</span></div>`;
+
+  bar.innerHTML = html;
+  document.getElementById('flipLabel').textContent = fp ? `Flip Point: $${fp.toFixed(2)}` : 'Flip Point: N/A';
+}
+
+function renderSetups() {
+  const R = RESULT;
+  const isLong = R.gexTotal > 0;
+  const deltaDir = R.dealerDeltaTotal > 0 ? 'alcista' : 'bajista';
+  const pw = R.putWall.K, cw = R.callWall.K, fp = R.flipPoint, S = R.S;
+  const spxMult = R.ticker === 'SPY' ? 10 : 1;
+
+  // Distance from spot to walls
+  const distPW = (S - pw).toFixed(2);
+  const distCW = (cw - S).toFixed(2);
+
+  const mesPointValue = 5; // $5 per point MES
+
+  let html = '';
+
+  // Setup A: Mean reversion at Put Wall
+  const targetA = fp || (pw + (cw - pw) * 0.5);
+  const stopA = pw - (cw - pw) * 0.15;
+  const rrA = ((targetA - pw) / (pw - stopA)).toFixed(1);
+  html += `
+  <div class="setup a fade-in">
+    <h3>SETUP A — Rebote en Put Wall</h3>
+    <div class="setup-grid">
+      <div class="setup-item"><strong>Trigger:</strong> SPY toca $${pw.toFixed(0)} (a $${distPW} del spot)</div>
+      <div class="setup-item"><strong>Accion:</strong> ${isLong ? 'Bull Put Spread' : 'Long MES'} en Put Wall</div>
+      <div class="setup-item"><strong>Target:</strong> $${targetA.toFixed(1)} ${fp?'(Flip Point)':'(medio rango)'}</div>
+      <div class="setup-item"><strong>Stop:</strong> $${stopA.toFixed(1)}</div>
+      <div class="setup-item"><strong>R:R:</strong> ${rrA}:1</div>
+      <div class="setup-item"><strong>MES:</strong> Long ${(pw*spxMult).toFixed(0)} → TP ${(targetA*spxMult).toFixed(0)} → SL ${(stopA*spxMult).toFixed(0)}</div>
+      <div class="setup-item"><strong>MES P&L:</strong> Win +$${((targetA-pw)*spxMult*mesPointValue).toFixed(0)} / Loss -$${((pw-stopA)*spxMult*mesPointValue).toFixed(0)}</div>
+      <div class="setup-item"><strong>Confianza:</strong> ${isLong ? '70-75%' : '60-65%'} ${isLong ? '(dealers defienden)' : '(sin defensa de dealers)'}</div>
+    </div>
+    <div class="setup-status ${Math.abs(S-pw) < (cw-pw)*0.15 ? 'status-pill warn' : 'status-pill ok'}">
+      ${Math.abs(S-pw) < (cw-pw)*0.15 ? '&#9889; ACERCANDOSE' : '&#9203; ESPERANDO — spot a $'+distPW+' del trigger'}
+    </div>
+  </div>`;
+
+  // Setup B: Breakout over Call Wall
+  const targetB = cw + (cw - pw) * 0.4;
+  const stopB = cw - (cw - pw) * 0.1;
+  const rrB = ((targetB - cw) / (cw - stopB)).toFixed(1);
+  html += `
+  <div class="setup b fade-in" style="animation-delay:.1s;">
+    <h3>SETUP B — Breakout Call Wall</h3>
+    <div class="setup-grid">
+      <div class="setup-item"><strong>Trigger:</strong> SPY rompe $${cw.toFixed(0)} (a $${distCW} del spot)</div>
+      <div class="setup-item"><strong>Accion:</strong> Long MES en breakout</div>
+      <div class="setup-item"><strong>Target:</strong> $${targetB.toFixed(1)}</div>
+      <div class="setup-item"><strong>Stop:</strong> $${stopB.toFixed(1)}</div>
+      <div class="setup-item"><strong>R:R:</strong> ${rrB}:1</div>
+      <div class="setup-item"><strong>MES:</strong> Long ${(cw*spxMult).toFixed(0)} → TP ${(targetB*spxMult).toFixed(0)} → SL ${(stopB*spxMult).toFixed(0)}</div>
+      <div class="setup-item"><strong>MES P&L:</strong> Win +$${((targetB-cw)*spxMult*mesPointValue).toFixed(0)} / Loss -$${((cw-stopB)*spxMult*mesPointValue).toFixed(0)}</div>
+      <div class="setup-item"><strong>Confianza:</strong> ${!isLong ? '58-63%' : '50-55%'} ${!isLong ? '(gamma squeeze)' : '(dealers frenan)'}</div>
+    </div>
+    <div class="setup-status ${Math.abs(S-cw) < (cw-pw)*0.15 ? 'status-pill warn' : 'status-pill ok'}">
+      ${Math.abs(S-cw) < (cw-pw)*0.15 ? '&#9889; ACERCANDOSE' : '&#9203; ESPERANDO — spot a $'+distCW+' del trigger'}
+    </div>
+  </div>`;
+
+  // Setup C: Breakdown below Put Wall
+  const targetC = pw - (cw - pw) * 0.4;
+  const stopC = pw + (cw - pw) * 0.1;
+  const rrC = ((pw - targetC) / (stopC - pw)).toFixed(1);
+  html += `
+  <div class="setup c fade-in" style="animation-delay:.2s;">
+    <h3>SETUP C — Breakdown Put Wall</h3>
+    <div class="setup-grid">
+      <div class="setup-item"><strong>Trigger:</strong> SPY rompe $${pw.toFixed(0)} hacia abajo</div>
+      <div class="setup-item"><strong>Accion:</strong> Short MES en breakdown</div>
+      <div class="setup-item"><strong>Target:</strong> $${targetC.toFixed(1)}</div>
+      <div class="setup-item"><strong>Stop:</strong> $${stopC.toFixed(1)}</div>
+      <div class="setup-item"><strong>R:R:</strong> ${rrC}:1</div>
+      <div class="setup-item"><strong>MES:</strong> Short ${(pw*spxMult).toFixed(0)} → TP ${(targetC*spxMult).toFixed(0)} → SL ${(stopC*spxMult).toFixed(0)}</div>
+      <div class="setup-item"><strong>MES P&L:</strong> Win +$${((pw-targetC)*spxMult*mesPointValue).toFixed(0)} / Loss -$${((stopC-pw)*spxMult*mesPointValue).toFixed(0)}</div>
+      <div class="setup-item"><strong>Confianza:</strong> ${!isLong ? '55-60%' : '45-50%'}</div>
+    </div>
+    <div class="setup-status status-pill ok">&#9203; ESPERANDO — spot a $${distPW} del trigger</div>
+  </div>`;
+
+  // EHP warning
+  if (RESULT.ehpDiff > 15) {
+    html += `<div style="padding:14px;background:rgba(139,92,246,.06);border:1px solid rgba(139,92,246,.2);border-radius:10px;margin-bottom:12px;font-size:12px;color:#C4B5FD;">
+      EHP alerta: Solo ${(100-RESULT.ehpDiff).toFixed(0)}% del OI esta realmente hedgeado. Los walls pueden ser mas debiles de lo que el GEX clasico sugiere. Reduce size un 30-50%.
+    </div>`;
+  }
+
+  document.getElementById('setupsContainer').innerHTML = html;
+}
+
+function renderChart() {
+  const R = RESULT;
+  const sorted = [...R.results].sort((a,b) => a.K - b.K);
+  const labels = sorted.map(s => s.K.toString());
+  const datasets = [];
+
+  if (chartMode==='classic'||chartMode==='both') {
+    datasets.push({
+      label:'GEX',data:sorted.map(s=>s.gexNet/1e6),
+      backgroundColor:sorted.map(s=>s.gexNet>=0?'rgba(16,185,129,.7)':'rgba(239,68,68,.7)'),
+      borderColor:sorted.map(s=>s.gexNet>=0?'#10B981':'#EF4444'),borderWidth:1
+    });
+  }
+  if (chartMode==='ehp'||chartMode==='both') {
+    datasets.push({
+      label:'EHP-GEX',data:sorted.map(s=>s.ehpGex/1e6),
+      backgroundColor:sorted.map(s=>s.ehpGex>=0?'rgba(139,92,246,.6)':'rgba(245,158,11,.6)'),
+      borderColor:sorted.map(s=>s.ehpGex>=0?'#8B5CF6':'#F59E0B'),borderWidth:1
+    });
+  }
+
+  if (gexChart) gexChart.destroy();
+  gexChart = new Chart(document.getElementById('gexChart'), {
+    type:'bar',data:{labels,datasets},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:'#94A3B8',font:{family:'DM Sans'}}},
+        tooltip:{callbacks:{label:c=>c.dataset.label+': '+c.parsed.y.toFixed(3)+'M'}}},
+      scales:{
+        x:{ticks:{color:'#94A3B8',font:{size:10},maxRotation:45},grid:{color:'rgba(255,255,255,.04)'}},
+        y:{ticks:{color:'#94A3B8',callback:v=>v.toFixed(1)+'M'},grid:{color:'rgba(255,255,255,.04)'}}
+      }
+    }
+  });
+}
+
+function setChartMode(m) {
+  chartMode = m;
+  document.getElementById('cBtnClassic').className = 'btn '+(m==='classic'?'btn-purple':'btn-ghost');
+  document.getElementById('cBtnEhp').className = 'btn '+(m==='ehp'?'btn-purple':'btn-ghost');
+  document.getElementById('cBtnBoth').className = 'btn '+(m==='both'?'btn-purple':'btn-ghost');
+  if (RESULT) renderChart();
+}
+
+function renderResultsTable() {
+  const R = RESULT;
+  document.getElementById('resultsBody').innerHTML = R.results.map(s => `
+    <tr>
+      <td style="font-weight:700;color:#fff;">$${s.K.toFixed(0)}</td>
+      <td>${s.oiC.toLocaleString()}</td>
+      <td>${s.oiP.toLocaleString()}</td>
+      <td>${(s.iv*100).toFixed(1)}%</td>
+      <td>${s.deltaCall.toFixed(3)}</td>
+      <td>${s.deltaPut.toFixed(3)}</td>
+      <td>${s.gamma.toFixed(5)}</td>
+      <td style="color:${s.gexNet>=0?'#6EE7B7':'#FCA5A5'};font-weight:700;">${fmtM(s.gexNet)}</td>
+      <td style="color:#C4B5FD;">${(s.pHedge*100).toFixed(0)}%</td>
+      <td style="color:${s.ehpGex>=0?'#C4B5FD':'#FBBF24'};font-weight:700;">${fmtM(s.ehpGex)}</td>
+    </tr>
+  `).join('');
+}
+
+function renderMES() {
+  const R = RESULT;
+  const mult = R.ticker === 'SPY' ? 10 : (R.ticker === 'QQQ' ? 5 : 1);
+  const pw = (R.putWall.K * mult).toFixed(0);
+  const cw = (R.callWall.K * mult).toFixed(0);
+  const fp = R.flipPoint ? (R.flipPoint * mult).toFixed(0) : 'N/A';
+  const sp = (R.S * mult).toFixed(0);
+
+  const levels = [
+    { label: 'Put Wall', val: pw, color: '#FCA5A5' },
+    { label: 'Flip Point', val: fp, color: '#FBBF24' },
+    { label: 'Spot (est.)', val: sp, color: '#C4B5FD' },
+    { label: 'Call Wall', val: cw, color: '#6EE7B7' },
+  ];
+
+  document.getElementById('mesLevels').innerHTML = levels.map(l =>
+    `<div style="text-align:center;padding:12px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;">
+      <div style="font-family:'DM Serif Display',serif;font-size:22px;color:${l.color};">${l.val}</div>
+      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;margin-top:2px;">${l.label}</div>
+      <div style="font-size:9px;color:var(--slate);margin-top:1px;">MES/ES</div>
+    </div>`
+  ).join('');
+}
+</script>
+</body>
+</html>
