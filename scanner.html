@@ -351,8 +351,10 @@ async function scanTicker(ticker, expDate) {
     const volP = st.put && st.put.day ? st.put.day.volume || 0 : 0;
     const lastC = st.call && st.call.last_trade ? st.call.last_trade.price : (st.call && st.call.day ? st.call.day.close : 0);
     const lastP = st.put && st.put.last_trade ? st.put.last_trade.price : (st.put && st.put.day ? st.put.day.close : 0);
-    const premC = volC * 100 * lastC;
-    const premP = volP * 100 * lastP;
+    const midC = callQuote && callQuote.midpoint > 0 ? callQuote.midpoint : lastC;
+    const midP = putQuote && putQuote.midpoint > 0 ? putQuote.midpoint : lastP;
+    const premC = volC * 100 * midC;
+    const premP = volP * 100 * midP;
 
     results.push({ K: st.K, oiC, oiP, gexCall, gexPut, gexNet, dealerDelta, bid, ask, iv, premC, premP,
       vwap: st.call && st.call.day ? st.call.day.vwap : (st.put && st.put.day ? st.put.day.vwap : null)

@@ -697,12 +697,15 @@ async function processChain(chain, S, ticker, expDate) {
     const vwap = st.call && st.call.day ? st.call.day.vwap : (st.put && st.put.day ? st.put.day.vwap : null);
     const lastC = st.call && st.call.last_trade ? st.call.last_trade.price : (st.call && st.call.day ? st.call.day.close : 0);
     const lastP = st.put && st.put.last_trade ? st.put.last_trade.price : (st.put && st.put.day ? st.put.day.close : 0);
-    const premC = volC * 100 * lastC;
-    const premP = volP * 100 * lastP;
-
-    // Extract bid/ask from snapshot for aggressor side detection
+    // Extract bid/ask from snapshot
     const callQuote = st.call && st.call.last_quote;
     const putQuote = st.put && st.put.last_quote;
+
+    // Premium using midpoint (fair value) → fallback to last trade
+    const midC = callQuote && callQuote.midpoint > 0 ? callQuote.midpoint : lastC;
+    const midP = putQuote && putQuote.midpoint > 0 ? putQuote.midpoint : lastP;
+    const premC = volC * 100 * midC;
+    const premP = volP * 100 * midP;
     const bid = callQuote ? callQuote.bid : (putQuote ? putQuote.bid : null);
     const ask = callQuote ? callQuote.ask : (putQuote ? putQuote.ask : null);
 
