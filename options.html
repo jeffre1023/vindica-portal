@@ -824,7 +824,15 @@ function renderFilters() {
   const dayName = ['Dom','Lun','Mar','Mie','Jue','Vie','Sab'][dayOfWeek];
   const dayOk = dayOfWeek >= 1 && dayOfWeek <= 5;
 
-  const allOk = !fomcToday && !cpiToday && !nfpToday && vixOk && ehpOk && dayOk;
+  // Flip Point filter: is spot above or below flip?
+  const fp = R.flipPoint;
+  const spotAboveFlip = fp ? R.S >= fp : true;
+  const flipDist = fp ? Math.abs(R.S - fp) : 0;
+  const flipPct = fp ? (flipDist / R.S * 100).toFixed(1) : '?';
+  const flipClose = fp ? flipDist < R.S * 0.005 : false; // within 0.5% of flip = danger zone
+  const flipOk = spotAboveFlip && !flipClose; // best case: above flip and not close to it
+
+  const allOk = !fomcToday && !cpiToday && !nfpToday && vixOk && ehpOk && dayOk && flipOk;
 
   const items = [
     { label: `FOMC: ${fomcToday ? 'HOY' : 'No'}`, pass: !fomcToday, detail: `Prox: ${nextFomc}` },
@@ -833,6 +841,7 @@ function renderFilters() {
     { label: `IV (VIX est.): ${vixEst}`, pass: vixOk, detail: vixOk ? '< 28' : '> 28 PELIGRO' },
     { label: `Walls P(Hedge): ${(wallPHedge*100).toFixed(0)}%`, pass: ehpOk, detail: ehpOk ? `PW:${pwData?(pwData.pHedge*100).toFixed(0):'?'}% CW:${cwData?(cwData.pHedge*100).toFixed(0):'?'}%` : 'Ambos walls debiles' },
     { label: `Dia: ${dayName}`, pass: dayOk, detail: dayOk ? 'Buena liquidez' : 'Sin mercado' },
+    { label: `Flip Point: ${spotAboveFlip ? 'ENCIMA' : 'DEBAJO'}`, pass: flipOk, detail: fp ? `Spot ${spotAboveFlip?'encima':'debajo'} por ${flipPct}% ($${flipDist.toFixed(2)})${flipClose?' — MUY CERCA':''}` : 'N/A' },
   ];
 
   let verdictHTML = allOk
