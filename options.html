@@ -682,42 +682,47 @@ function renderDecision() {
   const pw = R.putWall.K, cw = R.callWall.K;
 
   let cls, title, sub, detail;
+  const bestWallHedge = Math.max(pwHedge, cwHedge);
 
   if (!noEvents) {
     cls = 'nogo';
     title = 'NO OPERAR — Evento macro hoy';
     sub = `${fomcToday?'FOMC':''} ${cpiToday?'CPI':''} ${nfpToday?'NFP':''} — Los walls no se respetan en dias de evento`;
     detail = 'Espera manana.';
-  } else if (!vixOk) {
-    cls = 'caution';
-    title = 'PRECAUCION — VIX alto (' + vixEst.toFixed(1) + ')';
-    sub = 'Volatilidad elevada. Si operas, reduce size un 50%.';
-    detail = `Put Wall: $${pw.toFixed(0)} (P(Hedge): ${(pwHedge*100).toFixed(0)}%) | Call Wall: $${cw.toFixed(0)} (P(Hedge): ${(cwHedge*100).toFixed(0)}%)`;
   } else if (!dayOk) {
     cls = 'nogo';
     title = 'NO OPERAR — Fin de semana';
     sub = 'Mercado cerrado.';
     detail = '';
-  } else if (pwHedge >= 0.80 && isLong) {
+  } else if (isLong && bestWallHedge >= 0.80) {
+    // LONG GAMMA — best scenario for credit spreads
     cls = 'go';
-    title = 'OPERABLE — Long en Put Wall';
-    sub = `${isLong?'Long Gamma':'Short Gamma'} | Put Wall $${pw.toFixed(0)} solido (P(Hedge): ${(pwHedge*100).toFixed(0)}%)`;
-    detail = `Si ${R.ticker} toca $${pw.toFixed(0)} → BUY ${fm.pv?fm.n:R.ticker} | Size normal | Dealers defienden`;
-  } else if (pwHedge >= 0.80 && !isLong) {
+    title = 'OPERABLE — Credit Spreads en Walls';
+    sub = `Long Gamma — dealers defienden walls | PW: ${(pwHedge*100).toFixed(0)}% | CW: ${(cwHedge*100).toFixed(0)}%`;
+    detail = `Bull Put Spread en $${pw.toFixed(0)} (Put Wall) | Bear Call Spread en $${cw.toFixed(0)} (Call Wall) | Iron Condor si ambos > 80% | 3DTE`;
+  } else if (isLong && bestWallHedge >= 0.65) {
     cls = 'caution';
-    title = 'OPERABLE CON CUIDADO — Long en Put Wall';
-    sub = `Short Gamma | Put Wall $${pw.toFixed(0)} (P(Hedge): ${(pwHedge*100).toFixed(0)}%) — Wall puede fallar`;
-    detail = `Si ${R.ticker} toca $${pw.toFixed(0)} → BUY ${fm.pv?fm.n:R.ticker} | Mitad de size | Stop tight`;
-  } else if (pwHedge >= 0.50) {
-    cls = 'caution';
-    title = 'PRECAUCION — Wall debil';
-    sub = `Put Wall $${pw.toFixed(0)} (P(Hedge): ${(pwHedge*100).toFixed(0)}%) — Reduce size 50%`;
-    detail = `Mucho OI es multi-leg (spreads). El wall puede no aguantar. Cuarto de size maximo.`;
-  } else {
+    title = 'OPERABLE CON CUIDADO — Credit Spreads';
+    sub = `Long Gamma pero walls moderados | PW: ${(pwHedge*100).toFixed(0)}% | CW: ${(cwHedge*100).toFixed(0)}%`;
+    detail = `Credit spread SOLO en el wall con P(Hedge) mas alto | Mitad de size | 1DTE`;
+  } else if (isLong) {
     cls = 'nogo';
-    title = 'NO OPERAR — Wall no confiable';
-    sub = `Put Wall $${pw.toFixed(0)} (P(Hedge): ${(pwHedge*100).toFixed(0)}%) — Mayoria del OI son spreads`;
-    detail = 'Sin edge. Espera un dia con P(Hedge) > 80%.';
+    title = 'NO OPERAR — Walls debiles';
+    sub = `Long Gamma pero P(Hedge) bajo | PW: ${(pwHedge*100).toFixed(0)}% | CW: ${(cwHedge*100).toFixed(0)}%`;
+    detail = 'Walls no confiables. Espera un dia con P(Hedge) > 80%.';
+  } else if (!isLong && !vixOk) {
+    // SHORT GAMMA + high VIX — worst case
+    cls = 'nogo';
+    title = 'NO OPERAR — Short Gamma + VIX alto';
+    sub = `Short Gamma + VIX ${vixEst.toFixed(1)} — dealers amplifican, volatilidad alta`;
+    detail = 'Combinacion peligrosa. NO credit spreads en walls. Espera Long Gamma.';
+  } else if (!isLong) {
+    // SHORT GAMMA — breakouts or wait
+    cls = 'caution';
+    title = 'SHORT GAMMA — Espera breakout o no operes';
+    sub = `Dealers amplifican movimientos | NO credit spreads en walls | PW: ${(pwHedge*100).toFixed(0)}% | CW: ${(cwHedge*100).toFixed(0)}%`;
+    const breakoutDir = R.dealerDeltaTotal > 0 ? 'alcista' : 'bajista';
+    detail = `Si ${R.ticker} ROMPE $${cw.toFixed(0)} (Call Wall) → Debit Call Spread (gamma squeeze) | Si ROMPE $${pw.toFixed(0)} (Put Wall) → Debit Put Spread (cascada) | Dealer delta ${breakoutDir} | O espera dia Long Gamma`;
   }
 
   document.getElementById('decisionPanel').innerHTML =
@@ -760,66 +765,97 @@ function renderWallZones() {
   const cwFail = cw + stopBuffer * 1.1;
   const cwTarget = R.flipPoint || (cw - (cw - pw) * 0.5);
 
+  const isLong = R.gexTotal > 0;
+
   // P(Hedge) color
   const phColor = (ph) => ph > 0.80 ? 'green' : (ph > 0.50 ? 'amber' : 'red');
   const phLabel = (ph) => ph > 0.80 ? 'SOLIDO' : (ph > 0.50 ? 'DEBIL' : 'NO CONFIABLE');
 
-  // Credit spread calculations
-  const spreadWidth = R.ticker === 'SPY' ? 2 : (S > 500 ? 5 : 2); // $2 wide for SPY, $5 for high-priced
-  const pwShort = pw; // sell put at wall
-  const pwLong = pw - spreadWidth; // buy put below
-  const cwShort = cw; // sell call at wall
-  const cwLong = cw + spreadWidth; // buy call above
+  // Credit spread calculations (for Long Gamma)
+  const spreadWidth = R.ticker === 'SPY' ? 2 : (S > 500 ? 5 : 2);
+  const pwShort = pw;
+  const pwLong = pw - spreadWidth;
+  const cwShort = cw;
+  const cwLong = cw + spreadWidth;
 
-  // Estimate credit (~40% of spread width for ATM-ish spreads)
+  // Debit spread calculations (for Short Gamma breakouts)
+  const debitWidth = spreadWidth;
+  const breakoutCallBuy = cw;
+  const breakoutCallSell = cw + debitWidth;
+  const breakoutPutBuy = pw;
+  const breakoutPutSell = pw - debitWidth;
+
   const estCredit = (spreadWidth * 0.40).toFixed(2);
   const estRisk = (spreadWidth - parseFloat(estCredit)).toFixed(2);
   const estCreditDollar = (parseFloat(estCredit) * 100).toFixed(0);
   const estRiskDollar = (parseFloat(estRisk) * 100).toFixed(0);
+  const estDebitCost = (spreadWidth * 0.55).toFixed(2);
+  const estDebitProfit = (spreadWidth - parseFloat(estDebitCost)).toFixed(2);
+  const estDebitDollar = (parseFloat(estDebitCost) * 100).toFixed(0);
+  const estDebitProfitDollar = (parseFloat(estDebitProfit) * 100).toFixed(0);
 
-  document.getElementById('wallZones').innerHTML = `
+  // Different strategies based on regime
+  if (isLong) {
+    // ═══ LONG GAMMA — Credit spreads at walls ═══
+    document.getElementById('wallZones').innerHTML = `
     <div class="wz put-zone">
-      <h4>PUT WALL ZONE — Long / Buy</h4>
-      <div class="wz-row" style="border-bottom:1px solid rgba(16,185,129,.2);padding-bottom:8px;margin-bottom:4px;"><span class="wz-label" style="font-weight:700;color:#6EE7B7;">FUTURES (${fm.n})</span><span class="wz-val" style="font-size:10px;color:var(--muted);">Margin ~$2,675</span></div>
-      <div class="wz-row"><span class="wz-label">Entry Zone</span><span class="wz-val">$${pwEntry.toFixed(2)} — $${pw.toFixed(2)}</span></div>
-      ${hasFut ? `<div class="wz-row"><span class="wz-label">${fm.n} Limit</span><span class="wz-val green">BUY @ ${(pwEntry*fm.m).toFixed(0)}</span></div>` : ''}
-      ${hasFut ? `<div class="wz-row"><span class="wz-label">Stop / Target</span><span class="wz-val"><span style="color:#FCA5A5;">${(pwStop*fm.m).toFixed(0)}</span> / <span style="color:#6EE7B7;">${(pwTarget*fm.m).toFixed(0)}</span></span></div>` : ''}
-      ${hasFut ? `<div class="wz-row"><span class="wz-label">${fm.n} P&L</span><span class="wz-val">+$${((pwTarget-pwEntry)*fm.m*fm.pv).toFixed(0)} / -$${((pwEntry-pwStop)*fm.m*fm.pv).toFixed(0)}</span></div>` : ''}
-
-      <div class="wz-row" style="border-bottom:1px solid rgba(139,92,246,.2);border-top:1px solid rgba(139,92,246,.2);padding:8px 0;margin:6px 0;"><span class="wz-label" style="font-weight:700;color:#C4B5FD;">CREDIT SPREAD 3DTE</span><span class="wz-val" style="font-size:10px;color:var(--muted);">Riesgo ~$${estRiskDollar}</span></div>
-      <div class="wz-row"><span class="wz-label">Orden</span><span class="wz-val" style="font-size:11px;">SELL $${pwShort.toFixed(0)} Put / BUY $${pwLong.toFixed(0)} Put</span></div>
+      <h4>PUT WALL — Bull Put Spread (Credit)</h4>
+      <div class="wz-row" style="padding-bottom:6px;margin-bottom:4px;border-bottom:1px solid rgba(16,185,129,.15);"><span class="wz-label" style="color:#6EE7B7;font-weight:700;">LONG GAMMA — Dealers defienden este wall</span></div>
+      <div class="wz-row"><span class="wz-label">Orden</span><span class="wz-val" style="font-size:11px;">SELL $${pwShort.toFixed(0)} Put / BUY $${pwLong.toFixed(0)} Put (3DTE)</span></div>
       <div class="wz-row"><span class="wz-label">Credito est.</span><span class="wz-val green">~$${estCredit} ($${estCreditDollar})</span></div>
       <div class="wz-row"><span class="wz-label">Riesgo max</span><span class="wz-val red">$${estRisk} ($${estRiskDollar})</span></div>
       <div class="wz-row"><span class="wz-label">Ganas si</span><span class="wz-val">${R.ticker} cierra > $${pwShort.toFixed(0)}</span></div>
       <div class="wz-row"><span class="wz-label">Theta</span><span class="wz-val green">A tu favor</span></div>
       <div class="wz-row"><span class="wz-label">Con $1,000</span><span class="wz-val">${Math.floor(1000/parseInt(estRiskDollar))} spreads max</span></div>
-
-      <div class="wz-row" style="border-top:1px solid rgba(255,255,255,.08);padding-top:8px;margin-top:6px;"><span class="wz-label">Wall Fail</span><span class="wz-val red">< $${pwFail.toFixed(2)} → FLIP</span></div>
-      <div class="wz-row"><span class="wz-label">P(Hedge)</span><span class="wz-val ${phColor(pwHedge)}">${(pwHedge*100).toFixed(0)}% — ${phLabel(pwHedge)}</span></div>
-      <div class="wz-row"><span class="wz-label">Size</span><span class="wz-val">${pwHedge>0.80?'Normal':pwHedge>0.50?'Mitad':'NO OPERAR'}</span></div>
+      ${hasFut ? `<div class="wz-row" style="border-top:1px solid rgba(255,255,255,.06);padding-top:6px;margin-top:4px;"><span class="wz-label" style="color:var(--muted);">${fm.n} alternativo</span><span class="wz-val" style="font-size:10px;">BUY @ ${(pwEntry*fm.m).toFixed(0)} | SL ${(pwStop*fm.m).toFixed(0)} | TP ${(pwTarget*fm.m).toFixed(0)}</span></div>` : ''}
+      <div class="wz-row" style="border-top:1px solid rgba(255,255,255,.08);padding-top:6px;margin-top:4px;"><span class="wz-label">P(Hedge)</span><span class="wz-val ${phColor(pwHedge)}">${(pwHedge*100).toFixed(0)}% — ${phLabel(pwHedge)}</span></div>
+      <div class="wz-row"><span class="wz-label">Wall Fail</span><span class="wz-val red">< $${pwFail.toFixed(2)} → cierra spread</span></div>
     </div>
 
     <div class="wz call-zone">
-      <h4>CALL WALL ZONE — Short / Sell</h4>
-      <div class="wz-row" style="border-bottom:1px solid rgba(239,68,68,.2);padding-bottom:8px;margin-bottom:4px;"><span class="wz-label" style="font-weight:700;color:#FCA5A5;">FUTURES (${fm.n})</span><span class="wz-val" style="font-size:10px;color:var(--muted);">Margin ~$2,675</span></div>
-      <div class="wz-row"><span class="wz-label">Entry Zone</span><span class="wz-val">$${cw.toFixed(2)} — $${cwEntry.toFixed(2)}</span></div>
-      ${hasFut ? `<div class="wz-row"><span class="wz-label">${fm.n} Limit</span><span class="wz-val red">SELL @ ${(cwEntry*fm.m).toFixed(0)}</span></div>` : ''}
-      ${hasFut ? `<div class="wz-row"><span class="wz-label">Stop / Target</span><span class="wz-val"><span style="color:#FCA5A5;">${(cwStop*fm.m).toFixed(0)}</span> / <span style="color:#6EE7B7;">${(cwTarget*fm.m).toFixed(0)}</span></span></div>` : ''}
-      ${hasFut ? `<div class="wz-row"><span class="wz-label">${fm.n} P&L</span><span class="wz-val">+$${((cwEntry-cwTarget)*fm.m*fm.pv).toFixed(0)} / -$${((cwStop-cwEntry)*fm.m*fm.pv).toFixed(0)}</span></div>` : ''}
-
-      <div class="wz-row" style="border-bottom:1px solid rgba(139,92,246,.2);border-top:1px solid rgba(139,92,246,.2);padding:8px 0;margin:6px 0;"><span class="wz-label" style="font-weight:700;color:#C4B5FD;">CREDIT SPREAD 3DTE</span><span class="wz-val" style="font-size:10px;color:var(--muted);">Riesgo ~$${estRiskDollar}</span></div>
-      <div class="wz-row"><span class="wz-label">Orden</span><span class="wz-val" style="font-size:11px;">SELL $${cwShort.toFixed(0)} Call / BUY $${cwLong.toFixed(0)} Call</span></div>
+      <h4>CALL WALL — Bear Call Spread (Credit)</h4>
+      <div class="wz-row" style="padding-bottom:6px;margin-bottom:4px;border-bottom:1px solid rgba(239,68,68,.15);"><span class="wz-label" style="color:#FCA5A5;font-weight:700;">LONG GAMMA — Dealers defienden este wall</span></div>
+      <div class="wz-row"><span class="wz-label">Orden</span><span class="wz-val" style="font-size:11px;">SELL $${cwShort.toFixed(0)} Call / BUY $${cwLong.toFixed(0)} Call (3DTE)</span></div>
       <div class="wz-row"><span class="wz-label">Credito est.</span><span class="wz-val green">~$${estCredit} ($${estCreditDollar})</span></div>
       <div class="wz-row"><span class="wz-label">Riesgo max</span><span class="wz-val red">$${estRisk} ($${estRiskDollar})</span></div>
       <div class="wz-row"><span class="wz-label">Ganas si</span><span class="wz-val">${R.ticker} cierra < $${cwShort.toFixed(0)}</span></div>
       <div class="wz-row"><span class="wz-label">Theta</span><span class="wz-val green">A tu favor</span></div>
       <div class="wz-row"><span class="wz-label">Con $1,000</span><span class="wz-val">${Math.floor(1000/parseInt(estRiskDollar))} spreads max</span></div>
-
-      <div class="wz-row" style="border-top:1px solid rgba(255,255,255,.08);padding-top:8px;margin-top:6px;"><span class="wz-label">Wall Fail</span><span class="wz-val red">> $${cwFail.toFixed(2)} → FLIP</span></div>
-      <div class="wz-row"><span class="wz-label">P(Hedge)</span><span class="wz-val ${phColor(cwHedge)}">${(cwHedge*100).toFixed(0)}% — ${phLabel(cwHedge)}</span></div>
-      <div class="wz-row"><span class="wz-label">Size</span><span class="wz-val">${cwHedge>0.80?'Normal':cwHedge>0.50?'Mitad':'NO OPERAR'}</span></div>
+      ${hasFut ? `<div class="wz-row" style="border-top:1px solid rgba(255,255,255,.06);padding-top:6px;margin-top:4px;"><span class="wz-label" style="color:var(--muted);">${fm.n} alternativo</span><span class="wz-val" style="font-size:10px;">SELL @ ${(cwEntry*fm.m).toFixed(0)} | SL ${(cwStop*fm.m).toFixed(0)} | TP ${(cwTarget*fm.m).toFixed(0)}</span></div>` : ''}
+      <div class="wz-row" style="border-top:1px solid rgba(255,255,255,.08);padding-top:6px;margin-top:4px;"><span class="wz-label">P(Hedge)</span><span class="wz-val ${phColor(cwHedge)}">${(cwHedge*100).toFixed(0)}% — ${phLabel(cwHedge)}</span></div>
+      <div class="wz-row"><span class="wz-label">Wall Fail</span><span class="wz-val red">> $${cwFail.toFixed(2)} → cierra spread</span></div>
+    </div>`;
+  } else {
+    // ═══ SHORT GAMMA — Breakout debit spreads or wait ═══
+    document.getElementById('wallZones').innerHTML = `
+    <div class="wz put-zone" style="background:rgba(245,158,11,.04);border-color:rgba(245,158,11,.15);">
+      <h4 style="color:#FBBF24;">PUT WALL — Breakdown (Debit Put Spread)</h4>
+      <div class="wz-row" style="padding-bottom:6px;margin-bottom:4px;border-bottom:1px solid rgba(245,158,11,.15);"><span class="wz-label" style="color:#FBBF24;font-weight:700;">SHORT GAMMA — Si wall ROMPE, cascada bajista</span></div>
+      <div class="wz-row"><span class="wz-label">Trigger</span><span class="wz-val red">${R.ticker} rompe < $${pw.toFixed(0)}</span></div>
+      <div class="wz-row"><span class="wz-label">Orden</span><span class="wz-val" style="font-size:11px;">BUY $${breakoutPutBuy.toFixed(0)} Put / SELL $${breakoutPutSell.toFixed(0)} Put (1DTE)</span></div>
+      <div class="wz-row"><span class="wz-label">Costo est.</span><span class="wz-val red">~$${estDebitCost} ($${estDebitDollar})</span></div>
+      <div class="wz-row"><span class="wz-label">Max profit</span><span class="wz-val green">$${estDebitProfit} ($${estDebitProfitDollar})</span></div>
+      <div class="wz-row"><span class="wz-label">Ganas si</span><span class="wz-val">${R.ticker} sigue bajando despues de romper</span></div>
+      <div class="wz-row"><span class="wz-label">NO entrar si</span><span class="wz-val amber">Wall aguanta — NO compres antes del breakdown</span></div>
+      ${hasFut ? `<div class="wz-row" style="border-top:1px solid rgba(255,255,255,.06);padding-top:6px;margin-top:4px;"><span class="wz-label" style="color:var(--muted);">${fm.n} alternativo</span><span class="wz-val" style="font-size:10px;">SELL @ ${(pwStop*fm.m).toFixed(0)} si rompe ${(pw*fm.m).toFixed(0)}</span></div>` : ''}
+      <div class="wz-row" style="border-top:1px solid rgba(255,255,255,.08);padding-top:6px;margin-top:4px;"><span class="wz-label">P(Hedge)</span><span class="wz-val ${phColor(pwHedge)}">${(pwHedge*100).toFixed(0)}% — ${pwHedge>0.80?'wall puede aguantar, espera confirmacion':'wall debil, breakdown probable'}</span></div>
+      <div class="wz-row"><span class="wz-label" style="color:#FBBF24;">⚠ NO credit spread aqui</span><span class="wz-val" style="font-size:10px;">Short Gamma puede romper este wall</span></div>
     </div>
-  `;
+
+    <div class="wz call-zone" style="background:rgba(245,158,11,.04);border-color:rgba(245,158,11,.15);">
+      <h4 style="color:#FBBF24;">CALL WALL — Breakout (Debit Call Spread)</h4>
+      <div class="wz-row" style="padding-bottom:6px;margin-bottom:4px;border-bottom:1px solid rgba(245,158,11,.15);"><span class="wz-label" style="color:#FBBF24;font-weight:700;">SHORT GAMMA — Si wall ROMPE, gamma squeeze alcista</span></div>
+      <div class="wz-row"><span class="wz-label">Trigger</span><span class="wz-val green">${R.ticker} rompe > $${cw.toFixed(0)}</span></div>
+      <div class="wz-row"><span class="wz-label">Orden</span><span class="wz-val" style="font-size:11px;">BUY $${breakoutCallBuy.toFixed(0)} Call / SELL $${breakoutCallSell.toFixed(0)} Call (1DTE)</span></div>
+      <div class="wz-row"><span class="wz-label">Costo est.</span><span class="wz-val red">~$${estDebitCost} ($${estDebitDollar})</span></div>
+      <div class="wz-row"><span class="wz-label">Max profit</span><span class="wz-val green">$${estDebitProfit} ($${estDebitProfitDollar})</span></div>
+      <div class="wz-row"><span class="wz-label">Ganas si</span><span class="wz-val">${R.ticker} sigue subiendo despues de romper</span></div>
+      <div class="wz-row"><span class="wz-label">NO entrar si</span><span class="wz-val amber">Wall aguanta — NO compres antes del breakout</span></div>
+      ${hasFut ? `<div class="wz-row" style="border-top:1px solid rgba(255,255,255,.06);padding-top:6px;margin-top:4px;"><span class="wz-label" style="color:var(--muted);">${fm.n} alternativo</span><span class="wz-val" style="font-size:10px;">BUY @ ${(cwStop*fm.m).toFixed(0)} si rompe ${(cw*fm.m).toFixed(0)}</span></div>` : ''}
+      <div class="wz-row" style="border-top:1px solid rgba(255,255,255,.08);padding-top:6px;margin-top:4px;"><span class="wz-label">P(Hedge)</span><span class="wz-val ${phColor(cwHedge)}">${(cwHedge*100).toFixed(0)}% — ${cwHedge>0.80?'wall puede aguantar, espera confirmacion':'wall debil, breakout probable'}</span></div>
+      <div class="wz-row"><span class="wz-label" style="color:#FBBF24;">⚠ NO credit spread aqui</span><span class="wz-val" style="font-size:10px;">Short Gamma puede romper este wall</span></div>
+    </div>`;
+  }
 }
 
 function renderFilters() {
