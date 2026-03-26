@@ -656,34 +656,38 @@ async function processChain(chain, S, ticker, expDate) {
     const gexNet = gexCall + gexPut;
 
     // ═══ Smart Dealer Delta ═══
-    // Infer aggressor side from OI change + price direction:
-    //   volume high + price up → client bought (dealer sold) → sign = -1
-    //   volume high + price down → client sold (dealer bought) → sign = +1
-    //   low volume or no price change → assume client bought (traditional) → sign = -1
-    const callDay = st.call && st.call.day;
-    const putDay = st.put && st.put.day;
+    // Use last_trade.price vs last_quote bid/ask to determine aggressor:
+    //   trade price >= ask → client bought (lifted offer) → dealer sold → sign = -1
+    //   trade price <= bid → client sold (hit bid) → dealer bought → sign = +1
+    //   between or no quote → use price direction fallback
+    const callQuoteDD = st.call && st.call.last_quote;
+    const callTradeDD = st.call && st.call.last_trade;
+    const putQuoteDD = st.put && st.put.last_quote;
+    const putTradeDD = st.put && st.put.last_trade;
 
-    // Call side: infer if client bought or sold calls
-    let callDealerSign = -1; // default: dealer sold (client bought)
-    if (callDay && callDay.volume > 0 && callDay.open > 0 && callDay.close > 0) {
-      const callPriceUp = callDay.close >= callDay.open;
-      const callActive = callDay.volume > (oiC * 0.1); // significant volume vs OI
-      if (callActive && !callPriceUp) callDealerSign = 1; // client sold calls → dealer bought
+    let callDealerSign = -1; // default: dealer sold
+    if (callQuoteDD && callTradeDD && callQuoteDD.bid > 0 && callQuoteDD.ask > 0) {
+      const mid = (callQuoteDD.bid + callQuoteDD.ask) / 2;
+      if (callTradeDD.price <= callQuoteDD.bid) callDealerSign = 1;       // client sold → dealer bought
+      else if (callTradeDD.price >= callQuoteDD.ask) callDealerSign = -1;  // client bought → dealer sold
+      else callDealerSign = callTradeDD.price < mid ? 1 : -1;             // below mid = sell side
+    } else {
+      // Fallback: price direction
+      const cd = st.call && st.call.day;
+      if (cd && cd.volume > (oiC * 0.1) && cd.close < cd.open) callDealerSign = 1;
     }
 
-    // Put side: infer if client bought or sold puts
-    let putDealerSign = -1; // default: dealer sold (client bought)
-    if (putDay && putDay.volume > 0 && putDay.open > 0 && putDay.close > 0) {
-      const putPriceUp = putDay.close >= putDay.open;
-      const putActive = putDay.volume > (oiP * 0.1);
-      if (putActive && !putPriceUp) putDealerSign = 1; // client sold puts → dealer bought
+    let putDealerSign = -1; // default: dealer sold
+    if (putQuoteDD && putTradeDD && putQuoteDD.bid > 0 && putQuoteDD.ask > 0) {
+      const mid = (putQuoteDD.bid + putQuoteDD.ask) / 2;
+      if (putTradeDD.price <= putQuoteDD.bid) putDealerSign = 1;
+      else if (putTradeDD.price >= putQuoteDD.ask) putDealerSign = -1;
+      else putDealerSign = putTradeDD.price < mid ? 1 : -1;
+    } else {
+      const pd = st.put && st.put.day;
+      if (pd && pd.volume > (oiP * 0.1) && pd.close < pd.open) putDealerSign = 1;
     }
 
-    // Smart dealer delta per strike
-    // Client bought call → dealer sold call → dealer delta = -(OI * delta)
-    // Client sold call → dealer bought call → dealer delta = +(OI * delta)
-    // Client bought put → dealer sold put → dealer delta = -(OI * deltaPut) [deltaPut is negative, so this is positive]
-    // Client sold put → dealer bought put → dealer delta = +(OI * deltaPut) [this is negative]
     const dealerDelta = (callDealerSign * oiC * deltaCall * 100) + (putDealerSign * oiP * deltaPut * 100);
 
     // Volume & Premium

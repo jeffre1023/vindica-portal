@@ -315,16 +315,30 @@ async function scanTicker(ticker, expDate) {
     const gexCall = oiC * g.gamma * 100 * S;
     const gexPut = -oiP * g.gamma * 100 * S;
     const gexNet = gexCall + gexPut;
-    // Smart dealer delta
-    const callDay = st.call && st.call.day;
-    const putDay = st.put && st.put.day;
+    // Smart dealer delta using bid/ask
+    const callQuoteDD = st.call && st.call.last_quote;
+    const callTradeDD = st.call && st.call.last_trade;
+    const putQuoteDD = st.put && st.put.last_quote;
+    const putTradeDD = st.put && st.put.last_trade;
     let callDealerSign = -1;
-    if (callDay && callDay.volume > 0 && callDay.open > 0 && callDay.close > 0) {
-      if (callDay.volume > (oiC * 0.1) && callDay.close < callDay.open) callDealerSign = 1;
+    if (callQuoteDD && callTradeDD && callQuoteDD.bid > 0 && callQuoteDD.ask > 0) {
+      const mid = (callQuoteDD.bid + callQuoteDD.ask) / 2;
+      if (callTradeDD.price <= callQuoteDD.bid) callDealerSign = 1;
+      else if (callTradeDD.price >= callQuoteDD.ask) callDealerSign = -1;
+      else callDealerSign = callTradeDD.price < mid ? 1 : -1;
+    } else {
+      const cd = st.call && st.call.day;
+      if (cd && cd.volume > (oiC * 0.1) && cd.close < cd.open) callDealerSign = 1;
     }
     let putDealerSign = -1;
-    if (putDay && putDay.volume > 0 && putDay.open > 0 && putDay.close > 0) {
-      if (putDay.volume > (oiP * 0.1) && putDay.close < putDay.open) putDealerSign = 1;
+    if (putQuoteDD && putTradeDD && putQuoteDD.bid > 0 && putQuoteDD.ask > 0) {
+      const mid = (putQuoteDD.bid + putQuoteDD.ask) / 2;
+      if (putTradeDD.price <= putQuoteDD.bid) putDealerSign = 1;
+      else if (putTradeDD.price >= putQuoteDD.ask) putDealerSign = -1;
+      else putDealerSign = putTradeDD.price < mid ? 1 : -1;
+    } else {
+      const pd = st.put && st.put.day;
+      if (pd && pd.volume > (oiP * 0.1) && pd.close < pd.open) putDealerSign = 1;
     }
     const dealerDelta = (callDealerSign * oiC * g.deltaCall * 100) + (putDealerSign * oiP * g.deltaPut * 100);
 
