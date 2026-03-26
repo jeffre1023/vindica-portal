@@ -643,8 +643,36 @@ async function processChain(chain, S, ticker, expDate) {
     const gexPut = -oiP * gamma * 100 * S;
     const gexNet = gexCall + gexPut;
 
-    // Dealer delta
-    const dealerDelta = -(oiC * deltaCall * 100) - (oiP * deltaPut * 100);
+    // ═══ Smart Dealer Delta ═══
+    // Infer aggressor side from OI change + price direction:
+    //   volume high + price up → client bought (dealer sold) → sign = -1
+    //   volume high + price down → client sold (dealer bought) → sign = +1
+    //   low volume or no price change → assume client bought (traditional) → sign = -1
+    const callDay = st.call && st.call.day;
+    const putDay = st.put && st.put.day;
+
+    // Call side: infer if client bought or sold calls
+    let callDealerSign = -1; // default: dealer sold (client bought)
+    if (callDay && callDay.volume > 0 && callDay.open > 0 && callDay.close > 0) {
+      const callPriceUp = callDay.close >= callDay.open;
+      const callActive = callDay.volume > (oiC * 0.1); // significant volume vs OI
+      if (callActive && !callPriceUp) callDealerSign = 1; // client sold calls → dealer bought
+    }
+
+    // Put side: infer if client bought or sold puts
+    let putDealerSign = -1; // default: dealer sold (client bought)
+    if (putDay && putDay.volume > 0 && putDay.open > 0 && putDay.close > 0) {
+      const putPriceUp = putDay.close >= putDay.open;
+      const putActive = putDay.volume > (oiP * 0.1);
+      if (putActive && !putPriceUp) putDealerSign = 1; // client sold puts → dealer bought
+    }
+
+    // Smart dealer delta per strike
+    // Client bought call → dealer sold call → dealer delta = -(OI * delta)
+    // Client sold call → dealer bought call → dealer delta = +(OI * delta)
+    // Client bought put → dealer sold put → dealer delta = -(OI * deltaPut) [deltaPut is negative, so this is positive]
+    // Client sold put → dealer bought put → dealer delta = +(OI * deltaPut) [this is negative]
+    const dealerDelta = (callDealerSign * oiC * deltaCall * 100) + (putDealerSign * oiP * deltaPut * 100);
 
     // Volume & Premium
     const volC = st.call && st.call.day ? st.call.day.volume || 0 : 0;

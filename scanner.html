@@ -315,7 +315,18 @@ async function scanTicker(ticker, expDate) {
     const gexCall = oiC * g.gamma * 100 * S;
     const gexPut = -oiP * g.gamma * 100 * S;
     const gexNet = gexCall + gexPut;
-    const dealerDelta = -(oiC * g.deltaCall * 100) - (oiP * g.deltaPut * 100);
+    // Smart dealer delta
+    const callDay = st.call && st.call.day;
+    const putDay = st.put && st.put.day;
+    let callDealerSign = -1;
+    if (callDay && callDay.volume > 0 && callDay.open > 0 && callDay.close > 0) {
+      if (callDay.volume > (oiC * 0.1) && callDay.close < callDay.open) callDealerSign = 1;
+    }
+    let putDealerSign = -1;
+    if (putDay && putDay.volume > 0 && putDay.open > 0 && putDay.close > 0) {
+      if (putDay.volume > (oiP * 0.1) && putDay.close < putDay.open) putDealerSign = 1;
+    }
+    const dealerDelta = (callDealerSign * oiC * g.deltaCall * 100) + (putDealerSign * oiP * g.deltaPut * 100);
 
     const callQuote = st.call && st.call.last_quote;
     const putQuote = st.put && st.put.last_quote;
