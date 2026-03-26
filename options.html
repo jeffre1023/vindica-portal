@@ -122,6 +122,27 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--light);
 .rtbl td{padding:7px 5px;text-align:center;font-size:11px;color:var(--light);border-bottom:1px solid rgba(255,255,255,.03);}
 .rtbl tr:hover{background:rgba(255,255,255,.02);}
 
+/* Decision panel */
+.decision{border-radius:14px;padding:20px;margin-bottom:14px;text-align:center;}
+.decision.go{background:rgba(16,185,129,.08);border:2px solid rgba(16,185,129,.35);}
+.decision.caution{background:rgba(245,158,11,.08);border:2px solid rgba(245,158,11,.35);}
+.decision.nogo{background:rgba(239,68,68,.08);border:2px solid rgba(239,68,68,.35);}
+.decision h2{font-family:'DM Serif Display',serif;font-size:22px;margin-bottom:8px;}
+.decision.go h2{color:#6EE7B7;}.decision.caution h2{color:#FBBF24;}.decision.nogo h2{color:#FCA5A5;}
+.decision .d-sub{font-size:13px;color:var(--light);margin-bottom:6px;}
+.decision .d-detail{font-size:11px;color:var(--muted);}
+
+/* Wall zones */
+.wz{border-radius:12px;padding:16px;text-align:center;}
+.wz.put-zone{background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.2);}
+.wz.call-zone{background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2);}
+.wz h4{font-family:'DM Serif Display',serif;font-size:14px;margin-bottom:10px;}
+.wz.put-zone h4{color:#6EE7B7;}.wz.call-zone h4{color:#FCA5A5;}
+.wz-row{display:flex;justify-content:space-between;padding:5px 0;font-size:12px;border-bottom:1px solid rgba(255,255,255,.04);}
+.wz-row:last-child{border:none;}
+.wz-label{color:var(--muted);}.wz-val{color:#fff;font-weight:600;}
+.wz-val.green{color:#6EE7B7;}.wz-val.red{color:#FCA5A5;}.wz-val.amber{color:#FBBF24;}.wz-val.purple{color:#C4B5FD;}
+
 .hidden{display:none;}
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
 .fade-in{animation:fadeUp .3s ease both;}
@@ -186,6 +207,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--light);
     <button class="btn btn-ghost" onclick="loadChain(true)">Refresh</button>
     <div class="spot-display" id="spotDisplay">—</div>
   </div>
+
+  <!-- DECISION PANEL — the only thing you need to read -->
+  <div id="decisionPanel" class="hidden"></div>
+
+  <!-- WALL ZONES — entry, stop, fail levels -->
+  <div id="wallZones" class="hidden" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;"></div>
 
   <!-- Filters -->
   <div class="filters-panel hidden" id="filtersPanel"></div>
@@ -613,6 +640,8 @@ function fmtM(n) {
 }
 
 function renderAll() {
+  renderDecision();
+  renderWallZones();
   renderFilters();
   renderMetrics();
   renderPriceBar();
@@ -621,8 +650,153 @@ function renderAll() {
   renderResultsTable();
   renderMES();
   // Show all
-  ['metricsRow','priceBarWrap','setupsContainer','chartPanel','resultsPanel','mesPanel','filtersPanel'].forEach(id =>
-    document.getElementById(id).classList.remove('hidden'));
+  ['decisionPanel','wallZones','metricsRow','priceBarWrap','setupsContainer','chartPanel','resultsPanel','mesPanel','filtersPanel'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('hidden');
+  });
+  // wallZones needs display:grid restored
+  document.getElementById('wallZones').style.display = 'grid';
+}
+
+// ═══════════════════════════════════════
+// DECISION PANEL — 1 box, 1 answer
+// ═══════════════════════════════════════
+function renderDecision() {
+  const R = RESULT;
+  const isLong = R.gexTotal > 0;
+
+  // Get P(Hedge) for Put Wall and Call Wall
+  const pwData = R.results.find(r => r.K === R.putWall.K);
+  const cwData = R.results.find(r => r.K === R.callWall.K);
+  const pwHedge = pwData ? pwData.pHedge : 0.5;
+  const cwHedge = cwData ? cwData.pHedge : 0.5;
+
+  // Check filters
+  const today = new Date().toISOString().split('T')[0];
+  const fomcToday = FOMC_DATES.includes(today);
+  const cpiToday = CPI_DATES.includes(today);
+  const nfpToday = NFP_DATES.includes(today);
+  const atmIV = R.results.find(r => Math.abs(r.K - R.S) < R.S * 0.005);
+  const vixEst = atmIV ? atmIV.iv * 100 : 20;
+  const vixOk = vixEst < 28;
+  const noEvents = !fomcToday && !cpiToday && !nfpToday;
+  const dayOk = new Date().getDay() >= 1 && new Date().getDay() <= 5;
+
+  const fm = { SPY:{n:'MES',m:10,pv:5}, SPX:{n:'MES',m:1,pv:5}, QQQ:{n:'MNQ',m:5,pv:2}, NDX:{n:'MNQ',m:1,pv:2}, IWM:{n:'M2K',m:10,pv:5} }[R.ticker] || {n:R.ticker,m:1,pv:0};
+  const pw = R.putWall.K, cw = R.callWall.K;
+
+  let cls, title, sub, detail;
+
+  if (!noEvents) {
+    cls = 'nogo';
+    title = 'NO OPERAR — Evento macro hoy';
+    sub = `${fomcToday?'FOMC':''} ${cpiToday?'CPI':''} ${nfpToday?'NFP':''} — Los walls no se respetan en dias de evento`;
+    detail = 'Espera manana.';
+  } else if (!vixOk) {
+    cls = 'caution';
+    title = 'PRECAUCION — VIX alto (' + vixEst.toFixed(1) + ')';
+    sub = 'Volatilidad elevada. Si operas, reduce size un 50%.';
+    detail = `Put Wall: $${pw.toFixed(0)} (P(Hedge): ${(pwHedge*100).toFixed(0)}%) | Call Wall: $${cw.toFixed(0)} (P(Hedge): ${(cwHedge*100).toFixed(0)}%)`;
+  } else if (!dayOk) {
+    cls = 'nogo';
+    title = 'NO OPERAR — Fin de semana';
+    sub = 'Mercado cerrado.';
+    detail = '';
+  } else if (pwHedge >= 0.80 && isLong) {
+    cls = 'go';
+    title = 'OPERABLE — Long en Put Wall';
+    sub = `${isLong?'Long Gamma':'Short Gamma'} | Put Wall $${pw.toFixed(0)} solido (P(Hedge): ${(pwHedge*100).toFixed(0)}%)`;
+    detail = `Si ${R.ticker} toca $${pw.toFixed(0)} → BUY ${fm.pv?fm.n:R.ticker} | Size normal | Dealers defienden`;
+  } else if (pwHedge >= 0.80 && !isLong) {
+    cls = 'caution';
+    title = 'OPERABLE CON CUIDADO — Long en Put Wall';
+    sub = `Short Gamma | Put Wall $${pw.toFixed(0)} (P(Hedge): ${(pwHedge*100).toFixed(0)}%) — Wall puede fallar`;
+    detail = `Si ${R.ticker} toca $${pw.toFixed(0)} → BUY ${fm.pv?fm.n:R.ticker} | Mitad de size | Stop tight`;
+  } else if (pwHedge >= 0.50) {
+    cls = 'caution';
+    title = 'PRECAUCION — Wall debil';
+    sub = `Put Wall $${pw.toFixed(0)} (P(Hedge): ${(pwHedge*100).toFixed(0)}%) — Reduce size 50%`;
+    detail = `Mucho OI es multi-leg (spreads). El wall puede no aguantar. Cuarto de size maximo.`;
+  } else {
+    cls = 'nogo';
+    title = 'NO OPERAR — Wall no confiable';
+    sub = `Put Wall $${pw.toFixed(0)} (P(Hedge): ${(pwHedge*100).toFixed(0)}%) — Mayoria del OI son spreads`;
+    detail = 'Sin edge. Espera un dia con P(Hedge) > 80%.';
+  }
+
+  document.getElementById('decisionPanel').innerHTML =
+    `<div class="decision ${cls} fade-in">
+      <h2>${title}</h2>
+      <div class="d-sub">${sub}</div>
+      <div class="d-detail">${detail}</div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════
+// WALL ZONES — entry, stop, fail with buffer
+// ═══════════════════════════════════════
+function renderWallZones() {
+  const R = RESULT;
+  const pw = R.putWall.K, cw = R.callWall.K, S = R.S;
+  const isLong = R.gexTotal > 0;
+
+  const pwData = R.results.find(r => r.K === R.putWall.K);
+  const cwData = R.results.find(r => r.K === R.callWall.K);
+  const pwHedge = pwData ? pwData.pHedge : 0.5;
+  const cwHedge = cwData ? cwData.pHedge : 0.5;
+
+  const fm = { SPY:{n:'MES',m:10,pv:5}, SPX:{n:'MES',m:1,pv:5}, QQQ:{n:'MNQ',m:5,pv:2}, NDX:{n:'MNQ',m:1,pv:2}, IWM:{n:'M2K',m:10,pv:5} }[R.ticker] || {n:R.ticker,m:1,pv:0};
+  const hasFut = fm.pv > 0;
+
+  // Buffer = ~0.5% of spot (typical overshoot)
+  const buffer = S * 0.005;
+  const stopBuffer = S * 0.015;
+
+  // Put Wall Zone
+  const pwEntry = pw - buffer;
+  const pwStop = pw - stopBuffer;
+  const pwFail = pw - stopBuffer * 1.1;
+  const pwTarget = R.flipPoint || (pw + (cw - pw) * 0.5);
+
+  // Call Wall Zone
+  const cwEntry = cw + buffer;
+  const cwStop = cw + stopBuffer;
+  const cwFail = cw + stopBuffer * 1.1;
+  const cwTarget = R.flipPoint || (cw - (cw - pw) * 0.5);
+
+  // P(Hedge) color
+  const phColor = (ph) => ph > 0.80 ? 'green' : (ph > 0.50 ? 'amber' : 'red');
+  const phLabel = (ph) => ph > 0.80 ? 'SOLIDO' : (ph > 0.50 ? 'DEBIL' : 'NO CONFIABLE');
+
+  document.getElementById('wallZones').innerHTML = `
+    <div class="wz put-zone">
+      <h4>PUT WALL ZONE — Long / Buy</h4>
+      <div class="wz-row"><span class="wz-label">Wall</span><span class="wz-val green">$${pw.toFixed(2)}</span></div>
+      <div class="wz-row"><span class="wz-label">Entry Zone</span><span class="wz-val">$${pwEntry.toFixed(2)} — $${pw.toFixed(2)}</span></div>
+      ${hasFut ? `<div class="wz-row"><span class="wz-label">${fm.n} Entry</span><span class="wz-val purple">${(pwEntry*fm.m).toFixed(0)} — ${(pw*fm.m).toFixed(0)}</span></div>` : ''}
+      ${hasFut ? `<div class="wz-row"><span class="wz-label">${fm.n} Limit Order</span><span class="wz-val green">BUY @ ${(pwEntry*fm.m).toFixed(0)}</span></div>` : ''}
+      <div class="wz-row"><span class="wz-label">Stop Loss</span><span class="wz-val red">$${pwStop.toFixed(2)}${hasFut ? ' / ' + (pwStop*fm.m).toFixed(0) : ''}</span></div>
+      <div class="wz-row"><span class="wz-label">Target</span><span class="wz-val green">$${pwTarget.toFixed(2)}${hasFut ? ' / ' + (pwTarget*fm.m).toFixed(0) : ''}</span></div>
+      ${hasFut ? `<div class="wz-row"><span class="wz-label">${fm.n} P&L</span><span class="wz-val">Win +$${((pwTarget-pwEntry)*fm.m*fm.pv).toFixed(0)} / Loss -$${((pwEntry-pwStop)*fm.m*fm.pv).toFixed(0)}</span></div>` : ''}
+      <div class="wz-row"><span class="wz-label">Wall Fail</span><span class="wz-val red">< $${pwFail.toFixed(2)} → FLIP SHORT</span></div>
+      <div class="wz-row"><span class="wz-label">P(Hedge)</span><span class="wz-val ${phColor(pwHedge)}">${(pwHedge*100).toFixed(0)}% — ${phLabel(pwHedge)}</span></div>
+      <div class="wz-row"><span class="wz-label">Size</span><span class="wz-val">${pwHedge>0.80?'Normal':pwHedge>0.50?'Mitad':'NO OPERAR'}</span></div>
+    </div>
+
+    <div class="wz call-zone">
+      <h4>CALL WALL ZONE — Short / Sell</h4>
+      <div class="wz-row"><span class="wz-label">Wall</span><span class="wz-val red">$${cw.toFixed(2)}</span></div>
+      <div class="wz-row"><span class="wz-label">Entry Zone</span><span class="wz-val">$${cw.toFixed(2)} — $${cwEntry.toFixed(2)}</span></div>
+      ${hasFut ? `<div class="wz-row"><span class="wz-label">${fm.n} Entry</span><span class="wz-val purple">${(cw*fm.m).toFixed(0)} — ${(cwEntry*fm.m).toFixed(0)}</span></div>` : ''}
+      ${hasFut ? `<div class="wz-row"><span class="wz-label">${fm.n} Limit Order</span><span class="wz-val red">SELL @ ${(cwEntry*fm.m).toFixed(0)}</span></div>` : ''}
+      <div class="wz-row"><span class="wz-label">Stop Loss</span><span class="wz-val red">$${cwStop.toFixed(2)}${hasFut ? ' / ' + (cwStop*fm.m).toFixed(0) : ''}</span></div>
+      <div class="wz-row"><span class="wz-label">Target</span><span class="wz-val green">$${cwTarget.toFixed(2)}${hasFut ? ' / ' + (cwTarget*fm.m).toFixed(0) : ''}</span></div>
+      ${hasFut ? `<div class="wz-row"><span class="wz-label">${fm.n} P&L</span><span class="wz-val">Win +$${((cwEntry-cwTarget)*fm.m*fm.pv).toFixed(0)} / Loss -$${((cwStop-cwEntry)*fm.m*fm.pv).toFixed(0)}</span></div>` : ''}
+      <div class="wz-row"><span class="wz-label">Wall Fail</span><span class="wz-val red">> $${cwFail.toFixed(2)} → FLIP LONG</span></div>
+      <div class="wz-row"><span class="wz-label">P(Hedge)</span><span class="wz-val ${phColor(cwHedge)}">${(cwHedge*100).toFixed(0)}% — ${phLabel(cwHedge)}</span></div>
+      <div class="wz-row"><span class="wz-label">Size</span><span class="wz-val">${cwHedge>0.80?'Normal':cwHedge>0.50?'Mitad':'NO OPERAR'}</span></div>
+    </div>
+  `;
 }
 
 function renderFilters() {
