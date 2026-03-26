@@ -544,9 +544,12 @@ async function loadChain(refresh) {
     }
     const chg = ((S - prevC) / prevC * 100);
 
+    const srcLabel = spot.source === 'realtime'
+      ? '<span style="font-size:9px;color:#6EE7B7;margin-left:6px;">LIVE</span>'
+      : '<span style="font-size:9px;color:#FBBF24;margin-left:6px;">15m</span>';
     document.getElementById('spotDisplay').innerHTML =
       `<span style="font-size:14px;color:var(--muted);margin-right:6px;">${ticker}</span>` +
-      `$${S.toFixed(2)} <span class="chg ${chg>=0?'up':'dn'}">${chg>=0?'+':''}${chg.toFixed(2)}%</span>`;
+      `$${S.toFixed(2)} <span class="chg ${chg>=0?'up':'dn'}">${chg>=0?'+':''}${chg.toFixed(2)}%</span>${srcLabel}`;
 
     // Determine strike range: indices need tighter range due to large price
     const isIndex = ['SPX','NDX','RUT'].includes(ticker);
