@@ -181,8 +181,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--light);
       <div class="logo-icon">&#9080;</div>
       <div class="logo-text">Options<span>GEX</span></div>
     </div>
-    <h1>Gamma Exposure & EHP Analyzer</h1>
-    <p>Analisis SPX/SPY 0DTE con GEX + EHP | Ejecucion en MES | Walls + Flip Point + Setups</p>
+    <p>GEX + EHP + MPS | Walls + Flip Point + Premium Flow</p>
   </div>
 
   <!-- Ticker bar -->
@@ -235,15 +234,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--light);
     <div class="spot-display" id="spotDisplay">—</div>
   </div>
 
-  <!-- DECISION PANEL — the only thing you need to read -->
-  <div id="decisionPanel" class="hidden"></div>
-
-  <!-- WALL ZONES — entry, stop, fail levels -->
-  <div id="wallZones" class="hidden" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;"></div>
-
-  <!-- Filters -->
-  <div class="filters-panel hidden" id="filtersPanel"></div>
-
   <!-- MPS Alert -->
   <div class="hidden" id="mpsPanel" style="margin-bottom:14px;">
     <div id="mpsAlert" style="border-radius:14px;padding:20px;text-align:center;"></div>
@@ -274,9 +264,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--light);
       <span><div class="dot" style="background:#10B981;"></div> Call Wall</span>
     </div>
   </div>
-
-  <!-- Setups -->
-  <div id="setupsContainer" class="hidden"></div>
 
   <!-- Chart -->
   <div class="panel hidden" id="chartPanel">
@@ -827,22 +814,16 @@ function fmtM(n) {
 }
 
 function renderAll() {
-  renderDecision();
-  renderWallZones();
-  renderFilters();
   renderMetrics();
   renderPriceBar();
-  renderSetups();
   renderChart();
   renderResultsTable();
   renderMES();
   // Show all
-  ['decisionPanel','wallZones','metricsRow','priceBarWrap','setupsContainer','chartPanel','resultsPanel','mesPanel','filtersPanel'].forEach(id => {
+  ['metricsRow','priceBarWrap','chartPanel','resultsPanel','mesPanel'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.classList.remove('hidden');
   });
-  // wallZones needs display:grid restored
-  document.getElementById('wallZones').style.display = 'grid';
 }
 
 // ═══════════════════════════════════════
