@@ -815,7 +815,11 @@ function renderFilters() {
   const vixEst = atmIV ? (atmIV.iv * 100).toFixed(1) : '?';
   const vixOk = atmIV ? atmIV.iv * 100 < 28 : true;
 
-  const ehpOk = R.ehpDiff < 20;
+  // EHP filter: check wall-specific P(Hedge), not just overall average
+  const pwData = R.results.find(r => r.K === R.putWall.K);
+  const cwData = R.results.find(r => r.K === R.callWall.K);
+  const wallPHedge = Math.max(pwData ? pwData.pHedge : 0, cwData ? cwData.pHedge : 0);
+  const ehpOk = wallPHedge >= 0.65; // at least one wall has decent hedging
   const dayOfWeek = new Date().getDay();
   const dayName = ['Dom','Lun','Mar','Mie','Jue','Vie','Sab'][dayOfWeek];
   const dayOk = dayOfWeek >= 1 && dayOfWeek <= 5;
@@ -827,7 +831,7 @@ function renderFilters() {
     { label: `CPI: ${cpiToday ? 'HOY' : 'No'}`, pass: !cpiToday, detail: '' },
     { label: `NFP: ${nfpToday ? 'HOY' : 'No'}`, pass: !nfpToday, detail: '' },
     { label: `IV (VIX est.): ${vixEst}`, pass: vixOk, detail: vixOk ? '< 28' : '> 28 PELIGRO' },
-    { label: `EHP: ${(100-R.ehpDiff).toFixed(0)}% hedgeado`, pass: ehpOk, detail: ehpOk ? 'OK' : 'OI debil' },
+    { label: `Walls P(Hedge): ${(wallPHedge*100).toFixed(0)}%`, pass: ehpOk, detail: ehpOk ? `PW:${pwData?(pwData.pHedge*100).toFixed(0):'?'}% CW:${cwData?(cwData.pHedge*100).toFixed(0):'?'}%` : 'Ambos walls debiles' },
     { label: `Dia: ${dayName}`, pass: dayOk, detail: dayOk ? 'Buena liquidez' : 'Sin mercado' },
   ];
 
@@ -981,10 +985,16 @@ function renderSetups() {
     <div class="setup-status status-pill ok">&#9203; ESPERANDO — spot a $${distPW} del trigger</div>
   </div>`;
 
-  // EHP warning
-  if (RESULT.ehpDiff > 15) {
+  // EHP warning — only show if the WALLS themselves are weak
+  const pwDataSetup = R.results.find(r => r.K === R.putWall.K);
+  const cwDataSetup = R.results.find(r => r.K === R.callWall.K);
+  const pwH = pwDataSetup ? pwDataSetup.pHedge : 0.5;
+  const cwH = cwDataSetup ? cwDataSetup.pHedge : 0.5;
+  if (pwH < 0.65 || cwH < 0.65) {
+    const weakWall = pwH < cwH ? 'Put Wall' : 'Call Wall';
+    const weakPct = Math.min(pwH, cwH);
     html += `<div style="padding:14px;background:rgba(139,92,246,.06);border:1px solid rgba(139,92,246,.2);border-radius:10px;margin-bottom:12px;font-size:12px;color:#C4B5FD;">
-      EHP alerta: Solo ${(100-RESULT.ehpDiff).toFixed(0)}% del OI esta realmente hedgeado. Los walls pueden ser mas debiles de lo que el GEX clasico sugiere. Reduce size un 30-50%.
+      EHP alerta: ${weakWall} tiene P(Hedge) de solo ${(weakPct*100).toFixed(0)}%. Ese wall tiene mucho OI de spreads (multi-leg) y puede no aguantar. Reduce size o no operes en ese wall.
     </div>`;
   }
 
