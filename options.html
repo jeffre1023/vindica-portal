@@ -244,8 +244,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--light);
   <!-- Filters -->
   <div class="filters-panel hidden" id="filtersPanel"></div>
 
+  <!-- MPS Alert -->
+  <div class="hidden" id="mpsPanel" style="margin-bottom:14px;">
+    <div id="mpsAlert" style="border-radius:14px;padding:20px;text-align:center;"></div>
+  </div>
+
   <!-- Metric cards -->
-  <div class="cards-row hidden" id="metricsRow">
+  <div class="cards-row hidden" id="metricsRow" style="grid-template-columns:repeat(7,1fr);">
+    <div class="mc"><div class="v" id="mcMps">—</div><div class="l">MPS</div></div>
     <div class="mc"><div class="v" id="mcRegime">—</div><div class="l">Regimen</div></div>
     <div class="mc"><div class="v" id="mcGex">—</div><div class="l">GEX Total</div></div>
     <div class="mc"><div class="v purple" id="mcEhp">—</div><div class="l">EHP-GEX</div></div>
@@ -761,7 +767,51 @@ async function processChain(chain, S, ticker, expDate) {
   }
   const aggBuyPct = totalClassifiedVol > 0 ? totalBuyVol / totalClassifiedVol : 0.5;
 
-  RESULT = { results, gexTotal, ehpTotal, dealerDeltaTotal, callWall, putWall, flipPoint, S, ticker, expDate, ehpDiff, T, aggBuyPct };
+  // ═══ MPS (Movement Probability Score) ═══
+  const totalOIAll = results.reduce((s, r) => s + r.oiC + r.oiP, 0);
+
+  // 1. GammaScore (0-100): how negative is GEX relative to total OI
+  const gexNorm = Math.abs(gexTotal) / (totalOIAll * S * 0.001 || 1);
+  const gammaScore = Math.min(100, gexTotal < 0 ? gexNorm * 15 : gexNorm * 5);
+
+  // 2. PremiumImbalance (0-100): ratio of dominant side ATM ±3 strikes
+  const atmK = results.reduce((b, r) => Math.abs(r.K - S) < Math.abs(b.K - S) ? r : b, results[0]).K;
+  const nearATM = results.filter(r => Math.abs(r.K - atmK) <= (S * 0.01));
+  const totalPremC = nearATM.reduce((s, r) => s + r.premC, 0);
+  const totalPremP = nearATM.reduce((s, r) => s + r.premP, 0);
+  const premRatio = Math.max(totalPremC, totalPremP) / (Math.min(totalPremC, totalPremP) || 1);
+  const premDominantSide = totalPremP > totalPremC ? 'puts' : 'calls';
+  const premImbalance = Math.min(100, (premRatio - 1) * 10);
+
+  // 3. WallProximity (0-100): how close is spot to nearest wall
+  const distCW = Math.abs(callWall.K - S) / S * 100;
+  const distPW = Math.abs(S - putWall.K) / S * 100;
+  const nearestWallDist = Math.min(distCW, distPW);
+  const nearestWallSide = distCW < distPW ? 'call' : 'put';
+  const wallProximity = Math.min(100, Math.max(0, (3 - nearestWallDist) / 3 * 100));
+
+  // 4. DeltaExtreme (0-100): dealer delta exposure
+  const deltaPer100 = Math.abs(dealerDeltaTotal) / (S * 10 || 1);
+  const deltaExtreme = Math.min(100, deltaPer100 * 20);
+
+  // 5. OIConcentration (0-100): top 3 strikes vs total
+  const sortedOI = [...results].sort((a, b) => (b.oiC + b.oiP) - (a.oiC + a.oiP));
+  const top3OI = sortedOI.slice(0, 3).reduce((s, r) => s + r.oiC + r.oiP, 0);
+  const oiConc = totalOIAll > 0 ? top3OI / totalOIAll : 0;
+  const oiConcentration = Math.min(100, oiConc * 200);
+
+  // Weighted MPS
+  const mps = Math.round(
+    gammaScore * 0.30 +
+    premImbalance * 0.25 +
+    wallProximity * 0.20 +
+    deltaExtreme * 0.15 +
+    oiConcentration * 0.10
+  );
+
+  const mpsDetails = { gammaScore: Math.round(gammaScore), premImbalance: Math.round(premImbalance), wallProximity: Math.round(wallProximity), deltaExtreme: Math.round(deltaExtreme), oiConcentration: Math.round(oiConcentration), premDominantSide, nearestWallSide, premRatio };
+
+  RESULT = { results, gexTotal, ehpTotal, dealerDeltaTotal, callWall, putWall, flipPoint, S, ticker, expDate, ehpDiff, T, aggBuyPct, mps, mpsDetails };
 
   renderAll();
 }
@@ -1080,6 +1130,48 @@ function renderMetrics() {
 
   document.getElementById('mcCallWall').textContent = '$' + R.callWall.K.toFixed(0);
   document.getElementById('mcPutWall').textContent = '$' + R.putWall.K.toFixed(0);
+
+  // MPS card
+  const mpsEl = document.getElementById('mcMps');
+  const m = R.mps;
+  mpsEl.textContent = m;
+  mpsEl.className = 'v ' + (m >= 80 ? 'red' : m >= 60 ? 'amber' : m >= 40 ? 'purple' : 'green');
+
+  // MPS Alert panel
+  const mpsPanel = document.getElementById('mpsPanel');
+  mpsPanel.classList.remove('hidden');
+  const d = R.mpsDetails;
+  const alertEl = document.getElementById('mpsAlert');
+
+  let alertClass, alertTitle, alertSub;
+  if (m >= 80) {
+    alertClass = 'background:rgba(239,68,68,.1);border:2px solid rgba(239,68,68,.4);';
+    alertTitle = `<span style="color:#FCA5A5;font-family:\'DM Serif Display\',serif;font-size:22px;">ALERTA ROJA — MPS ${m}</span>`;
+    alertSub = `Movimiento probable. ${d.premDominantSide.toUpperCase()} dominan ${d.premRatio.toFixed(1)}x. Spot a ${d.nearestWallSide === 'call' ? 'Call' : 'Put'} Wall.`;
+  } else if (m >= 60) {
+    alertClass = 'background:rgba(245,158,11,.08);border:2px solid rgba(245,158,11,.35);';
+    alertTitle = `<span style="color:#FBBF24;font-family:\'DM Serif Display\',serif;font-size:22px;">WATCH — MPS ${m}</span>`;
+    alertSub = `Condiciones construyendose. ${d.premDominantSide.toUpperCase()} dominan ${d.premRatio.toFixed(1)}x.`;
+  } else if (m >= 40) {
+    alertClass = 'background:rgba(139,92,246,.06);border:2px solid rgba(139,92,246,.25);';
+    alertTitle = `<span style="color:#C4B5FD;font-family:\'DM Serif Display\',serif;font-size:22px;">NEUTRAL — MPS ${m}</span>`;
+    alertSub = 'Sin condiciones claras para movimiento fuerte.';
+  } else {
+    alertClass = 'background:rgba(16,185,129,.06);border:2px solid rgba(16,185,129,.25);';
+    alertTitle = `<span style="color:#6EE7B7;font-family:\'DM Serif Display\',serif;font-size:22px;">RANGE — MPS ${m}</span>`;
+    alertSub = 'Mercado en rango. Long gamma, dealer frena movimientos.';
+  }
+
+  alertEl.style.cssText = alertClass + 'border-radius:14px;padding:20px;text-align:center;';
+  alertEl.innerHTML = `${alertTitle}
+    <div style="font-size:13px;color:var(--light);margin:8px 0;">${alertSub}</div>
+    <div style="display:flex;justify-content:center;gap:20px;font-size:11px;color:var(--muted);margin-top:10px;">
+      <span>Gamma: ${d.gammaScore}</span>
+      <span>Premium: ${d.premImbalance}</span>
+      <span>Wall Prox: ${d.wallProximity}</span>
+      <span>Delta: ${d.deltaExtreme}</span>
+      <span>OI Conc: ${d.oiConcentration}</span>
+    </div>`;
 }
 
 function renderPriceBar() {
