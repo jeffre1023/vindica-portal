@@ -137,12 +137,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--light);
           <th>Ticker</th>
           <th>Spot</th>
           <th>Regimen</th>
-          <th>Call Wall</th>
-          <th>Put Wall</th>
-          <th>Dist. Wall</th>
-          <th>Prem Ratio</th>
-          <th>Dealer Delta</th>
+          <th>Walls</th>
+          <th>Dist.</th>
+          <th>Prem</th>
+          <th>Delta</th>
           <th>MPS</th>
+          <th>DTE Align</th>
           <th>Status</th>
         </tr>
       </thead>
@@ -483,6 +483,55 @@ async function scanTicker(ticker, expDate, isSwing) {
   };
 }
 
+// Quick DTE check — chain only, no trades (1 API call per ticker per DTE)
+async function quickDteCheck(ticker, expDate, S) {
+  try {
+    const isIndex = ['SPX','NDX','RUT'].includes(ticker);
+    const rangePct = isIndex ? 0.03 : (S > 500 ? 0.04 : 0.06);
+    const strikeMin = Math.floor(S * (1 - rangePct));
+    const strikeMax = Math.ceil(S * (1 + rangePct));
+    const chainData = await authFetch(`/options/chain?ticker=${ticker}&expDate=${expDate}&strikeMin=${strikeMin}&strikeMax=${strikeMax}`);
+    const chain = chainData.chain || [];
+    if (!chain.length) return null;
+
+    // Quick premium ratio from ATM strikes
+    const atmK = chain.reduce((b, o) => Math.abs(o.details.strike_price - S) < Math.abs(b.details.strike_price - S) ? o : b, chain[0]).details.strike_price;
+    let premC = 0, premP = 0, dealerD = 0;
+    const r = 0.0525;
+    const T = Math.max(1, Math.round((new Date(expDate) - new Date()) / 86400000)) / 365;
+
+    for (const opt of chain) {
+      const K = opt.details.strike_price;
+      if (Math.abs(K - atmK) > S * 0.015) continue; // ATM ±1.5%
+      const type = opt.details.contract_type;
+      const oi = opt.open_interest || 0;
+      const vol = opt.day ? opt.day.volume || 0 : 0;
+      const mid = opt.last_quote && opt.last_quote.midpoint > 0 ? opt.last_quote.midpoint : (opt.last_trade ? opt.last_trade.price : 0);
+      if (type === 'call') premC += vol * 100 * mid;
+      else premP += vol * 100 * mid;
+
+      // Quick dealer delta from last_trade vs last_quote
+      const quote = opt.last_quote;
+      const trade = opt.last_trade;
+      let sign = -1;
+      if (quote && trade && quote.bid > 0 && quote.ask > 0) {
+        const qmid = (quote.bid + quote.ask) / 2;
+        sign = trade.price <= quote.bid ? 1 : (trade.price < qmid ? 1 : -1);
+      }
+      let iv = opt.implied_volatility || 0.20;
+      if (iv <= 0) iv = 0.20;
+      const g = bsGreeks(S, K, T, iv, r);
+      const delta = type === 'call' ? g.deltaCall : g.deltaPut;
+      dealerD += sign * oi * delta * 100;
+    }
+
+    const premRatio = Math.max(premC, premP) / (Math.min(premC, premP) || 1);
+    const premSide = premP > premC ? 'puts' : 'calls';
+    const deltaSign = dealerD < 0 ? 'negative' : 'positive';
+    return { premRatio, premSide, deltaSign, dealerD };
+  } catch { return null; }
+}
+
 async function runScan() {
   if (_scanning) return;
   _scanning = true;
@@ -507,7 +556,25 @@ async function runScan() {
 
     try {
       const result = await scanTicker(ticker, expDate, isSwing);
-      if (result) scanResults.push(result);
+      if (result) {
+        // Quick multi-DTE alignment check (14DTE + 30DTE)
+        document.getElementById('scanStatus').textContent = `${ticker} — verificando DTEs (${i + 1}/${SCAN_TICKERS.length})...`;
+        const exp14 = getExpDate(14);
+        const exp30 = getExpDate(30);
+        const [dte14, dte30] = await Promise.all([
+          quickDteCheck(ticker, exp14, result.S),
+          quickDteCheck(ticker, exp30, result.S)
+        ]);
+        result.dte14 = dte14;
+        result.dte30 = dte30;
+        // Alignment: does the premium direction match across DTEs?
+        const mainDir = result.premDominantSide;
+        const align14 = dte14 && dte14.premSide === mainDir && dte14.premRatio >= 1.5;
+        const align30 = dte30 && dte30.premSide === mainDir && dte30.premRatio >= 1.5;
+        result.dteAlign = (align14 ? 1 : 0) + (align30 ? 1 : 0); // 0, 1, or 2
+        result.dteAlignLabel = result.dteAlign === 2 ? 'ALL' : result.dteAlign === 1 ? 'PARTIAL' : 'NONE';
+        scanResults.push(result);
+      }
     } catch (err) {
       console.warn(`[Scanner] ${ticker} failed:`, err.message);
     }
@@ -564,16 +631,24 @@ function renderResults(results) {
     // MPS display
     const mpsColor = r.mps >= 80 ? '#FCA5A5' : r.mps >= 60 ? '#FBBF24' : r.mps >= 40 ? '#C4B5FD' : '#6EE7B7';
 
+    // DTE Alignment display
+    const alignColor = r.dteAlign === 2 ? '#6EE7B7' : r.dteAlign === 1 ? '#FBBF24' : '#FCA5A5';
+    const alignIcon = r.dteAlign === 2 ? '&#10003;&#10003;' : r.dteAlign === 1 ? '&#10003;' : '&#10007;';
+    const alignTooltip = [
+      r.dte14 ? `14d: ${r.dte14.premRatio.toFixed(1)}x ${r.dte14.premSide === 'puts' ? 'P' : 'C'} ${r.dte14.deltaSign === 'negative' ? '&#9660;' : '&#9650;'}` : '14d: —',
+      r.dte30 ? `30d: ${r.dte30.premRatio.toFixed(1)}x ${r.dte30.premSide === 'puts' ? 'P' : 'C'} ${r.dte30.deltaSign === 'negative' ? '&#9660;' : '&#9650;'}` : '30d: —'
+    ].join(' | ');
+
     return `<tr class="${rowClass}" style="cursor:pointer;" onclick="window.open('options.html?ticker=${r.ticker}','_self')">
       <td style="font-weight:700;color:#fff;">${r.ticker}</td>
       <td>$${r.S.toFixed(2)} <span style="font-size:10px;color:${chg>=0?'#6EE7B7':'#FCA5A5'};">${chg>=0?'+':''}${chg.toFixed(1)}%</span></td>
       <td><span class="regime ${r.isShortGamma?'short':'long'}">${r.isShortGamma?'SHORT':'LONG'} GAMMA</span></td>
-      <td>$${r.callWall.toFixed(0)}</td>
-      <td>$${r.putWall.toFixed(0)}</td>
+      <td style="font-size:11px;">$${r.putWall.toFixed(0)}-$${r.callWall.toFixed(0)}</td>
       <td>${wallDist}</td>
       <td>${premLabel}</td>
       <td style="color:${dK>=0?'#6EE7B7':'#FCA5A5'};font-weight:600;">${dK>=0?'+':''}${dK.toFixed(1)}K</td>
       <td style="color:${mpsColor};font-weight:700;font-size:16px;">${r.mps}</td>
+      <td style="color:${alignColor};font-size:12px;" title="${alignTooltip}">${alignIcon} <span style="font-size:10px;">${alignTooltip}</span></td>
       <td><span class="badge ${statusClass}">${statusText}</span></td>
     </tr>`;
   }).join('');
