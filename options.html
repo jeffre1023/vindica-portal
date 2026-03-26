@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vindica — Options GEX Analyzer</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
 :root {
   --teal:#0D9488;--teal-l:#14B8A6;--teal-d:#0F766E;
@@ -774,8 +774,6 @@ function renderWallZones() {
   const cwStop = cw + stopBuffer;
   const cwFail = cw + stopBuffer * 1.1;
   const cwTarget = R.flipPoint || (cw - (cw - pw) * 0.5);
-
-  const isLong = R.gexTotal > 0;
 
   // P(Hedge) color
   const phColor = (ph) => ph > 0.80 ? 'green' : (ph > 0.50 ? 'amber' : 'red');
