@@ -160,11 +160,23 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--light);
   <!-- Ticker bar -->
   <div class="ticker-bar">
     <select id="tickerSelect">
-      <option value="SPY" selected>SPY (S&P 500 ETF)</option>
-      <option value="QQQ">QQQ (Nasdaq ETF)</option>
-      <option value="IWM">IWM (Russell 2000)</option>
-      <option value="SPX">SPX (S&P 500 Index)</option>
+      <option value="SPY" selected>SPY — S&P 500 ETF</option>
+      <option value="SPX">SPX — S&P 500 Index (85% GEX)</option>
+      <option value="QQQ">QQQ — Nasdaq 100 ETF</option>
+      <option value="NDX">NDX — Nasdaq 100 Index</option>
+      <option value="IWM">IWM — Russell 2000</option>
+      <option value="AAPL">AAPL — Apple</option>
+      <option value="TSLA">TSLA — Tesla</option>
+      <option value="NVDA">NVDA — Nvidia</option>
+      <option value="AMZN">AMZN — Amazon</option>
+      <option value="META">META — Meta</option>
+      <option value="MSFT">MSFT — Microsoft</option>
+      <option value="GOOGL">GOOGL — Google</option>
+      <option value="AMD">AMD — AMD</option>
+      <option value="COIN">COIN — Coinbase</option>
+      <option value="MSTR">MSTR — MicroStrategy</option>
     </select>
+    <input id="customTicker" class="tws-input" placeholder="O escribe ticker..." style="width:150px;" onkeydown="if(event.key==='Enter')loadChain()">
     <select id="dteSelect">
       <option value="0">0DTE (Hoy)</option>
       <option value="1" selected>1DTE (Manana)</option>
@@ -340,24 +352,36 @@ async function loadChain(refresh) {
   btn.disabled = true;
 
   try {
-    const ticker = document.getElementById('tickerSelect').value;
+    const custom = document.getElementById('customTicker').value.trim().toUpperCase();
+    const ticker = custom || document.getElementById('tickerSelect').value;
+    if (custom) document.getElementById('customTicker').value = ticker;
     const dteOpt = document.getElementById('dteSelect').value;
     const expDate = getExpDate(dteOpt);
 
-    // Get spot
-    const spot = await getSpotPrice(ticker);
-    if (!spot) throw new Error('No spot data');
-    const S = spot.c; // close
-    const prevC = spot.o;
+    // For indices, get spot from corresponding ETF since index prev close may not be available
+    const spotTicker = { SPX: 'SPY', NDX: 'QQQ' }[ticker] || ticker;
+    const spotMultiplier = { SPX: 10, NDX: 4.5 }; // ETF to index approximate ratio
+    const spot = await getSpotPrice(spotTicker);
+    if (!spot) throw new Error('No spot data for ' + spotTicker);
+    let S = spot.c;
+    let prevC = spot.o;
+
+    // If analyzing index, convert ETF price to index level
+    if (spotMultiplier[ticker]) {
+      S = S * spotMultiplier[ticker];
+      prevC = prevC * spotMultiplier[ticker];
+    }
     const chg = ((S - prevC) / prevC * 100);
 
     document.getElementById('spotDisplay').innerHTML =
+      `<span style="font-size:14px;color:var(--muted);margin-right:6px;">${ticker}</span>` +
       `$${S.toFixed(2)} <span class="chg ${chg>=0?'up':'dn'}">${chg>=0?'+':''}${chg.toFixed(2)}%</span>`;
 
-    // Determine strike range: +/- 5% from spot
-    const range = ticker === 'SPX' ? 0.03 : 0.05;
-    const strikeMin = Math.floor(S * (1 - range));
-    const strikeMax = Math.ceil(S * (1 + range));
+    // Determine strike range: indices need tighter range due to large price
+    const isIndex = ['SPX','NDX','RUT'].includes(ticker);
+    const rangePct = isIndex ? 0.03 : (S > 500 ? 0.04 : 0.06);
+    const strikeMin = Math.floor(S * (1 - rangePct));
+    const strikeMax = Math.ceil(S * (1 + rangePct));
 
     // Load chain
     const chain = await getOptionsChain(ticker, expDate, strikeMin, strikeMax);
@@ -623,32 +647,38 @@ function renderSetups() {
   const isLong = R.gexTotal > 0;
   const deltaDir = R.dealerDeltaTotal > 0 ? 'alcista' : 'bajista';
   const pw = R.putWall.K, cw = R.callWall.K, fp = R.flipPoint, S = R.S;
-  const spxMult = R.ticker === 'SPY' ? 10 : (R.ticker === 'QQQ' ? 5 : 1);
-  const range = Math.max(cw - pw, S * 0.01); // min 1% of spot to avoid division by zero
+  const futuresMap = {
+    SPY: { mult:10, pv:5, name:'MES' }, SPX: { mult:1, pv:5, name:'MES' },
+    QQQ: { mult:5, pv:2, name:'MNQ' }, NDX: { mult:1, pv:2, name:'MNQ' },
+    IWM: { mult:10, pv:5, name:'M2K' }
+  };
+  const fm = futuresMap[R.ticker] || { mult:1, pv:0, name:R.ticker };
+  const spxMult = fm.mult;
+  const mesPointValue = fm.pv;
+  const mesName = fm.name;
+  const range = Math.max(cw - pw, S * 0.01);
 
-  // Distance from spot to walls
   const distPW = (S - pw).toFixed(2);
   const distCW = (cw - S).toFixed(2);
-
-  const mesPointValue = 5; // $5 per point MES
 
   let html = '';
 
   // Setup A: Mean reversion at Put Wall
   const targetA = fp || (pw + range * 0.5);
   const stopA = pw - range * 0.15;
-  const rrA = ((targetA - pw) / (pw - stopA)).toFixed(1);
+  const rrA = ((targetA - pw) / Math.max(pw - stopA, 0.01)).toFixed(1);
+  const hasFutures = mesPointValue > 0;
   html += `
   <div class="setup a fade-in">
     <h3>SETUP A — Rebote en Put Wall</h3>
     <div class="setup-grid">
-      <div class="setup-item"><strong>Trigger:</strong> SPY toca $${pw.toFixed(0)} (a $${distPW} del spot)</div>
-      <div class="setup-item"><strong>Accion:</strong> ${isLong ? 'Bull Put Spread' : 'Long MES'} en Put Wall</div>
+      <div class="setup-item"><strong>Trigger:</strong> ${R.ticker} toca $${pw.toFixed(0)} (a $${distPW} del spot)</div>
+      <div class="setup-item"><strong>Accion:</strong> ${isLong ? 'Bull Put Spread' : 'Long ' + mesName} en Put Wall</div>
       <div class="setup-item"><strong>Target:</strong> $${targetA.toFixed(1)} ${fp?'(Flip Point)':'(medio rango)'}</div>
       <div class="setup-item"><strong>Stop:</strong> $${stopA.toFixed(1)}</div>
       <div class="setup-item"><strong>R:R:</strong> ${rrA}:1</div>
-      <div class="setup-item"><strong>MES:</strong> Long ${(pw*spxMult).toFixed(0)} → TP ${(targetA*spxMult).toFixed(0)} → SL ${(stopA*spxMult).toFixed(0)}</div>
-      <div class="setup-item"><strong>MES P&L:</strong> Win +$${((targetA-pw)*spxMult*mesPointValue).toFixed(0)} / Loss -$${((pw-stopA)*spxMult*mesPointValue).toFixed(0)}</div>
+      ${hasFutures ? `<div class="setup-item"><strong>${mesName}:</strong> Long ${(pw*spxMult).toFixed(0)} → TP ${(targetA*spxMult).toFixed(0)} → SL ${(stopA*spxMult).toFixed(0)}</div>
+      <div class="setup-item"><strong>${mesName} P&L:</strong> Win +$${((targetA-pw)*spxMult*mesPointValue).toFixed(0)} / Loss -$${((pw-stopA)*spxMult*mesPointValue).toFixed(0)}</div>` : ''}
       <div class="setup-item"><strong>Confianza:</strong> ${isLong ? '70-75%' : '60-65%'} ${isLong ? '(dealers defienden)' : '(sin defensa de dealers)'}</div>
     </div>
     <div class="setup-status ${Math.abs(S-pw) < range*0.15 ? 'status-pill warn' : 'status-pill ok'}">
@@ -659,18 +689,18 @@ function renderSetups() {
   // Setup B: Breakout over Call Wall
   const targetB = cw + range * 0.4;
   const stopB = cw - range * 0.1;
-  const rrB = ((targetB - cw) / (cw - stopB)).toFixed(1);
+  const rrB = ((targetB - cw) / Math.max(cw - stopB, 0.01)).toFixed(1);
   html += `
   <div class="setup b fade-in" style="animation-delay:.1s;">
     <h3>SETUP B — Breakout Call Wall</h3>
     <div class="setup-grid">
-      <div class="setup-item"><strong>Trigger:</strong> SPY rompe $${cw.toFixed(0)} (a $${distCW} del spot)</div>
-      <div class="setup-item"><strong>Accion:</strong> Long MES en breakout</div>
+      <div class="setup-item"><strong>Trigger:</strong> ${R.ticker} rompe $${cw.toFixed(0)} (a $${distCW} del spot)</div>
+      <div class="setup-item"><strong>Accion:</strong> Long ${mesName} en breakout</div>
       <div class="setup-item"><strong>Target:</strong> $${targetB.toFixed(1)}</div>
       <div class="setup-item"><strong>Stop:</strong> $${stopB.toFixed(1)}</div>
       <div class="setup-item"><strong>R:R:</strong> ${rrB}:1</div>
-      <div class="setup-item"><strong>MES:</strong> Long ${(cw*spxMult).toFixed(0)} → TP ${(targetB*spxMult).toFixed(0)} → SL ${(stopB*spxMult).toFixed(0)}</div>
-      <div class="setup-item"><strong>MES P&L:</strong> Win +$${((targetB-cw)*spxMult*mesPointValue).toFixed(0)} / Loss -$${((cw-stopB)*spxMult*mesPointValue).toFixed(0)}</div>
+      ${hasFutures ? `<div class="setup-item"><strong>${mesName}:</strong> Long ${(cw*spxMult).toFixed(0)} → TP ${(targetB*spxMult).toFixed(0)} → SL ${(stopB*spxMult).toFixed(0)}</div>
+      <div class="setup-item"><strong>${mesName} P&L:</strong> Win +$${((targetB-cw)*spxMult*mesPointValue).toFixed(0)} / Loss -$${((cw-stopB)*spxMult*mesPointValue).toFixed(0)}</div>` : ''}
       <div class="setup-item"><strong>Confianza:</strong> ${!isLong ? '58-63%' : '50-55%'} ${!isLong ? '(gamma squeeze)' : '(dealers frenan)'}</div>
     </div>
     <div class="setup-status ${Math.abs(S-cw) < range*0.15 ? 'status-pill warn' : 'status-pill ok'}">
@@ -681,18 +711,18 @@ function renderSetups() {
   // Setup C: Breakdown below Put Wall
   const targetC = pw - range * 0.4;
   const stopC = pw + range * 0.1;
-  const rrC = ((pw - targetC) / (stopC - pw)).toFixed(1);
+  const rrC = ((pw - targetC) / Math.max(stopC - pw, 0.01)).toFixed(1);
   html += `
   <div class="setup c fade-in" style="animation-delay:.2s;">
     <h3>SETUP C — Breakdown Put Wall</h3>
     <div class="setup-grid">
-      <div class="setup-item"><strong>Trigger:</strong> SPY rompe $${pw.toFixed(0)} hacia abajo</div>
-      <div class="setup-item"><strong>Accion:</strong> Short MES en breakdown</div>
+      <div class="setup-item"><strong>Trigger:</strong> ${R.ticker} rompe $${pw.toFixed(0)} hacia abajo</div>
+      <div class="setup-item"><strong>Accion:</strong> Short ${mesName} en breakdown</div>
       <div class="setup-item"><strong>Target:</strong> $${targetC.toFixed(1)}</div>
       <div class="setup-item"><strong>Stop:</strong> $${stopC.toFixed(1)}</div>
       <div class="setup-item"><strong>R:R:</strong> ${rrC}:1</div>
-      <div class="setup-item"><strong>MES:</strong> Short ${(pw*spxMult).toFixed(0)} → TP ${(targetC*spxMult).toFixed(0)} → SL ${(stopC*spxMult).toFixed(0)}</div>
-      <div class="setup-item"><strong>MES P&L:</strong> Win +$${((pw-targetC)*spxMult*mesPointValue).toFixed(0)} / Loss -$${((stopC-pw)*spxMult*mesPointValue).toFixed(0)}</div>
+      ${hasFutures ? `<div class="setup-item"><strong>${mesName}:</strong> Short ${(pw*spxMult).toFixed(0)} → TP ${(targetC*spxMult).toFixed(0)} → SL ${(stopC*spxMult).toFixed(0)}</div>
+      <div class="setup-item"><strong>${mesName} P&L:</strong> Win +$${((pw-targetC)*spxMult*mesPointValue).toFixed(0)} / Loss -$${((stopC-pw)*spxMult*mesPointValue).toFixed(0)}</div>` : ''}
       <div class="setup-item"><strong>Confianza:</strong> ${!isLong ? '55-60%' : '45-50%'}</div>
     </div>
     <div class="setup-status status-pill ok">&#9203; ESPERANDO — spot a $${distPW} del trigger</div>
@@ -772,7 +802,24 @@ function renderResultsTable() {
 
 function renderMES() {
   const R = RESULT;
-  const mult = R.ticker === 'SPY' ? 10 : (R.ticker === 'QQQ' ? 5 : 1);
+  // Conversion: ETF → futures index level
+  const futuresMap = {
+    SPY:  { mult: 10, name: 'MES / ES', ptVal: '$5 / $50' },
+    SPX:  { mult: 1,  name: 'MES / ES', ptVal: '$5 / $50' },
+    QQQ:  { mult: 5,  name: 'MNQ / NQ', ptVal: '$2 / $20' },
+    NDX:  { mult: 1,  name: 'MNQ / NQ', ptVal: '$2 / $20' },
+    IWM:  { mult: 10, name: 'M2K / RTY', ptVal: '$5 / $50' },
+  };
+  const fm = futuresMap[R.ticker];
+
+  if (!fm) {
+    // Individual stock — no futures conversion, show option levels
+    document.getElementById('mesPanel').classList.add('hidden');
+    return;
+  }
+
+  document.getElementById('mesPanel').classList.remove('hidden');
+  const mult = fm.mult;
   const pw = (R.putWall.K * mult).toFixed(0);
   const cw = (R.callWall.K * mult).toFixed(0);
   const fp = R.flipPoint ? (R.flipPoint * mult).toFixed(0) : 'N/A';
@@ -789,7 +836,7 @@ function renderMES() {
     `<div style="text-align:center;padding:12px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;">
       <div style="font-family:'DM Serif Display',serif;font-size:22px;color:${l.color};">${l.val}</div>
       <div style="font-size:10px;color:var(--muted);text-transform:uppercase;margin-top:2px;">${l.label}</div>
-      <div style="font-size:9px;color:var(--slate);margin-top:1px;">MES/ES</div>
+      <div style="font-size:9px;color:var(--slate);margin-top:1px;">${fm.name} (${fm.ptVal})</div>
     </div>`
   ).join('');
 }
