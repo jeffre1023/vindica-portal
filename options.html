@@ -864,7 +864,7 @@ function renderFilters() {
     { label: `IV (VIX est.): ${vixEst}`, pass: vixOk, detail: vixOk ? '< 28' : '> 28 PELIGRO' },
     { label: `Walls P(Hedge): ${(wallPHedge*100).toFixed(0)}%`, pass: ehpOk, detail: ehpOk ? `PW:${pwData?(pwData.pHedge*100).toFixed(0):'?'}% CW:${cwData?(cwData.pHedge*100).toFixed(0):'?'}%` : 'Ambos walls debiles' },
     { label: `Dia: ${dayName}`, pass: dayOk, detail: dayOk ? 'Buena liquidez' : 'Sin mercado' },
-    { label: `Flip Point: ${spotAboveFlip ? 'ENCIMA' : 'DEBAJO'}`, pass: flipOk, detail: fp ? `Spot ${spotAboveFlip?'encima':'debajo'} por ${flipPct}% ($${flipDist.toFixed(2)})${flipClose?' — MUY CERCA':''}` : 'N/A' },
+    { label: `Flip: Spot ${spotAboveFlip ? 'ENCIMA' : 'DEBAJO'} ($${fp?fp.toFixed(0):'?'})`, pass: flipOk, detail: fp ? `${spotAboveFlip?'Long Gamma ✓':'Short Gamma — dealers amplifican'} | ${flipPct}% (${spotAboveFlip?'+':'-'}$${flipDist.toFixed(0)})${flipClose?' MUY CERCA':''}` : 'N/A' },
   ];
 
   let verdictHTML = allOk
@@ -907,28 +907,42 @@ function renderPriceBar() {
   const bar = document.getElementById('priceBar');
   const pw = R.putWall.K, cw = R.callWall.K, fp = R.flipPoint, S = R.S;
 
-  // Range
-  const padding = (cw - pw) * 0.3;
-  const lo = pw - padding, hi = cw + padding;
-  const pct = v => ((v - lo) / (hi - lo) * 100);
+  // Range — expand to include flip point and spot
+  const allPoints = [pw, cw, S];
+  if (fp) allPoints.push(fp);
+  const minP = Math.min(...allPoints);
+  const maxP = Math.max(...allPoints);
+  const span = maxP - minP;
+  const padding = span * 0.15;
+  const lo = minP - padding, hi = maxP + padding;
+  const pct = v => Math.max(0, Math.min(100, ((v - lo) / (hi - lo) * 100)));
 
   let html = '';
 
-  // Put zone
+  // Put zone (below put wall)
   html += `<div class="pb-zone pb-put" style="left:0;width:${pct(pw)}%;"></div>`;
-  // Neutral zone
+  // Neutral zone (between walls)
   html += `<div class="pb-zone pb-neutral" style="left:${pct(pw)}%;width:${pct(cw)-pct(pw)}%;"></div>`;
-  // Call zone
+  // Call zone (above call wall)
   html += `<div class="pb-zone pb-call" style="left:${pct(cw)}%;width:${100-pct(cw)}%;"></div>`;
 
   // Markers
   html += `<div class="pb-marker wall" style="left:${pct(pw)}%;"><span class="pb-label put-l">$${pw.toFixed(0)}</span></div>`;
   html += `<div class="pb-marker wall" style="left:${pct(cw)}%;"><span class="pb-label call-l">$${cw.toFixed(0)}</span></div>`;
-  if (fp) html += `<div class="pb-marker flip" style="left:${pct(fp)}%;"><span class="pb-label flip-l">$${fp.toFixed(1)}</span></div>`;
+  if (fp) html += `<div class="pb-marker flip" style="left:${pct(fp)}%;"><span class="pb-label flip-l">$${fp.toFixed(0)}</span></div>`;
   html += `<div class="pb-marker spot" style="left:${pct(S)}%;"><span class="pb-label spot-l">$${S.toFixed(2)}</span></div>`;
 
   bar.innerHTML = html;
-  document.getElementById('flipLabel').textContent = fp ? `Flip Point: $${fp.toFixed(2)}` : 'Flip Point: N/A';
+
+  // Flip point label with context
+  if (fp) {
+    const aboveBelow = S >= fp ? 'ENCIMA' : 'DEBAJO';
+    const dist = Math.abs(S - fp).toFixed(2);
+    const regime = S >= fp ? 'Long Gamma' : 'Short Gamma';
+    document.getElementById('flipLabel').textContent = `Flip Point: $${fp.toFixed(0)} — Spot ${aboveBelow} ($${dist}) → ${regime}`;
+  } else {
+    document.getElementById('flipLabel').textContent = 'Flip Point: N/A';
+  }
 }
 
 function renderSetups() {
