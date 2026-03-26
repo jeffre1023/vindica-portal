@@ -438,7 +438,11 @@ function getExpDate(dteOption) {
   if (d.getDay() === 0) d.setDate(d.getDate() + 1);
   if (d.getDay() === 6) d.setDate(d.getDate() + 2);
 
-  return d.toISOString().split('T')[0];
+  // Use local date, not UTC (avoids timezone offset adding a day)
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
 }
 
 // ═══════════════════════════════════════
