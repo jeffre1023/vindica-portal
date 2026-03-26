@@ -410,9 +410,9 @@ async function scanTicker(ticker, expDate) {
   const oiConcentration = Math.min(100, oiConc * 200);
 
   const mps = Math.round(
-    gammaScore * 0.30 +
-    premImbalance * 0.25 +
-    wallProximity * 0.20 +
+    gammaScore * 0.20 +
+    premImbalance * 0.20 +
+    wallProximity * 0.35 +
     deltaExtreme * 0.15 +
     oiConcentration * 0.10
   );
