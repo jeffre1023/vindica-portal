@@ -311,10 +311,29 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--light);
 // ═══════════════════════════════════════
 const VINDICA_API = 'https://vindica-cf-v4-10-5-82635207094.us-east1.run.app';
 
-// FOMC dates 2026 (known scheduled)
-const FOMC_DATES = ['2026-01-28','2026-03-18','2026-05-06','2026-06-17','2026-07-29','2026-09-16','2026-11-04','2026-12-16'];
-const CPI_DATES = ['2026-01-14','2026-02-11','2026-03-11','2026-04-14','2026-05-12','2026-06-10','2026-07-14','2026-08-12','2026-09-11','2026-10-13','2026-11-12','2026-12-10'];
-const NFP_DATES = ['2026-01-09','2026-02-06','2026-03-06','2026-04-03','2026-05-08','2026-06-05','2026-07-02','2026-08-07','2026-09-04','2026-10-02','2026-11-06','2026-12-04'];
+// Economic calendar — loaded from Finnhub via backend, fallback to hardcoded 2026
+let FOMC_DATES = ['2026-01-28','2026-03-18','2026-05-06','2026-06-17','2026-07-29','2026-09-16','2026-11-04','2026-12-16'];
+let CPI_DATES = ['2026-01-14','2026-02-11','2026-03-11','2026-04-14','2026-05-12','2026-06-10','2026-07-14','2026-08-12','2026-09-11','2026-10-13','2026-11-12','2026-12-10'];
+let NFP_DATES = ['2026-01-09','2026-02-06','2026-03-06','2026-04-03','2026-05-08','2026-06-05','2026-07-02','2026-08-07','2026-09-04','2026-10-02','2026-11-06','2026-12-04'];
+let ECO_EVENTS = [];
+
+async function loadEconomicCalendar() {
+  try {
+    const token = await auth.currentUser.getIdToken();
+    const resp = await fetch(`${VINDICA_API}/options/economic-calendar`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!resp.ok) return;
+    const data = await resp.json();
+    if (data.fomcDates && data.fomcDates.length) FOMC_DATES = data.fomcDates;
+    if (data.cpiDates && data.cpiDates.length) CPI_DATES = data.cpiDates;
+    if (data.nfpDates && data.nfpDates.length) NFP_DATES = data.nfpDates;
+    if (data.events) ECO_EVENTS = data.events;
+    console.log(`[Calendar] Loaded ${FOMC_DATES.length} FOMC, ${CPI_DATES.length} CPI, ${NFP_DATES.length} NFP dates from Finnhub`);
+  } catch (e) {
+    console.warn('[Calendar] Finnhub unavailable, using hardcoded 2026 dates');
+  }
+}
 
 // ═══════════════════════════════════════
 // Firebase Auth
@@ -330,6 +349,7 @@ auth.onAuthStateChanged(u => {
   if (!u) { window.location.href = 'index.html'; return; }
   document.getElementById('mainApp').style.display = '';
   document.getElementById('userEmail').textContent = u.email;
+  loadEconomicCalendar();
 });
 function doLogout() { auth.signOut().then(() => window.location.href = 'index.html'); }
 
@@ -1134,8 +1154,8 @@ function renderFilters() {
 
   const items = [
     { label: `FOMC: ${fomcToday ? 'HOY' : 'No'}`, pass: !fomcToday, detail: `Prox: ${nextFomc}` },
-    { label: `CPI: ${cpiToday ? 'HOY' : 'No'}`, pass: !cpiToday, detail: '' },
-    { label: `NFP: ${nfpToday ? 'HOY' : 'No'}`, pass: !nfpToday, detail: '' },
+    { label: `CPI: ${cpiToday ? 'HOY' : 'No'}`, pass: !cpiToday, detail: `Prox: ${CPI_DATES.find(d => d >= today) || '—'}` },
+    { label: `NFP: ${nfpToday ? 'HOY' : 'No'}`, pass: !nfpToday, detail: `Prox: ${NFP_DATES.find(d => d >= today) || '—'}` },
     { label: `IV (VIX est.): ${vixEst}`, pass: vixOk, detail: vixOk ? '< 28' : '> 28 PELIGRO' },
     { label: `Walls P(Hedge): ${(wallPHedge*100).toFixed(0)}%`, pass: ehpOk, detail: ehpOk ? `PW:${pwData?(pwData.pHedge*100).toFixed(0):'?'}% CW:${cwData?(cwData.pHedge*100).toFixed(0):'?'}%` : 'Ambos walls debiles' },
     { label: `Dia: ${dayName}`, pass: dayOk, detail: dayOk ? 'Buena liquidez' : 'Sin mercado' },
