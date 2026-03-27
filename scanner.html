@@ -165,6 +165,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--light);
           <th>Call Wall</th>
           <th>CW pHedge</th>
           <th>Regimen</th>
+          <th>GEX Total</th>
           <th>Prem Ratio</th>
           <th>Dealer Delta</th>
         </tr>
@@ -682,11 +683,12 @@ async function runDeepDive() {
     // Render
     document.getElementById('deepTable').style.display = '';
     document.getElementById('deepBody').innerHTML = results.map(r => {
-      if (r.noData) return `<tr><td style="font-weight:600;color:#fff;">${r.label}</td><td colspan="7" style="color:var(--muted);">Sin data para ${r.expDate}</td></tr>`;
+      if (r.noData) return `<tr><td style="font-weight:600;color:#fff;">${r.label}</td><td colspan="8" style="color:var(--muted);">Sin data para ${r.expDate}</td></tr>`;
       const dK = r.dealerDeltaTotal / 1000;
       const premColor = r.premSide === 'puts' ? '#FCA5A5' : '#6EE7B7';
       const phColorPW = r.putWallPH > 0.70 ? '#6EE7B7' : (r.putWallPH > 0.40 ? '#FBBF24' : '#FCA5A5');
       const phColorCW = r.callWallPH > 0.70 ? '#6EE7B7' : (r.callWallPH > 0.40 ? '#FBBF24' : '#FCA5A5');
+      const gexColor = r.gexTotal < 0 ? '#FCA5A5' : '#6EE7B7';
       return `<tr>
         <td style="font-weight:600;color:#fff;">${r.label}</td>
         <td style="font-weight:600;">$${r.putWall.toFixed(0)}</td>
@@ -694,6 +696,7 @@ async function runDeepDive() {
         <td style="font-weight:600;">$${r.callWall.toFixed(0)}</td>
         <td style="color:${phColorCW};font-weight:700;">${(r.callWallPH*100).toFixed(0)}%</td>
         <td><span class="regime ${r.isShortGamma?'short':'long'}">${r.isShortGamma?'SHORT':'LONG'}</span></td>
+        <td style="color:${gexColor};font-weight:600;">${fmtM(r.gexTotal)}</td>
         <td style="color:${premColor};font-weight:600;">${r.premRatio.toFixed(1)}x ${r.premSide === 'puts' ? 'P' : 'C'}</td>
         <td style="color:${dK>=0?'#6EE7B7':'#FCA5A5'};font-weight:600;">${dK>=0?'+':''}${dK.toFixed(1)}K</td>
       </tr>`;
