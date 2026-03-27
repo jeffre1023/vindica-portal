@@ -661,7 +661,10 @@ function toggleAutoRefresh() {
   }
 }
 
+let _loadingChain = false;
 async function loadChain(refresh) {
+  if (_loadingChain) return; // prevent overlapping refreshes
+  _loadingChain = true;
   const btn = document.getElementById('loadBtn');
   btn.innerHTML = '<span class="loader"></span> Cargando...';
   btn.disabled = true;
@@ -709,10 +712,12 @@ async function loadChain(refresh) {
     await processChain(chain, S, ticker, expDate);
 
   } catch (e) {
-    alert('Error: ' + e.message);
+    console.warn('[GEX] Error:', e.message);
+    document.getElementById('spotDisplay').innerHTML = `<span style="color:#FCA5A5;font-size:13px;">Error: ${e.message}</span>`;
   } finally {
     btn.innerHTML = 'Cargar Chain';
     btn.disabled = false;
+    _loadingChain = false;
   }
 }
 
@@ -868,8 +873,10 @@ async function processChain(chain, S, ticker, expDate) {
   const dealerDeltaTotal = results.reduce((s, r) => s + r.dealerDelta, 0);
 
   // Call Wall = strike with highest positive GEX (above spot)
-  const callCandidates = results.filter(r => r.K >= S && r.gexCall > 0);
-  const putCandidates = results.filter(r => r.K <= S && Math.abs(r.gexPut) > 0);
+  // Tolerance: strikes within 0.5% of spot can be either wall
+  const wallTol = S * 0.005;
+  const callCandidates = results.filter(r => r.K >= (S - wallTol) && r.gexCall > 0);
+  const putCandidates = results.filter(r => r.K <= (S + wallTol) && Math.abs(r.gexPut) > 0);
   let callWall = callCandidates.length
     ? { ...callCandidates.reduce((b, r) => r.gexCall > b.gexCall ? r : b) }
     : { ...results.reduce((b, r) => r.K > b.K && r.oiC > b.oiC ? r : b, results[results.length-1]) };
