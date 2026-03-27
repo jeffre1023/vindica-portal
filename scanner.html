@@ -151,6 +151,31 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--light);
       </tbody>
     </table>
   </div>
+
+  <!-- Deep Dive: Walls by DTE -->
+  <div class="scan-wrap" style="margin-top:14px;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+      <span style="font-family:'DM Serif Display',serif;font-size:15px;color:#fff;">Walls por DTE</span>
+      <input id="deepTicker" placeholder="Ticker..." style="background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:9px 14px;color:#fff;font-size:13px;font-family:'DM Sans',sans-serif;width:120px;" onkeydown="if(event.key==='Enter')runDeepDive()">
+      <button class="btn btn-purple" id="deepBtn" onclick="runDeepDive()">Analizar</button>
+      <span id="deepStatus" style="font-size:11px;color:var(--muted);"></span>
+    </div>
+    <table class="stbl" id="deepTable" style="display:none;">
+      <thead>
+        <tr>
+          <th>DTE</th>
+          <th>Put Wall</th>
+          <th>PW pHedge</th>
+          <th>Call Wall</th>
+          <th>CW pHedge</th>
+          <th>Regimen</th>
+          <th>Prem Ratio</th>
+          <th>Dealer Delta</th>
+        </tr>
+      </thead>
+      <tbody id="deepBody"></tbody>
+    </table>
+  </div>
 </div>
 
 <script>
@@ -530,6 +555,161 @@ async function quickDteCheck(ticker, expDate, S) {
     const deltaSign = dealerD < 0 ? 'negative' : 'positive';
     return { premRatio, premSide, deltaSign, dealerD };
   } catch { return null; }
+}
+
+// ═══ Deep Dive: Walls by DTE for a single ticker ═══
+async function runDeepDive() {
+  const ticker = document.getElementById('deepTicker').value.trim().toUpperCase();
+  if (!ticker) return;
+  document.getElementById('deepTicker').value = ticker;
+  const btn = document.getElementById('deepBtn');
+  btn.innerHTML = '<span class="loader"></span>';
+  btn.disabled = true;
+  document.getElementById('deepStatus').textContent = 'Cargando spot...';
+
+  const dtes = [0, 1, 2, 5, 7, 14, 30];
+  const dteLabels = {0:'0DTE',1:'1DTE',2:'2DTE',5:'5DTE',7:'7DTE',14:'14DTE',30:'30DTE'};
+
+  try {
+    // Get spot
+    const spotTicker = { SPX: 'SPY', NDX: 'QQQ' }[ticker] || ticker;
+    const spotMultiplier = { SPX: 10, NDX: 4.5 };
+    const spotData = await authFetch(`/options/spot?ticker=${spotTicker}`);
+    if (!spotData.spot || !spotData.spot.c) throw new Error('No spot data');
+    let S = spotData.spot.c;
+    if (spotMultiplier[ticker]) S = S * spotMultiplier[ticker];
+
+    const results = [];
+    for (let i = 0; i < dtes.length; i++) {
+      const dte = dtes[i];
+      document.getElementById('deepStatus').textContent = `${dteLabels[dte]}...`;
+      const expDate = getExpDate(dte);
+      try {
+        const isIndex = ['SPX','NDX','RUT'].includes(ticker);
+        const rangePct = isIndex ? 0.03 : (S > 500 ? 0.04 : 0.06);
+        const strikeMin = Math.floor(S * (1 - rangePct));
+        const strikeMax = Math.ceil(S * (1 + rangePct));
+        const chainData = await authFetch(`/options/chain?ticker=${ticker}&expDate=${expDate}&strikeMin=${strikeMin}&strikeMax=${strikeMax}`);
+        const chain = chainData.chain || [];
+        if (!chain.length) { results.push({ dte, label: dteLabels[dte], expDate, noData: true }); continue; }
+
+        const r = 0.0525;
+        const T = Math.max(1, Math.round((new Date(expDate) - new Date()) / 86400000)) / 365;
+
+        // Process chain
+        const byStrike = {};
+        for (const opt of chain) {
+          const K = opt.details.strike_price;
+          const type = opt.details.contract_type;
+          if (!byStrike[K]) byStrike[K] = { K, call: null, put: null };
+          byStrike[K][type] = opt;
+        }
+        const strikes = Object.values(byStrike).sort((a, b) => a.K - b.K);
+        const strikeResults = [];
+        for (const st of strikes) {
+          const oiC = st.call ? st.call.open_interest : 0;
+          const oiP = st.put ? st.put.open_interest : 0;
+          if (oiC === 0 && oiP === 0) continue;
+          let iv = (st.call && st.call.implied_volatility) || (st.put && st.put.implied_volatility) || 0.20;
+          if (iv <= 0) iv = 0.20;
+          const g = bsGreeks(S, st.K, T, iv, r);
+          const gexCall = oiC * g.gamma * 100 * S;
+          const gexPut = -oiP * g.gamma * 100 * S;
+          const gexNet = gexCall + gexPut;
+
+          // Quick dealer delta from last_trade vs last_quote
+          const callQuote = st.call && st.call.last_quote;
+          const putQuote = st.put && st.put.last_quote;
+          const callTrade = st.call && st.call.last_trade;
+          const putTrade = st.put && st.put.last_trade;
+          let cSign = -1, pSign = -1;
+          if (callQuote && callTrade && callQuote.bid > 0 && callQuote.ask > 0) {
+            const mid = (callQuote.bid + callQuote.ask) / 2;
+            cSign = callTrade.price <= callQuote.bid ? 1 : (callTrade.price < mid ? 1 : -1);
+          }
+          if (putQuote && putTrade && putQuote.bid > 0 && putQuote.ask > 0) {
+            const mid = (putQuote.bid + putQuote.ask) / 2;
+            pSign = putTrade.price <= putQuote.bid ? 1 : (putTrade.price < mid ? 1 : -1);
+          }
+          const dealerDelta = (cSign * oiC * g.deltaCall * 100) + (pSign * oiP * g.deltaPut * 100);
+
+          // Premium
+          const volC = st.call && st.call.day ? st.call.day.volume || 0 : 0;
+          const volP = st.put && st.put.day ? st.put.day.volume || 0 : 0;
+          const midC = callQuote && callQuote.midpoint > 0 ? callQuote.midpoint : (callTrade ? callTrade.price : 0);
+          const midP = putQuote && putQuote.midpoint > 0 ? putQuote.midpoint : (putTrade ? putTrade.price : 0);
+          const premC = volC * 100 * midC;
+          const premP = volP * 100 * midP;
+
+          // pHedge estimate from multi-leg conditions
+          const callConds = callTrade ? callTrade.conditions || [] : [];
+          const putConds = putTrade ? putTrade.conditions || [] : [];
+          const isMultiLeg = callConds.some(c => MULTI_LEG_CONDITIONS.has(c)) || putConds.some(c => MULTI_LEG_CONDITIONS.has(c));
+          const moneyness = Math.abs(st.K - S) / (S * iv * Math.sqrt(T));
+          const basePH = Math.min(0.95, 0.3 + 0.5 * Math.exp(-0.5 * moneyness * moneyness));
+          const pHedge = isMultiLeg ? basePH * 0.5 : basePH;
+
+          strikeResults.push({ K: st.K, oiC, oiP, gexCall, gexPut, gexNet, dealerDelta, premC, premP, pHedge });
+        }
+
+        if (!strikeResults.length) { results.push({ dte, label: dteLabels[dte], expDate, noData: true }); continue; }
+
+        // Walls
+        const gexTotal = strikeResults.reduce((s, r) => s + r.gexNet, 0);
+        const dealerDeltaTotal = strikeResults.reduce((s, r) => s + r.dealerDelta, 0);
+        const callCand = strikeResults.filter(r => r.K >= S && r.gexCall > 0);
+        const putCand = strikeResults.filter(r => r.K <= S && Math.abs(r.gexPut) > 0);
+        const cw = callCand.length ? callCand.reduce((b, r) => r.gexCall > b.gexCall ? r : b) : strikeResults[strikeResults.length - 1];
+        const pw = putCand.length ? putCand.reduce((b, r) => Math.abs(r.gexPut) > Math.abs(b.gexPut) ? r : b) : strikeResults[0];
+
+        // Premium ratio ATM
+        const atmK = strikeResults.reduce((b, r) => Math.abs(r.K - S) < Math.abs(b.K - S) ? r : b, strikeResults[0]).K;
+        const nearATM = strikeResults.filter(r => Math.abs(r.K - atmK) <= (S * 0.015));
+        const totalPremC = nearATM.reduce((s, r) => s + r.premC, 0);
+        const totalPremP = nearATM.reduce((s, r) => s + r.premP, 0);
+        const premRatio = Math.max(totalPremC, totalPremP) / (Math.min(totalPremC, totalPremP) || 1);
+        const premSide = totalPremP > totalPremC ? 'puts' : 'calls';
+
+        results.push({
+          dte, label: dteLabels[dte], expDate,
+          putWall: pw.K, putWallPH: pw.pHedge,
+          callWall: cw.K, callWallPH: cw.pHedge,
+          isShortGamma: gexTotal < 0, gexTotal,
+          premRatio, premSide, dealerDeltaTotal
+        });
+      } catch (err) {
+        results.push({ dte, label: dteLabels[dte], expDate, noData: true });
+      }
+      if (i < dtes.length - 1) await new Promise(r => setTimeout(r, 300));
+    }
+
+    // Render
+    document.getElementById('deepTable').style.display = '';
+    document.getElementById('deepBody').innerHTML = results.map(r => {
+      if (r.noData) return `<tr><td style="font-weight:600;color:#fff;">${r.label}</td><td colspan="7" style="color:var(--muted);">Sin data para ${r.expDate}</td></tr>`;
+      const dK = r.dealerDeltaTotal / 1000;
+      const premColor = r.premSide === 'puts' ? '#FCA5A5' : '#6EE7B7';
+      const phColorPW = r.putWallPH > 0.70 ? '#6EE7B7' : (r.putWallPH > 0.40 ? '#FBBF24' : '#FCA5A5');
+      const phColorCW = r.callWallPH > 0.70 ? '#6EE7B7' : (r.callWallPH > 0.40 ? '#FBBF24' : '#FCA5A5');
+      return `<tr>
+        <td style="font-weight:600;color:#fff;">${r.label}</td>
+        <td style="font-weight:600;">$${r.putWall.toFixed(0)}</td>
+        <td style="color:${phColorPW};font-weight:700;">${(r.putWallPH*100).toFixed(0)}%</td>
+        <td style="font-weight:600;">$${r.callWall.toFixed(0)}</td>
+        <td style="color:${phColorCW};font-weight:700;">${(r.callWallPH*100).toFixed(0)}%</td>
+        <td><span class="regime ${r.isShortGamma?'short':'long'}">${r.isShortGamma?'SHORT':'LONG'}</span></td>
+        <td style="color:${premColor};font-weight:600;">${r.premRatio.toFixed(1)}x ${r.premSide === 'puts' ? 'P' : 'C'}</td>
+        <td style="color:${dK>=0?'#6EE7B7':'#FCA5A5'};font-weight:600;">${dK>=0?'+':''}${dK.toFixed(1)}K</td>
+      </tr>`;
+    }).join('');
+
+    document.getElementById('deepStatus').textContent = `${ticker} — ${results.filter(r=>!r.noData).length} DTEs cargados`;
+  } catch (err) {
+    document.getElementById('deepStatus').textContent = 'Error: ' + err.message;
+  } finally {
+    btn.innerHTML = 'Analizar';
+    btn.disabled = false;
+  }
 }
 
 async function runScan() {
