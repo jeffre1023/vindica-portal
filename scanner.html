@@ -602,11 +602,11 @@ async function loadOITrend() {
     let html = `<table class="stbl"><thead><tr><th>Strike</th>`;
     for (const date of dates) {
       const parts = date.split('-');
-      html += `<th colspan="2">${parts[1]}/${parts[2]}</th>`;
+      html += `<th colspan="4">${parts[1]}/${parts[2]}</th>`;
     }
     html += `<th>Trend</th></tr>`;
     html += `<tr><th></th>`;
-    for (const date of dates) html += `<th style="font-size:9px;">OI C</th><th style="font-size:9px;">OI P</th>`;
+    for (const date of dates) html += `<th style="font-size:9px;">OI C</th><th style="font-size:9px;">OI P</th><th style="font-size:9px;">Vol</th><th style="font-size:9px;">IV</th>`;
     html += `<th></th></tr></thead><tbody>`;
 
     for (const K of filtered) {
@@ -618,6 +618,8 @@ async function loadOITrend() {
         const s = day.strikes.find(s => s.K === K);
         const oiC = s ? s.oiC : 0;
         const oiP = s ? s.oiP : 0;
+        const volTotal = (s ? (s.volC || 0) + (s.volP || 0) : 0);
+        const iv = s ? (s.ivC || s.ivP || 0) : 0;
 
         // Color based on change from previous day
         let cColor = 'var(--muted)', pColor = 'var(--muted)';
@@ -632,6 +634,8 @@ async function loadOITrend() {
 
         cells += `<td style="color:${cColor};font-size:11px;">${oiC > 0 ? oiC.toLocaleString() : '—'}</td>`;
         cells += `<td style="color:${pColor};font-size:11px;">${oiP > 0 ? oiP.toLocaleString() : '—'}</td>`;
+        cells += `<td style="color:var(--muted);font-size:10px;">${volTotal > 0 ? volTotal.toLocaleString() : '—'}</td>`;
+        cells += `<td style="color:${iv > 0.3 ? '#FBBF24' : 'var(--muted)'};font-size:10px;">${iv > 0 ? (iv*100).toFixed(0)+'%' : '—'}</td>`;
         prevOiC = oiC;
         prevOiP = oiP;
       }
