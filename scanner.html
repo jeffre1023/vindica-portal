@@ -154,7 +154,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--light);
       <span style="font-family:'DM Serif Display',serif;font-size:15px;color:#fff;">Walls por DTE</span>
       <input id="deepTicker" placeholder="Ticker..." style="background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:9px 14px;color:#fff;font-size:13px;font-family:'DM Sans',sans-serif;width:120px;" onkeydown="if(event.key==='Enter')runDeepDive()">
       <button class="btn btn-purple" id="deepBtn" onclick="runDeepDive()">Analizar</button>
+      <button class="btn btn-ghost" id="oiTrendBtn" onclick="loadOITrend()">OI Trend</button>
       <span id="deepStatus" style="font-size:11px;color:var(--muted);"></span>
+    </div>
+    <!-- OI Trend table -->
+    <div id="oiTrendWrap" style="display:none;margin-bottom:14px;">
+      <div style="font-size:13px;color:#fff;margin-bottom:8px;font-family:'DM Serif Display',serif;">OI Trend — <span id="oiTrendTicker"></span> <span id="oiTrendDays" style="color:var(--muted);font-size:11px;"></span></div>
+      <div id="oiTrendBody" style="overflow-x:auto;"></div>
     </div>
     <table class="stbl" id="deepTable" style="display:none;">
       <thead>
@@ -555,6 +561,110 @@ async function quickDteCheck(ticker, expDate, S) {
 }
 
 // ═══ Deep Dive: Walls by DTE for a single ticker ═══
+// ═══ OI Trend — Load historical OI from Firestore ═══
+async function loadOITrend() {
+  const ticker = document.getElementById('deepTicker').value.trim().toUpperCase();
+  if (!ticker) return;
+  const btn = document.getElementById('oiTrendBtn');
+  btn.innerHTML = '<span class="loader"></span>';
+  btn.disabled = true;
+
+  try {
+    const d = await authFetch(`/options/oi-history?ticker=${ticker}&days=5`);
+    const history = d.history || [];
+    if (!history.length) {
+      document.getElementById('oiTrendWrap').style.display = '';
+      document.getElementById('oiTrendTicker').textContent = ticker;
+      document.getElementById('oiTrendDays').textContent = '';
+      document.getElementById('oiTrendBody').innerHTML = '<div style="color:var(--muted);padding:20px;text-align:center;">Sin data historica. El cron captura OI diario a las 4:30 PM ET. Espera 1-2 dias.</div>';
+      return;
+    }
+
+    document.getElementById('oiTrendWrap').style.display = '';
+    document.getElementById('oiTrendTicker').textContent = ticker;
+    document.getElementById('oiTrendDays').textContent = `(${history.length} dias)`;
+
+    // Collect all unique strikes across all days
+    const allStrikes = new Set();
+    for (const day of history) {
+      for (const s of day.strikes) allStrikes.add(s.K);
+    }
+    const strikes = [...allStrikes].sort((a, b) => a - b);
+
+    // Filter to ATM ±5% using latest spot
+    const latestSpot = history[history.length - 1].spot;
+    const filtered = latestSpot
+      ? strikes.filter(K => Math.abs(K - latestSpot) / latestSpot <= 0.05)
+      : strikes;
+
+    // Build table: rows = strikes, columns = dates
+    const dates = history.map(h => h.date);
+    let html = `<table class="stbl"><thead><tr><th>Strike</th>`;
+    for (const date of dates) {
+      const parts = date.split('-');
+      html += `<th colspan="2">${parts[1]}/${parts[2]}</th>`;
+    }
+    html += `<th>Trend</th></tr>`;
+    html += `<tr><th></th>`;
+    for (const date of dates) html += `<th style="font-size:9px;">OI C</th><th style="font-size:9px;">OI P</th>`;
+    html += `<th></th></tr></thead><tbody>`;
+
+    for (const K of filtered) {
+      let prevOiC = null, prevOiP = null;
+      let trendC = 0, trendP = 0;
+      let cells = '';
+
+      for (const day of history) {
+        const s = day.strikes.find(s => s.K === K);
+        const oiC = s ? s.oiC : 0;
+        const oiP = s ? s.oiP : 0;
+
+        // Color based on change from previous day
+        let cColor = 'var(--muted)', pColor = 'var(--muted)';
+        if (prevOiC !== null) {
+          if (oiC > prevOiC * 1.1) { cColor = '#6EE7B7'; trendC++; }
+          else if (oiC < prevOiC * 0.9) { cColor = '#FCA5A5'; trendC--; }
+        }
+        if (prevOiP !== null) {
+          if (oiP > prevOiP * 1.1) { pColor = '#6EE7B7'; trendP++; }
+          else if (oiP < prevOiP * 0.9) { pColor = '#FCA5A5'; trendP--; }
+        }
+
+        cells += `<td style="color:${cColor};font-size:11px;">${oiC > 0 ? oiC.toLocaleString() : '—'}</td>`;
+        cells += `<td style="color:${pColor};font-size:11px;">${oiP > 0 ? oiP.toLocaleString() : '—'}</td>`;
+        prevOiC = oiC;
+        prevOiP = oiP;
+      }
+
+      // Trend indicator
+      const totalTrend = trendC + trendP;
+      const trendIcon = totalTrend >= 2 ? '<span style="color:#6EE7B7;font-weight:700;">&#9650;&#9650;</span>'
+        : totalTrend >= 1 ? '<span style="color:#6EE7B7;">&#9650;</span>'
+        : totalTrend <= -2 ? '<span style="color:#FCA5A5;font-weight:700;">&#9660;&#9660;</span>'
+        : totalTrend <= -1 ? '<span style="color:#FCA5A5;">&#9660;</span>'
+        : '<span style="color:var(--muted);">—</span>';
+
+      // Only show strikes with some OI
+      const hasOI = history.some(day => {
+        const s = day.strikes.find(s => s.K === K);
+        return s && (s.oiC > 100 || s.oiP > 100);
+      });
+      if (!hasOI) continue;
+
+      html += `<tr><td style="font-weight:600;color:#fff;">$${K}</td>${cells}<td style="text-align:center;">${trendIcon}</td></tr>`;
+    }
+
+    html += '</tbody></table>';
+    document.getElementById('oiTrendBody').innerHTML = html;
+  } catch (err) {
+    document.getElementById('oiTrendWrap').style.display = '';
+    document.getElementById('oiTrendBody').innerHTML = `<div style="color:#FCA5A5;padding:20px;text-align:center;">Error: ${err.message}</div>`;
+  } finally {
+    btn.innerHTML = 'OI Trend';
+    btn.disabled = false;
+  }
+}
+
 async function runDeepDive() {
   const ticker = document.getElementById('deepTicker').value.trim().toUpperCase();
   if (!ticker) return;
