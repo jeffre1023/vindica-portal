@@ -562,6 +562,30 @@ async function quickDteCheck(ticker, expDate, S) {
 
 // ═══ Deep Dive: Walls by DTE for a single ticker ═══
 // ═══ OI Trend — Load historical OI from Firestore ═══
+// Shows: 3 monthly expirations + daily captures of current month
+
+function getMonthlyExps(count) {
+  // Next N monthly expirations (3rd Friday of each month)
+  const exps = [];
+  let d = new Date();
+  d.setDate(1);
+  for (let m = 0; exps.length < count && m < 6; m++) {
+    const month = new Date(d.getFullYear(), d.getMonth() + m, 1);
+    // Find 3rd Friday
+    let firstDay = month.getDay();
+    let firstFri = firstDay <= 5 ? (5 - firstDay + 1) : (5 + 7 - firstDay + 1);
+    let thirdFri = firstFri + 14;
+    const expDate = new Date(month.getFullYear(), month.getMonth(), thirdFri);
+    if (expDate > new Date()) {
+      const yyyy = expDate.getFullYear();
+      const mm = String(expDate.getMonth()+1).padStart(2,'0');
+      const dd = String(expDate.getDate()).padStart(2,'0');
+      exps.push(`${yyyy}-${mm}-${dd}`);
+    }
+  }
+  return exps;
+}
+
 async function loadOITrend() {
   const ticker = document.getElementById('deepTicker').value.trim().toUpperCase();
   if (!ticker) return;
@@ -570,7 +594,7 @@ async function loadOITrend() {
   btn.disabled = true;
 
   try {
-    const d = await authFetch(`/options/oi-history?ticker=${ticker}&days=5`);
+    const d = await authFetch(`/options/oi-history?ticker=${ticker}&days=65`);
     const history = d.history || [];
     if (!history.length) {
       document.getElementById('oiTrendWrap').style.display = '';
@@ -582,80 +606,121 @@ async function loadOITrend() {
 
     document.getElementById('oiTrendWrap').style.display = '';
     document.getElementById('oiTrendTicker').textContent = ticker;
-    document.getElementById('oiTrendDays').textContent = `(${history.length} dias)`;
 
-    // Collect all unique strikes across all days
+    // Separate: monthly expirations vs current month daily
+    const now = new Date();
+    const currentMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    const monthlyExps = getMonthlyExps(3);
+    const dailyDates = [...new Set(history.map(h => h.date))].filter(d => d.startsWith(currentMonth)).sort();
+
+    document.getElementById('oiTrendDays').textContent = `(${dailyDates.length} dias este mes + ${monthlyExps.length} mensuales)`;
+
+    // For monthly: get latest snapshot for each monthly expDate
+    const monthlyData = [];
+    for (const exp of monthlyExps) {
+      const snap = history.filter(h => h.expDate === exp).sort((a,b) => b.date.localeCompare(a.date))[0];
+      if (snap) monthlyData.push({ ...snap, label: exp, isMonthly: true });
+    }
+
+    // For daily: get snapshots captured on each day (use the nearest non-0DTE expiration)
+    const dailyData = [];
+    for (const date of dailyDates) {
+      const daySnaps = history.filter(h => h.date === date && h.expDate > date);
+      // Pick the nearest expiration that's > 7 days out (swing relevant)
+      const sorted = daySnaps.sort((a,b) => a.expDate.localeCompare(b.expDate));
+      const snap = sorted.find(s => {
+        const diff = (new Date(s.expDate) - new Date(s.date)) / 86400000;
+        return diff >= 7;
+      }) || sorted[0];
+      if (snap) dailyData.push({ ...snap, label: date, isMonthly: false });
+    }
+
+    const allColumns = [...monthlyData, ...dailyData];
+    if (!allColumns.length) {
+      document.getElementById('oiTrendBody').innerHTML = '<div style="color:var(--muted);padding:20px;text-align:center;">Sin data suficiente aun. Espera unos dias.</div>';
+      return;
+    }
+
+    // Collect unique strikes
     const allStrikes = new Set();
-    for (const day of history) {
-      for (const s of day.strikes) allStrikes.add(s.K);
+    for (const col of allColumns) {
+      for (const s of col.strikes) allStrikes.add(s.K);
     }
     const strikes = [...allStrikes].sort((a, b) => a - b);
-
-    // Filter to ATM ±5% using latest spot
-    const latestSpot = history[history.length - 1].spot;
+    const latestSpot = allColumns[allColumns.length - 1].spot;
     const filtered = latestSpot
       ? strikes.filter(K => Math.abs(K - latestSpot) / latestSpot <= 0.05)
       : strikes;
 
-    // Build table: rows = strikes, columns = dates
-    const dates = history.map(h => h.date);
-    let html = `<table class="stbl"><thead><tr><th>Strike</th>`;
-    for (const date of dates) {
-      const parts = date.split('-');
-      html += `<th colspan="4">${parts[1]}/${parts[2]}</th>`;
+    // Build table
+    const monthNames = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    let html = `<table class="stbl" style="font-size:11px;"><thead><tr><th rowspan="2" style="position:sticky;left:0;background:#1E293B;z-index:2;">Strike</th>`;
+
+    // Monthly headers
+    if (monthlyData.length) {
+      html += `<th colspan="${monthlyData.length * 3}" style="color:#FBBF24;border-bottom:2px solid rgba(245,158,11,.3);">Expiraciones Mensuales</th>`;
     }
-    html += `<th>Trend</th></tr>`;
-    html += `<tr><th></th>`;
-    for (const date of dates) html += `<th style="font-size:9px;">OI C</th><th style="font-size:9px;">OI P</th><th style="font-size:9px;">Vol</th><th style="font-size:9px;">IV</th>`;
-    html += `<th></th></tr></thead><tbody>`;
+    // Daily headers
+    if (dailyData.length) {
+      html += `<th colspan="${dailyData.length * 3}" style="color:#C4B5FD;border-bottom:2px solid rgba(139,92,246,.3);">Dias (${monthNames[now.getMonth()]})</th>`;
+    }
+    html += `<th rowspan="2">Trend</th></tr><tr>`;
+
+    for (const col of allColumns) {
+      const parts = col.label.split('-');
+      const d = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
+      const dayLabel = col.isMonthly
+        ? `<span style="color:#FBBF24;">${monthNames[d.getMonth()]} ${d.getDate()}</span>`
+        : `${d.getDate()}`;
+      html += `<th style="font-size:9px;${col.isMonthly?'background:rgba(245,158,11,.05);':''}">${dayLabel}</th>`;
+      html += `<th style="font-size:8px;color:var(--muted);${col.isMonthly?'background:rgba(245,158,11,.05);':''}">P</th>`;
+      html += `<th style="font-size:8px;color:var(--muted);${col.isMonthly?'background:rgba(245,158,11,.05);':''}">IV</th>`;
+    }
+    html += '</tr></thead><tbody>';
 
     for (const K of filtered) {
-      let prevOiC = null, prevOiP = null;
-      let trendC = 0, trendP = 0;
+      let prevOiP = null, trendP = 0;
       let cells = '';
 
-      for (const day of history) {
-        const s = day.strikes.find(s => s.K === K);
-        const oiC = s ? s.oiC : 0;
+      for (const col of allColumns) {
+        const s = col.strikes.find(s => s.K === K);
         const oiP = s ? s.oiP : 0;
-        const volTotal = (s ? (s.volC || 0) + (s.volP || 0) : 0);
-        const iv = s ? (s.ivC || s.ivP || 0) : 0;
+        const oiC = s ? s.oiC : 0;
+        const oiTotal = oiC + oiP;
+        const iv = s ? (s.ivP || s.ivC || 0) : 0;
+        const bgStyle = col.isMonthly ? 'background:rgba(245,158,11,.03);' : '';
 
-        // Color based on change from previous day
-        let cColor = 'var(--muted)', pColor = 'var(--muted)';
-        if (prevOiC !== null) {
-          if (oiC > prevOiC * 1.1) { cColor = '#6EE7B7'; trendC++; }
-          else if (oiC < prevOiC * 0.9) { cColor = '#FCA5A5'; trendC--; }
-        }
-        if (prevOiP !== null) {
+        let pColor = 'var(--muted)';
+        if (prevOiP !== null && oiP > 0) {
           if (oiP > prevOiP * 1.1) { pColor = '#6EE7B7'; trendP++; }
           else if (oiP < prevOiP * 0.9) { pColor = '#FCA5A5'; trendP--; }
         }
 
-        cells += `<td style="color:${cColor};font-size:11px;">${oiC > 0 ? oiC.toLocaleString() : '—'}</td>`;
-        cells += `<td style="color:${pColor};font-size:11px;">${oiP > 0 ? oiP.toLocaleString() : '—'}</td>`;
-        cells += `<td style="color:var(--muted);font-size:10px;">${volTotal > 0 ? volTotal.toLocaleString() : '—'}</td>`;
-        cells += `<td style="color:${iv > 0.3 ? '#FBBF24' : 'var(--muted)'};font-size:10px;">${iv > 0 ? (iv*100).toFixed(0)+'%' : '—'}</td>`;
-        prevOiC = oiC;
+        // Show total OI (C+P) with put OI dominant color
+        const oiColor = oiP > oiC ? '#FCA5A5' : '#6EE7B7';
+        cells += `<td style="${bgStyle}color:${oiTotal > 0 ? oiColor : 'var(--muted)'};">${oiTotal > 0 ? (oiTotal > 999 ? (oiTotal/1000).toFixed(1)+'K' : oiTotal) : '—'}</td>`;
+        cells += `<td style="${bgStyle}color:${pColor};font-size:10px;">${oiP > 0 ? (oiP > 999 ? (oiP/1000).toFixed(1)+'K' : oiP) : '—'}</td>`;
+        cells += `<td style="${bgStyle}color:${iv > 0.3 ? '#FBBF24' : 'var(--muted)'};font-size:10px;">${iv > 0 ? (iv*100).toFixed(0)+'%' : '—'}</td>`;
         prevOiP = oiP;
       }
 
-      // Trend indicator
-      const totalTrend = trendC + trendP;
-      const trendIcon = totalTrend >= 2 ? '<span style="color:#6EE7B7;font-weight:700;">&#9650;&#9650;</span>'
-        : totalTrend >= 1 ? '<span style="color:#6EE7B7;">&#9650;</span>'
-        : totalTrend <= -2 ? '<span style="color:#FCA5A5;font-weight:700;">&#9660;&#9660;</span>'
-        : totalTrend <= -1 ? '<span style="color:#FCA5A5;">&#9660;</span>'
+      const trendIcon = trendP >= 3 ? '<span style="color:#6EE7B7;font-weight:700;">&#9650;&#9650;&#9650;</span>'
+        : trendP >= 2 ? '<span style="color:#6EE7B7;font-weight:700;">&#9650;&#9650;</span>'
+        : trendP >= 1 ? '<span style="color:#6EE7B7;">&#9650;</span>'
+        : trendP <= -3 ? '<span style="color:#FCA5A5;font-weight:700;">&#9660;&#9660;&#9660;</span>'
+        : trendP <= -2 ? '<span style="color:#FCA5A5;font-weight:700;">&#9660;&#9660;</span>'
+        : trendP <= -1 ? '<span style="color:#FCA5A5;">&#9660;</span>'
         : '<span style="color:var(--muted);">—</span>';
 
-      // Only show strikes with some OI
-      const hasOI = history.some(day => {
-        const s = day.strikes.find(s => s.K === K);
+      const hasOI = allColumns.some(col => {
+        const s = col.strikes.find(s => s.K === K);
         return s && (s.oiC > 100 || s.oiP > 100);
       });
       if (!hasOI) continue;
 
-      html += `<tr><td style="font-weight:600;color:#fff;">$${K}</td>${cells}<td style="text-align:center;">${trendIcon}</td></tr>`;
+      const isNearSpot = latestSpot && Math.abs(K - latestSpot) / latestSpot < 0.01;
+      const rowStyle = isNearSpot ? 'background:rgba(139,92,246,.08);' : '';
+      html += `<tr style="${rowStyle}"><td style="font-weight:600;color:#fff;position:sticky;left:0;background:${isNearSpot?'rgba(139,92,246,.15)':'#1E293B'};z-index:1;">$${K}</td>${cells}<td style="text-align:center;">${trendIcon}</td></tr>`;
     }
 
     html += '</tbody></table>';
