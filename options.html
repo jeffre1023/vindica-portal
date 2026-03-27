@@ -303,6 +303,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--light);
     <div id="mesLevels" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;"></div>
   </div>
 
+  <!-- Filtros: FOMC / CPI / NFP / VIX / EHP -->
+  <div class="panel hidden" id="filtersWrapper">
+    <div class="panel-t">Filtros de Operacion</div>
+    <div id="filtersStatus"></div>
+    <div class="filters-panel" id="filtersPanel"></div>
+  </div>
+
 </div>
 
 <script>
@@ -908,6 +915,7 @@ function renderAll() {
   renderChart();
   renderResultsTable();
   renderMES();
+  renderFilters();
   // Show all
   ['metricsRow','priceBarWrap','chartPanel','resultsPanel','mesPanel'].forEach(id => {
     const el = document.getElementById(id);
@@ -1166,12 +1174,14 @@ function renderFilters() {
     ? '<div class="filter-item pass" style="grid-column:1/-1;justify-content:center;font-weight:700;font-size:14px;">DIA OPERABLE</div>'
     : '<div class="filter-item fail" style="grid-column:1/-1;justify-content:center;font-weight:700;font-size:14px;">PRECAUCION — Revisa filtros</div>';
 
+  document.getElementById('filtersWrapper').classList.remove('hidden');
+  document.getElementById('filtersStatus').innerHTML = verdictHTML;
   document.getElementById('filtersPanel').innerHTML = items.map(f =>
     `<div class="filter-item ${f.pass?'pass':'fail'}">
       <span class="fi-icon">${f.pass?'&#9989;':'&#9888;'}</span>
       <div><div style="font-weight:600;">${f.label}</div><div style="font-size:10px;color:var(--muted);">${f.detail}</div></div>
     </div>`
-  ).join('') + verdictHTML;
+  ).join('');
 }
 
 function renderMetrics() {
