@@ -1,44 +1,44 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Vindica Health — Acceso</title>
+  <title>Options GEX — Login</title>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --teal:#0D9488;--teal-light:#14B8A8;--teal-dim:rgba(13,148,136,.15);
+      --purple:#8B5CF6;--purple-light:#A78BFA;--purple-dim:rgba(139,92,246,.15);
+      --purple-dark:#6D28D9;
       --dark:#0B1120;--surface:#111827;--surface-2:#1a2535;
-      --border:rgba(255,255,255,.07);--border-focus:rgba(13,148,136,.6);
+      --border:rgba(255,255,255,.07);--border-focus:rgba(139,92,246,.6);
       --muted:#64748B;--text:#E2E8F0;--text-dim:#94A3B8;
       --error:#F87171;--error-bg:rgba(248,113,113,.1);--success:#34D399;
     }
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--text);-webkit-font-smoothing:antialiased}
-    body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 60% 50% at 15% 20%,rgba(13,148,136,.18) 0%,transparent 70%),radial-gradient(ellipse 40% 60% at 85% 80%,rgba(13,148,136,.10) 0%,transparent 70%),radial-gradient(ellipse 80% 80% at 50% 50%,rgba(11,17,32,1) 0%,transparent 100%);pointer-events:none;z-index:0}
+    body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 60% 50% at 15% 20%,rgba(139,92,246,.18) 0%,transparent 70%),radial-gradient(ellipse 40% 60% at 85% 80%,rgba(139,92,246,.10) 0%,transparent 70%),radial-gradient(ellipse 80% 80% at 50% 50%,rgba(11,17,32,1) 0%,transparent 100%);pointer-events:none;z-index:0}
     body::after{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
     .page{position:relative;z-index:1;min-height:100vh;display:grid;grid-template-columns:1fr 480px 1fr;align-items:center;padding:40px 24px}
     .brand-col{grid-column:1;padding:0 40px 0 60px;display:flex;flex-direction:column;gap:32px}
     .brand-lockup{display:flex;flex-direction:column;gap:12px}
     .brand-logo{display:flex;align-items:center;gap:14px;margin-bottom:4px}
-    .brand-logo-icon{width:52px;height:52px;background:linear-gradient(135deg,#0F766E,#14B8A6);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:26px;box-shadow:0 0 32px rgba(13,148,136,.45);flex-shrink:0}
-    .brand-logo-text{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:#F8FAFC;letter-spacing:-.02em}
-    .brand-logo-text span{color:var(--teal-light)}
-    .brand-eyebrow{font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--teal)}
+    .brand-logo-icon{width:52px;height:52px;background:linear-gradient(135deg,var(--purple-dark),var(--purple));border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:26px;box-shadow:0 0 32px rgba(139,92,246,.45);flex-shrink:0}
+    .brand-logo-text{font-family:'DM Serif Display',serif;font-size:26px;color:#F8FAFC;letter-spacing:-.02em}
+    .brand-logo-text span{color:var(--purple-light)}
+    .brand-eyebrow{font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--purple)}
     .brand-name{font-family:'Syne',sans-serif;font-size:clamp(32px,3vw,48px);font-weight:800;letter-spacing:-.02em;color:#F8FAFC;line-height:1.05}
-    .brand-name span{color:var(--teal-light)}
+    .brand-name span{color:var(--purple-light)}
     .brand-tagline{font-size:15px;font-weight:300;color:var(--text-dim);max-width:340px;line-height:1.65}
     .feature-list{display:flex;flex-direction:column;gap:14px;margin-top:8px}
     .feature-item{display:flex;align-items:flex-start;gap:12px;font-size:13.5px;color:var(--text-dim);line-height:1.5}
-    .feature-dot{width:6px;height:6px;border-radius:50%;background:var(--teal);flex-shrink:0;margin-top:5px}
-    .hipaa-badge{display:inline-flex;align-items:center;gap:8px;background:var(--teal-dim);border:1px solid rgba(13,148,136,.3);border-radius:6px;padding:8px 14px;font-size:12px;font-weight:500;color:var(--teal-light);width:fit-content}
+    .feature-dot{width:6px;height:6px;border-radius:50%;background:var(--purple);flex-shrink:0;margin-top:5px}
     .card-col{grid-column:2}
-    .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:48px 44px;box-shadow:0 0 0 1px rgba(255,255,255,.04),0 24px 64px rgba(0,0,0,.5),0 0 80px rgba(13,148,136,.06);position:relative;overflow:hidden}
-    .card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--teal),transparent)}
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:48px 44px;box-shadow:0 0 0 1px rgba(255,255,255,.04),0 24px 64px rgba(0,0,0,.5),0 0 80px rgba(139,92,246,.06);position:relative;overflow:hidden}
+    .card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--purple),transparent)}
     .card-header{margin-bottom:36px}
     .card-title{font-family:'Syne',sans-serif;font-size:22px;font-weight:700;color:#F8FAFC;letter-spacing:-.02em;margin-bottom:6px}
     .card-sub{font-size:14px;color:var(--text-dim)}
@@ -50,14 +50,14 @@
     .input-wrap svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none;transition:color .2s}
     input[type="email"],input[type="password"]{width:100%;padding:12px 14px 12px 42px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:14.5px;color:var(--text);outline:none;transition:border-color .2s,box-shadow .2s}
     input::placeholder{color:var(--muted);font-weight:300}
-    input:focus{border-color:var(--border-focus);box-shadow:0 0 0 3px rgba(13,148,136,.12)}
-    .input-wrap:focus-within svg{color:var(--teal)}
+    input:focus{border-color:var(--border-focus);box-shadow:0 0 0 3px rgba(139,92,246,.12)}
+    .input-wrap:focus-within svg{color:var(--purple)}
     .pwd-toggle{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);display:flex;align-items:center;transition:color .2s}
-    .pwd-toggle:hover{color:var(--teal)}
-    .forgot{font-size:12.5px;color:var(--teal-light);text-decoration:none;text-align:right;display:block;margin-top:-4px;transition:opacity .2s}
+    .pwd-toggle:hover{color:var(--purple)}
+    .forgot{font-size:12.5px;color:var(--purple-light);text-decoration:none;text-align:right;display:block;margin-top:-4px;transition:opacity .2s}
     .forgot:hover{opacity:.75}
-    .btn-primary{width:100%;padding:14px;background:var(--teal);border:none;border-radius:8px;font-family:'Syne',sans-serif;font-size:15px;font-weight:600;color:#fff;cursor:pointer;transition:background .2s,transform .1s,box-shadow .2s;margin-top:4px;position:relative;overflow:hidden}
-    .btn-primary:hover:not(:disabled){background:var(--teal-light);box-shadow:0 8px 24px rgba(13,148,136,.35)}
+    .btn-primary{width:100%;padding:14px;background:var(--purple);border:none;border-radius:8px;font-family:'Syne',sans-serif;font-size:15px;font-weight:600;color:#fff;cursor:pointer;transition:background .2s,transform .1s,box-shadow .2s;margin-top:4px;position:relative;overflow:hidden}
+    .btn-primary:hover:not(:disabled){background:var(--purple-light);box-shadow:0 8px 24px rgba(139,92,246,.35)}
     .btn-primary:active:not(:disabled){transform:scale(.99)}
     .btn-primary:disabled{opacity:.5;cursor:not-allowed}
     .btn-primary .spinner{display:none;width:18px;height:18px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;margin:0 auto}
@@ -70,16 +70,15 @@
     .alert svg{flex-shrink:0;margin-top:1px}
     .reset-panel{display:none;flex-direction:column;gap:16px}
     .reset-panel.active{display:flex}
-    .back-link{background:none;border:none;color:var(--teal-light);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;padding:0;transition:opacity .2s}
+    .back-link{background:none;border:none;color:var(--purple-light);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;padding:0;transition:opacity .2s}
     .back-link:hover{opacity:.7}
     .card-footer{margin-top:28px;padding-top:22px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:16px}
-    .footer-logo{font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.04em}
+    .footer-logo{font-family:'DM Serif Display',serif;font-size:13px;color:var(--muted);letter-spacing:.02em}
     .footer-legal{font-size:11px;color:var(--muted);text-align:right;line-height:1.5}
     @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
     .card{animation:fadeUp .5s cubic-bezier(.22,1,.36,1) both}
     .brand-lockup{animation:fadeUp .5s .1s cubic-bezier(.22,1,.36,1) both}
     .feature-list{animation:fadeUp .5s .2s cubic-bezier(.22,1,.36,1) both}
-    .hipaa-badge{animation:fadeUp .5s .3s cubic-bezier(.22,1,.36,1) both}
     @media(max-width:960px){
       .page{grid-template-columns:1fr;max-width:480px;margin:0 auto;gap:32px}
       .brand-col{grid-column:1;padding:0;align-items:center;text-align:center}
@@ -93,88 +92,84 @@
   <aside class="brand-col">
     <div class="brand-lockup">
       <div class="brand-logo">
-        <div class="brand-logo-icon">⚕</div>
-        <div class="brand-logo-text">Vindica<span>Health</span></div>
+        <div class="brand-logo-icon">&#9080;</div>
+        <div class="brand-logo-text">Options<span>GEX</span></div>
       </div>
-      <span class="brand-eyebrow">Pre-Auth Intelligence</span>
-      <p class="brand-tagline">Briefs de pre-autorización para cirugías Medicare Advantage — cumplimiento LCD y normativa CMS.</p>
+      <span class="brand-eyebrow">Gamma Exposure Analytics</span>
+      <p class="brand-tagline">Real-time GEX, dealer positioning, and options flow analysis for smarter trading decisions.</p>
     </div>
     <ul class="feature-list" role="list">
-      <li class="feature-item"><span class="feature-dot"></span>Verificación CPT / ICD-10 / Plan — 100% determinista</li>
-      <li class="feature-item"><span class="feature-dot"></span>Análisis de radiología contra criterios LCD</li>
-      <li class="feature-item"><span class="feature-dot"></span>Evaluación de terapia conservadora y ADLs</li>
-      <li class="feature-item"><span class="feature-dot"></span>Recomendaciones dinámicas por comorbilidad</li>
-      <li class="feature-item"><span class="feature-dot"></span>Justificación Inpatient / Outpatient (CMS Two-Midnight)</li>
-      <li class="feature-item"><span class="feature-dot"></span>Medicare Advantage — Puerto Rico</li>
+      <li class="feature-item"><span class="feature-dot"></span>Net GEX + EHP + MPS per strike</li>
+      <li class="feature-item"><span class="feature-dot"></span>Gamma Walls, Flip Point & Dealer Delta</li>
+      <li class="feature-item"><span class="feature-dot"></span>Premium Flow — Call vs Put bias</li>
+      <li class="feature-item"><span class="feature-dot"></span>Multi-ticker In-Play Scanner</li>
+      <li class="feature-item"><span class="feature-dot"></span>Adaptive Scalp / Swing MPS levels</li>
+      <li class="feature-item"><span class="feature-dot"></span>Real-time CBOE options chain data</li>
     </ul>
-    <div class="hipaa-badge">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-      HIPAA Compliant · BAA activo con Google Cloud
-    </div>
   </aside>
- 
+
   <main class="card-col">
     <div class="card">
       <div class="card-header">
-        <p class="card-title">Acceso al Portal</p>
-        <p class="card-sub">Credenciales de práctica médica</p>
+        <p class="card-title">Sign In</p>
+        <p class="card-sub">Access your trading dashboard</p>
       </div>
- 
+
       <!-- LOGIN FORM -->
       <div class="form-panel active" id="panel-login">
         <div id="alert-login" class="alert" role="alert"></div>
         <div class="field">
-          <label for="login-email">Correo electrónico</label>
+          <label for="login-email">Email</label>
           <div class="input-wrap">
-            <input type="email" id="login-email" placeholder="medico@practica.com" autocomplete="email" />
+            <input type="email" id="login-email" placeholder="you@email.com" autocomplete="email" />
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
           </div>
         </div>
         <div class="field">
-          <label for="login-password">Contraseña</label>
+          <label for="login-password">Password</label>
           <div class="input-wrap">
             <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" />
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-            <button type="button" class="pwd-toggle" onclick="togglePwd('login-password',this)" aria-label="Mostrar contraseña">
+            <button type="button" class="pwd-toggle" onclick="togglePwd('login-password',this)" aria-label="Show password">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
             </button>
           </div>
-          <a href="#" class="forgot" onclick="showReset(event)">¿Olvidaste tu contraseña?</a>
+          <a href="#" class="forgot" onclick="showReset(event)">Forgot password?</a>
         </div>
         <button class="btn-primary" id="btn-login" onclick="handleLogin()">
-          <span class="btn-label">Entrar al portal</span>
+          <span class="btn-label">Sign In</span>
           <span class="spinner"></span>
         </button>
       </div>
- 
+
       <!-- RESET PASSWORD PANEL -->
       <div class="reset-panel" id="panel-reset">
         <button class="back-link" onclick="hideReset()">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-          Volver al inicio de sesión
+          Back to sign in
         </button>
         <div id="alert-reset" class="alert" role="alert"></div>
         <div class="field">
-          <label for="reset-email">Correo de tu cuenta</label>
+          <label for="reset-email">Account email</label>
           <div class="input-wrap">
-            <input type="email" id="reset-email" placeholder="medico@practica.com" autocomplete="email" />
+            <input type="email" id="reset-email" placeholder="you@email.com" autocomplete="email" />
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
           </div>
         </div>
         <button class="btn-primary" id="btn-reset" onclick="handleReset()">
-          <span class="btn-label">Enviar enlace de recuperación</span>
+          <span class="btn-label">Send reset link</span>
           <span class="spinner"></span>
         </button>
       </div>
- 
+
       <div class="card-footer">
-        <span class="footer-logo">VINDICA HEALTH</span>
-        <span class="footer-legal">Puerto Rico · Medicare Advantage<br />Información confidencial — HIPAA</span>
+        <span class="footer-logo">Options<span style="color:var(--purple-light)">GEX</span></span>
+        <span class="footer-legal">Gamma Exposure Analytics<br />Real-time options data</span>
       </div>
     </div>
   </main>
 </div>
- 
+
 <script>
   const firebaseConfig = {
     apiKey:            "AIzaSyBKmZkxsdP1p0uxKvmSJBYlQPiRPC0eXJ4",
@@ -187,25 +182,25 @@
   };
   firebase.initializeApp(firebaseConfig);
   const auth = firebase.auth();
- 
+
   auth.onAuthStateChanged(user => {
-    if (user) window.location.href = 'portal.html';
+    if (user) window.location.href = 'options.html';
   });
- 
+
   const ERROR_MESSAGES = {
-    'auth/invalid-email':          'El correo electrónico no tiene un formato válido.',
-    'auth/user-not-found':         'No existe una cuenta con ese correo.',
-    'auth/wrong-password':         'Contraseña incorrecta. Intenta de nuevo.',
-    'auth/invalid-credential':     'Correo o contraseña incorrectos.',
-    'auth/too-many-requests':      'Demasiados intentos fallidos. Intenta más tarde o restablece tu contraseña.',
-    'auth/network-request-failed': 'Error de red. Verifica tu conexión a internet.',
-    'auth/user-disabled':          'Esta cuenta ha sido deshabilitada. Contacta al administrador.',
+    'auth/invalid-email':          'Invalid email format.',
+    'auth/user-not-found':         'No account found with that email.',
+    'auth/wrong-password':         'Incorrect password. Try again.',
+    'auth/invalid-credential':     'Incorrect email or password.',
+    'auth/too-many-requests':      'Too many failed attempts. Try later or reset your password.',
+    'auth/network-request-failed': 'Network error. Check your internet connection.',
+    'auth/user-disabled':          'This account has been disabled. Contact support.',
   };
- 
+
   function friendlyError(code) {
-    return ERROR_MESSAGES[code] || `Error inesperado (${code}). Contacta soporte@vindicahealth.com`;
+    return ERROR_MESSAGES[code] || `Unexpected error (${code}).`;
   }
- 
+
   function showAlert(id, type, message) {
     const el = document.getElementById(id);
     if (!el) return;
@@ -215,19 +210,19 @@
       : `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg><span>${message}</span>`;
     el.style.display = 'flex';
   }
- 
+
   function clearAlert(id) {
     const el = document.getElementById(id);
     if (el) el.style.display = 'none';
   }
- 
+
   function setLoading(btnId, loading) {
     const btn = document.getElementById(btnId);
     if (!btn) return;
     btn.disabled = loading;
     btn.classList.toggle('loading', loading);
   }
- 
+
   function togglePwd(inputId, btn) {
     const input = document.getElementById(inputId);
     if (!input) return;
@@ -237,55 +232,55 @@
       ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-10-8-10-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 10 8 10 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`
       : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>`;
   }
- 
+
   function showReset(e) {
     e.preventDefault();
     document.getElementById('panel-login').classList.remove('active');
     document.getElementById('panel-reset').classList.add('active');
     clearAlert('alert-reset');
   }
- 
+
   function hideReset() {
     document.getElementById('panel-reset').classList.remove('active');
     document.getElementById('panel-login').classList.add('active');
     clearAlert('alert-reset');
   }
- 
+
   document.addEventListener('keydown', e => {
     if (e.key !== 'Enter') return;
     if (document.getElementById('panel-login').classList.contains('active')) handleLogin();
     if (document.getElementById('panel-reset').classList.contains('active')) handleReset();
   });
- 
+
   async function handleLogin() {
     clearAlert('alert-login');
     const email    = document.getElementById('login-email').value.trim();
     const password = document.getElementById('login-password').value;
     if (!email || !password) {
-      showAlert('alert-login', 'error', 'Por favor ingresa tu correo y contraseña.');
+      showAlert('alert-login', 'error', 'Please enter your email and password.');
       return;
     }
     setLoading('btn-login', true);
     try {
       await auth.signInWithEmailAndPassword(email, password);
-      window.location.href = 'portal.html';
+      window.location.href = 'options.html';
     } catch (err) {
       showAlert('alert-login', 'error', friendlyError(err.code));
       setLoading('btn-login', false);
     }
   }
- 
+
   async function handleReset() {
     clearAlert('alert-reset');
     const email = document.getElementById('reset-email').value.trim();
     if (!email) {
-      showAlert('alert-reset', 'error', 'Ingresa el correo de tu cuenta.');
+      showAlert('alert-reset', 'error', 'Enter your account email.');
       return;
     }
     setLoading('btn-reset', true);
     try {
       await auth.sendPasswordResetEmail(email);
-      showAlert('alert-reset', 'success', `Enlace enviado a ${email}. Revisa tu bandeja de entrada (y spam).`);
+      showAlert('alert-reset', 'success', `Reset link sent to ${email}. Check your inbox (and spam).`);
       document.getElementById('reset-email').value = '';
     } catch (err) {
       showAlert('alert-reset', 'error', friendlyError(err.code));
