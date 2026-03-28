@@ -984,7 +984,9 @@ function renderResults(results) {
 
     // Premium ratio display
     const premColor = r.premDominantSide === 'puts' ? '#FCA5A5' : '#6EE7B7';
-    const premLabel = `<span style="font-size:10px;">C:${fmtM(r.totalPremC)} <span style="color:${premColor};font-weight:600;">|</span> P:${fmtM(r.totalPremP)}</span> <span style="color:${premColor};font-weight:600;font-size:11px;">(${r.premRatio.toFixed(1)}x)</span>`;
+    const pC = r.totalPremC || 0;
+    const pP = r.totalPremP || 0;
+    const premLabel = `<div style="font-size:10px;line-height:1.4;">C:<span style="color:#6EE7B7;">${fmtM(pC)}</span> P:<span style="color:#FCA5A5;">${fmtM(pP)}</span></div><div style="color:${premColor};font-weight:600;font-size:11px;">${r.premRatio.toFixed(1)}x ${r.premDominantSide === 'puts' ? 'P' : 'C'}</div>`;
 
     // MPS display
     const mpsColor = r.mps >= 80 ? '#FCA5A5' : r.mps >= 60 ? '#FBBF24' : r.mps >= 40 ? '#C4B5FD' : '#6EE7B7';
