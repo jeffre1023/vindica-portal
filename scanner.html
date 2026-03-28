@@ -153,7 +153,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--light);
     </div>
     <!-- OI Trend table -->
     <div id="oiTrendWrap" style="display:none;margin-bottom:14px;">
-      <div style="font-size:13px;color:#fff;margin-bottom:8px;font-family:'DM Serif Display',serif;">OI Trend — <span id="oiTrendTicker"></span> <span id="oiTrendDays" style="color:var(--muted);font-size:11px;"></span></div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <span style="font-size:13px;color:#fff;font-family:'DM Serif Display',serif;">OI Trend — <span id="oiTrendTicker"></span></span>
+        <select id="oiDteSelect" style="background:#1E293B;border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:#fff;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;color-scheme:dark;" onchange="renderOITrendForDte()">
+          <option value="">Seleccionar DTE</option>
+        </select>
+        <span id="oiTrendDays" style="color:var(--muted);font-size:11px;"></span>
+      </div>
       <div id="oiTrendBody" style="overflow-x:auto;"></div>
     </div>
     <table class="stbl" id="deepTable" style="display:none;">
@@ -580,6 +586,8 @@ function getMonthlyExps(count) {
   return exps;
 }
 
+let _oiHistory = null;
+
 async function loadOITrend() {
   const ticker = document.getElementById('deepTicker').value.trim().toUpperCase();
   if (!ticker) return;
@@ -588,157 +596,147 @@ async function loadOITrend() {
   btn.disabled = true;
 
   try {
-    const d = await authFetch(`/options/oi-history?ticker=${ticker}&days=65`);
+    const d = await authFetch(`/options/oi-history?ticker=${ticker}&days=200`);
     const history = d.history || [];
+    _oiHistory = history;
+
+    document.getElementById('oiTrendWrap').style.display = '';
+    document.getElementById('oiTrendTicker').textContent = ticker;
+
     if (!history.length) {
-      document.getElementById('oiTrendWrap').style.display = '';
-      document.getElementById('oiTrendTicker').textContent = ticker;
       document.getElementById('oiTrendDays').textContent = '';
       document.getElementById('oiTrendBody').innerHTML = '<div style="color:var(--muted);padding:20px;text-align:center;">Sin data historica. El cron captura OI diario a las 4:30 PM ET. Espera 1-2 dias.</div>';
       return;
     }
 
-    document.getElementById('oiTrendWrap').style.display = '';
-    document.getElementById('oiTrendTicker').textContent = ticker;
-
-    // Separate: monthly expirations vs current month daily
-    const now = new Date();
-    const currentMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-    const monthlyExps = getMonthlyExps(3);
-    const dailyDates = [...new Set(history.map(h => h.date))].filter(d => d.startsWith(currentMonth)).sort();
-
-    document.getElementById('oiTrendDays').textContent = `(${dailyDates.length} dias este mes + ${monthlyExps.length} mensuales)`;
-
-    // For monthly: get latest snapshot for each monthly expDate
-    const monthlyData = [];
-    for (const exp of monthlyExps) {
-      const snap = history.filter(h => h.expDate === exp).sort((a,b) => b.date.localeCompare(a.date))[0];
-      if (snap) monthlyData.push({ ...snap, label: exp, isMonthly: true });
-    }
-
-    // For daily: get snapshots captured on each day (use the nearest non-0DTE expiration)
-    const dailyData = [];
-    for (const date of dailyDates) {
-      const daySnaps = history.filter(h => h.date === date && h.expDate > date);
-      // Pick the nearest expiration that's > 7 days out (swing relevant)
-      const sorted = daySnaps.sort((a,b) => a.expDate.localeCompare(b.expDate));
-      const snap = sorted.find(s => {
-        const diff = (new Date(s.expDate) - new Date(s.date)) / 86400000;
-        return diff >= 7;
-      }) || sorted[0];
-      if (snap) dailyData.push({ ...snap, label: date, isMonthly: false });
-    }
-
-    const allColumns = [...monthlyData, ...dailyData];
-    if (!allColumns.length) {
-      document.getElementById('oiTrendBody').innerHTML = '<div style="color:var(--muted);padding:20px;text-align:center;">Sin data suficiente aun. Espera unos dias.</div>';
-      return;
-    }
-
-    // Collect unique strikes
-    const allStrikes = new Set();
-    for (const col of allColumns) {
-      for (const s of col.strikes) allStrikes.add(s.K);
-    }
-    const strikes = [...allStrikes].sort((a, b) => a - b);
-    const latestSpot = allColumns[allColumns.length - 1].spot;
-    const filtered = latestSpot
-      ? strikes.filter(K => Math.abs(K - latestSpot) / latestSpot <= 0.05)
-      : strikes;
-
-    // Build table
+    // Populate DTE dropdown with unique expDates from history
+    const expDates = [...new Set(history.map(h => h.expDate).filter(Boolean))].sort();
+    const sel = document.getElementById('oiDteSelect');
     const monthNames = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-    const fmtOI = n => n > 9999 ? (n/1000).toFixed(0)+'K' : n > 999 ? (n/1000).toFixed(1)+'K' : n > 0 ? n : '—';
-
-    let html = `<table class="stbl" style="font-size:11px;"><thead>`;
-
-    // Row 1: Section headers (Monthly | Daily)
-    html += `<tr><th rowspan="3" style="position:sticky;left:0;background:#1E293B;z-index:2;">Strike</th>`;
-    if (monthlyData.length) {
-      html += `<th colspan="${monthlyData.length * 4}" style="color:#FBBF24;border-bottom:2px solid rgba(245,158,11,.3);">Expiraciones Mensuales</th>`;
-    }
-    if (dailyData.length) {
-      html += `<th colspan="${dailyData.length * 4}" style="color:#C4B5FD;border-bottom:2px solid rgba(139,92,246,.3);">Diario</th>`;
-    }
-    html += `<th rowspan="3">Trend</th></tr>`;
-
-    // Row 2: Date labels (Mon Abr 17 | Mar 27)
-    html += '<tr>';
-    for (const col of allColumns) {
-      const parts = col.label.split('-');
+    const dayNames = ['Dom','Lun','Mar','Mie','Jue','Vie','Sab'];
+    sel.innerHTML = '';
+    for (const exp of expDates) {
+      const parts = exp.split('-');
       const dd = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
-      const bg = col.isMonthly ? 'background:rgba(245,158,11,.06);' : '';
-      const color = col.isMonthly ? 'color:#FBBF24;' : 'color:#C4B5FD;';
-      const dateLabel = `${monthNames[dd.getMonth()]} ${dd.getDate()}`;
-      const expLabel = col.isMonthly ? `<div style="font-size:8px;color:var(--muted);">Exp. Mensual</div>` : `<div style="font-size:8px;color:var(--muted);">Exp: ${col.expDate ? col.expDate.split('-').slice(1).join('/') : '—'}</div>`;
-      html += `<th colspan="4" style="${bg}${color}font-size:11px;font-weight:700;border-left:1px solid var(--border);">${dateLabel}${expLabel}</th>`;
+      if (dd < new Date()) continue; // skip expired
+      const dte = Math.round((dd - new Date()) / 86400000);
+      const isThirdFriday = dd.getDay() === 5 && dd.getDate() >= 15 && dd.getDate() <= 21;
+      const typeTag = isThirdFriday ? ' ★ Monthly' : '';
+      const opt = document.createElement('option');
+      opt.value = exp;
+      opt.textContent = `${dayNames[dd.getDay()]} ${dd.getDate()} ${monthNames[dd.getMonth()]} (${dte}d)${typeTag}`;
+      opt.style.background = '#1E293B';
+      opt.style.color = isThirdFriday ? '#FBBF24' : '#fff';
+      sel.appendChild(opt);
     }
-    html += '</tr>';
 
-    // Row 3: Column sub-headers
-    html += '<tr>';
-    for (const col of allColumns) {
-      const bg = col.isMonthly ? 'background:rgba(245,158,11,.03);' : '';
-      html += `<th style="${bg}font-size:8px;color:#6EE7B7;border-left:1px solid var(--border);">Call OI</th>`;
-      html += `<th style="${bg}font-size:8px;color:#FCA5A5;">Put OI</th>`;
-      html += `<th style="${bg}font-size:8px;color:var(--muted);">Vol</th>`;
-      html += `<th style="${bg}font-size:8px;color:#FBBF24;">IV</th>`;
-    }
-    html += '</tr></thead><tbody>';
-
-    for (const K of filtered) {
-      let prevOiC = null, prevOiP = null, trendC = 0, trendP = 0;
-      let cells = '';
-
-      for (const col of allColumns) {
-        const s = col.strikes.find(s => s.K === K);
-        const oiC = s ? s.oiC : 0;
-        const oiP = s ? s.oiP : 0;
-        const vol = s ? ((s.volC || 0) + (s.volP || 0)) : 0;
-        const iv = s ? (s.ivP || s.ivC || 0) : 0;
-        const bg = col.isMonthly ? 'background:rgba(245,158,11,.03);' : '';
-
-        // Color OI changes vs previous column
-        let cColor = 'var(--muted)', pColor = 'var(--muted)';
-        if (prevOiC !== null && oiC > 0) {
-          if (oiC > prevOiC * 1.1) { cColor = '#6EE7B7'; trendC++; }
-          else if (oiC < prevOiC * 0.9) { cColor = '#FCA5A5'; trendC--; }
-        }
-        if (prevOiP !== null && oiP > 0) {
-          if (oiP > prevOiP * 1.1) { pColor = '#6EE7B7'; trendP++; }
-          else if (oiP < prevOiP * 0.9) { pColor = '#FCA5A5'; trendP--; }
-        }
-
-        cells += `<td style="${bg}color:${oiC > 0 ? cColor : 'var(--muted)'};border-left:1px solid var(--border);">${fmtOI(oiC)}</td>`;
-        cells += `<td style="${bg}color:${oiP > 0 ? pColor : 'var(--muted)'};">${fmtOI(oiP)}</td>`;
-        cells += `<td style="${bg}color:var(--muted);font-size:10px;">${vol > 0 ? fmtOI(vol) : '—'}</td>`;
-        cells += `<td style="${bg}color:${iv > 0.3 ? '#FBBF24' : 'var(--muted)'};font-size:10px;">${iv > 0 ? (iv*100).toFixed(0)+'%' : '—'}</td>`;
-        prevOiC = oiC;
-        prevOiP = oiP;
+    // Also fetch real expirations to add ones not yet in history
+    try {
+      const expData = await authFetch(`/options/expirations?ticker=${ticker}`);
+      for (const exp of (expData.expirations || [])) {
+        if (exp.dte > 180 || expDates.includes(exp.date)) continue;
+        const parts = exp.date.split('-');
+        const dd = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
+        const typeTag = exp.type === 'Monthly' ? ' ★ Monthly' : exp.type === 'Quarterly' ? ' ★★ Quarterly' : '';
+        const opt = document.createElement('option');
+        opt.value = exp.date;
+        opt.textContent = `${dayNames[dd.getDay()]} ${dd.getDate()} ${monthNames[dd.getMonth()]} (${exp.dte}d)${typeTag} (sin data)`;
+        opt.style.background = '#1E293B';
+        opt.style.color = exp.type === 'Monthly' || exp.type === 'Quarterly' ? '#FBBF24' : 'var(--muted)';
+        sel.appendChild(opt);
       }
+    } catch {}
 
-      const totalTrend = trendC + trendP;
-      const trendIcon = totalTrend >= 3 ? '<span style="color:#6EE7B7;font-weight:700;">&#9650;&#9650;&#9650;</span>'
-        : totalTrend >= 2 ? '<span style="color:#6EE7B7;font-weight:700;">&#9650;&#9650;</span>'
-        : totalTrend >= 1 ? '<span style="color:#6EE7B7;">&#9650;</span>'
-        : totalTrend <= -3 ? '<span style="color:#FCA5A5;font-weight:700;">&#9660;&#9660;&#9660;</span>'
-        : totalTrend <= -2 ? '<span style="color:#FCA5A5;font-weight:700;">&#9660;&#9660;</span>'
-        : totalTrend <= -1 ? '<span style="color:#FCA5A5;">&#9660;</span>'
-        : '<span style="color:var(--muted);">—</span>';
+    const days = [...new Set(history.map(h => h.date))].length;
+    document.getElementById('oiTrendDays').textContent = `(${days} dias de data)`;
 
-      const hasOI = allColumns.some(col => {
-        const s = col.strikes.find(s => s.K === K);
-        return s && (s.oiC > 100 || s.oiP > 100);
-      });
-      if (!hasOI) continue;
+    renderOITrendForDte();
+  } catch (err) {
+    document.getElementById('oiTrendWrap').style.display = '';
+    document.getElementById('oiTrendBody').innerHTML = `<div style="color:#FCA5A5;padding:20px;text-align:center;">Error: ${err.message}</div>`;
+  } finally {
+    btn.innerHTML = 'OI Trend';
+    btn.disabled = false;
+  }
+}
 
-      const isNearSpot = latestSpot && Math.abs(K - latestSpot) / latestSpot < 0.01;
-      const rowStyle = isNearSpot ? 'background:rgba(139,92,246,.08);' : '';
-      html += `<tr style="${rowStyle}"><td style="font-weight:600;color:#fff;position:sticky;left:0;background:${isNearSpot?'rgba(139,92,246,.15)':'#1E293B'};z-index:1;">$${K}</td>${cells}<td style="text-align:center;">${trendIcon}</td></tr>`;
+function renderOITrendForDte() {
+  const history = _oiHistory;
+  if (!history || !history.length) return;
+  const selectedExp = document.getElementById('oiDteSelect').value;
+  if (!selectedExp) { document.getElementById('oiTrendBody').innerHTML = '<div style="color:var(--muted);padding:20px;text-align:center;">Selecciona una expiracion</div>'; return; }
+
+  // Filter history for this expDate, sorted by capture date
+  const snapshots = history.filter(h => h.expDate === selectedExp).sort((a,b) => a.date.localeCompare(b.date));
+  if (!snapshots.length) { document.getElementById('oiTrendBody').innerHTML = '<div style="color:var(--muted);padding:20px;text-align:center;">Sin data para esta expiracion</div>'; return; }
+
+  const monthNames = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const fmtOI = n => n > 9999 ? (n/1000).toFixed(0)+'K' : n > 999 ? (n/1000).toFixed(1)+'K' : n > 0 ? n : '—';
+
+  // Collect strikes
+  const allStrikes = new Set();
+  for (const snap of snapshots) for (const s of snap.strikes) allStrikes.add(s.K);
+  const strikes = [...allStrikes].sort((a, b) => a - b);
+  const latestSpot = snapshots[snapshots.length - 1].spot;
+  const filtered = latestSpot ? strikes.filter(K => Math.abs(K - latestSpot) / latestSpot <= 0.05) : strikes;
+
+  // Build table
+  let html = `<table class="stbl" style="font-size:11px;"><thead>`;
+  html += `<tr><th rowspan="2" style="position:sticky;left:0;background:#1E293B;z-index:2;">Strike</th>`;
+  for (const snap of snapshots) {
+    const parts = snap.date.split('-');
+    const dd = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
+    html += `<th colspan="4" style="color:#C4B5FD;font-size:11px;font-weight:600;border-left:1px solid var(--border);">${monthNames[dd.getMonth()]} ${dd.getDate()}</th>`;
+  }
+  html += `<th rowspan="2">Trend</th></tr><tr>`;
+  for (const snap of snapshots) {
+    html += `<th style="font-size:8px;color:#6EE7B7;border-left:1px solid var(--border);">Call OI</th>`;
+    html += `<th style="font-size:8px;color:#FCA5A5;">Put OI</th>`;
+    html += `<th style="font-size:8px;color:var(--muted);">Vol</th>`;
+    html += `<th style="font-size:8px;color:#FBBF24;">IV</th>`;
+  }
+  html += '</tr></thead><tbody>';
+
+  for (const K of filtered) {
+    let prevOiC = null, prevOiP = null, trendC = 0, trendP = 0;
+    let cells = '';
+    for (const snap of snapshots) {
+      const s = snap.strikes.find(s => s.K === K);
+      const oiC = s ? s.oiC : 0;
+      const oiP = s ? s.oiP : 0;
+      const vol = s ? ((s.volC || 0) + (s.volP || 0)) : 0;
+      const iv = s ? (s.ivP || s.ivC || 0) : 0;
+      let cColor = 'var(--muted)', pColor = 'var(--muted)';
+      if (prevOiC !== null && oiC > 0) {
+        if (oiC > prevOiC * 1.1) { cColor = '#6EE7B7'; trendC++; }
+        else if (oiC < prevOiC * 0.9) { cColor = '#FCA5A5'; trendC--; }
+      }
+      if (prevOiP !== null && oiP > 0) {
+        if (oiP > prevOiP * 1.1) { pColor = '#6EE7B7'; trendP++; }
+        else if (oiP < prevOiP * 0.9) { pColor = '#FCA5A5'; trendP--; }
+      }
+      cells += `<td style="color:${oiC > 0 ? cColor : 'var(--muted)'};border-left:1px solid var(--border);">${fmtOI(oiC)}</td>`;
+      cells += `<td style="color:${oiP > 0 ? pColor : 'var(--muted)'};">${fmtOI(oiP)}</td>`;
+      cells += `<td style="color:var(--muted);font-size:10px;">${vol > 0 ? fmtOI(vol) : '—'}</td>`;
+      cells += `<td style="color:${iv > 0.3 ? '#FBBF24' : 'var(--muted)'};font-size:10px;">${iv > 0 ? (iv*100).toFixed(0)+'%' : '—'}</td>`;
+      prevOiC = oiC; prevOiP = oiP;
     }
-
-    html += '</tbody></table>';
-    document.getElementById('oiTrendBody').innerHTML = html;
+    const totalTrend = trendC + trendP;
+    const trendIcon = totalTrend >= 3 ? '<span style="color:#6EE7B7;font-weight:700;">&#9650;&#9650;&#9650;</span>'
+      : totalTrend >= 2 ? '<span style="color:#6EE7B7;font-weight:700;">&#9650;&#9650;</span>'
+      : totalTrend >= 1 ? '<span style="color:#6EE7B7;">&#9650;</span>'
+      : totalTrend <= -3 ? '<span style="color:#FCA5A5;font-weight:700;">&#9660;&#9660;&#9660;</span>'
+      : totalTrend <= -2 ? '<span style="color:#FCA5A5;font-weight:700;">&#9660;&#9660;</span>'
+      : totalTrend <= -1 ? '<span style="color:#FCA5A5;">&#9660;</span>'
+      : '<span style="color:var(--muted);">—</span>';
+    const hasOI = snapshots.some(snap => { const s = snap.strikes.find(s => s.K === K); return s && (s.oiC > 100 || s.oiP > 100); });
+    if (!hasOI) continue;
+    const isNearSpot = latestSpot && Math.abs(K - latestSpot) / latestSpot < 0.01;
+    const rowStyle = isNearSpot ? 'background:rgba(139,92,246,.08);' : '';
+    html += `<tr style="${rowStyle}"><td style="font-weight:600;color:#fff;position:sticky;left:0;background:${isNearSpot?'rgba(139,92,246,.15)':'#1E293B'};z-index:1;">$${K}</td>${cells}<td style="text-align:center;">${trendIcon}</td></tr>`;
+  }
+  html += '</tbody></table>';
+  document.getElementById('oiTrendBody').innerHTML = html;
   } catch (err) {
     document.getElementById('oiTrendWrap').style.display = '';
     document.getElementById('oiTrendBody').innerHTML = `<div style="color:#FCA5A5;padding:20px;text-align:center;">Error: ${err.message}</div>`;
