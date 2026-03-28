@@ -654,62 +654,82 @@ async function loadOITrend() {
 
     // Build table
     const monthNames = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-    let html = `<table class="stbl" style="font-size:11px;"><thead><tr><th rowspan="2" style="position:sticky;left:0;background:#1E293B;z-index:2;">Strike</th>`;
+    const fmtOI = n => n > 9999 ? (n/1000).toFixed(0)+'K' : n > 999 ? (n/1000).toFixed(1)+'K' : n > 0 ? n : '—';
 
-    // Monthly headers
+    let html = `<table class="stbl" style="font-size:11px;"><thead>`;
+
+    // Row 1: Section headers (Monthly | Daily)
+    html += `<tr><th rowspan="3" style="position:sticky;left:0;background:#1E293B;z-index:2;">Strike</th>`;
     if (monthlyData.length) {
-      html += `<th colspan="${monthlyData.length * 3}" style="color:#FBBF24;border-bottom:2px solid rgba(245,158,11,.3);">Expiraciones Mensuales</th>`;
+      html += `<th colspan="${monthlyData.length * 4}" style="color:#FBBF24;border-bottom:2px solid rgba(245,158,11,.3);">Expiraciones Mensuales</th>`;
     }
-    // Daily headers
     if (dailyData.length) {
-      html += `<th colspan="${dailyData.length * 3}" style="color:#C4B5FD;border-bottom:2px solid rgba(139,92,246,.3);">Dias (${monthNames[now.getMonth()]})</th>`;
+      html += `<th colspan="${dailyData.length * 4}" style="color:#C4B5FD;border-bottom:2px solid rgba(139,92,246,.3);">Diario</th>`;
     }
-    html += `<th rowspan="2">Trend</th></tr><tr>`;
+    html += `<th rowspan="3">Trend</th></tr>`;
 
+    // Row 2: Date labels (Mon Abr 17 | Mar 27)
+    html += '<tr>';
     for (const col of allColumns) {
       const parts = col.label.split('-');
-      const d = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
-      const dayLabel = col.isMonthly
-        ? `<span style="color:#FBBF24;">${monthNames[d.getMonth()]} ${d.getDate()}</span>`
-        : `${d.getDate()}`;
-      html += `<th style="font-size:9px;${col.isMonthly?'background:rgba(245,158,11,.05);':''}">${dayLabel}</th>`;
-      html += `<th style="font-size:8px;color:var(--muted);${col.isMonthly?'background:rgba(245,158,11,.05);':''}">P</th>`;
-      html += `<th style="font-size:8px;color:var(--muted);${col.isMonthly?'background:rgba(245,158,11,.05);':''}">IV</th>`;
+      const dd = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
+      const bg = col.isMonthly ? 'background:rgba(245,158,11,.06);' : '';
+      const color = col.isMonthly ? 'color:#FBBF24;' : 'color:#C4B5FD;';
+      const dateLabel = `${monthNames[dd.getMonth()]} ${dd.getDate()}`;
+      const expLabel = col.isMonthly ? `<div style="font-size:8px;color:var(--muted);">Exp. Mensual</div>` : `<div style="font-size:8px;color:var(--muted);">Exp: ${col.expDate ? col.expDate.split('-').slice(1).join('/') : '—'}</div>`;
+      html += `<th colspan="4" style="${bg}${color}font-size:11px;font-weight:700;border-left:1px solid var(--border);">${dateLabel}${expLabel}</th>`;
+    }
+    html += '</tr>';
+
+    // Row 3: Column sub-headers
+    html += '<tr>';
+    for (const col of allColumns) {
+      const bg = col.isMonthly ? 'background:rgba(245,158,11,.03);' : '';
+      html += `<th style="${bg}font-size:8px;color:#6EE7B7;border-left:1px solid var(--border);">Call OI</th>`;
+      html += `<th style="${bg}font-size:8px;color:#FCA5A5;">Put OI</th>`;
+      html += `<th style="${bg}font-size:8px;color:var(--muted);">Vol</th>`;
+      html += `<th style="${bg}font-size:8px;color:#FBBF24;">IV</th>`;
     }
     html += '</tr></thead><tbody>';
 
     for (const K of filtered) {
-      let prevOiP = null, trendP = 0;
+      let prevOiC = null, prevOiP = null, trendC = 0, trendP = 0;
       let cells = '';
 
       for (const col of allColumns) {
         const s = col.strikes.find(s => s.K === K);
-        const oiP = s ? s.oiP : 0;
         const oiC = s ? s.oiC : 0;
-        const oiTotal = oiC + oiP;
+        const oiP = s ? s.oiP : 0;
+        const vol = s ? ((s.volC || 0) + (s.volP || 0)) : 0;
         const iv = s ? (s.ivP || s.ivC || 0) : 0;
-        const bgStyle = col.isMonthly ? 'background:rgba(245,158,11,.03);' : '';
+        const bg = col.isMonthly ? 'background:rgba(245,158,11,.03);' : '';
 
-        let pColor = 'var(--muted)';
+        // Color OI changes vs previous column
+        let cColor = 'var(--muted)', pColor = 'var(--muted)';
+        if (prevOiC !== null && oiC > 0) {
+          if (oiC > prevOiC * 1.1) { cColor = '#6EE7B7'; trendC++; }
+          else if (oiC < prevOiC * 0.9) { cColor = '#FCA5A5'; trendC--; }
+        }
         if (prevOiP !== null && oiP > 0) {
           if (oiP > prevOiP * 1.1) { pColor = '#6EE7B7'; trendP++; }
           else if (oiP < prevOiP * 0.9) { pColor = '#FCA5A5'; trendP--; }
         }
 
-        // Show total OI (C+P) with put OI dominant color
-        const oiColor = oiP > oiC ? '#FCA5A5' : '#6EE7B7';
-        cells += `<td style="${bgStyle}color:${oiTotal > 0 ? oiColor : 'var(--muted)'};">${oiTotal > 0 ? (oiTotal > 999 ? (oiTotal/1000).toFixed(1)+'K' : oiTotal) : '—'}</td>`;
-        cells += `<td style="${bgStyle}color:${pColor};font-size:10px;">${oiP > 0 ? (oiP > 999 ? (oiP/1000).toFixed(1)+'K' : oiP) : '—'}</td>`;
-        cells += `<td style="${bgStyle}color:${iv > 0.3 ? '#FBBF24' : 'var(--muted)'};font-size:10px;">${iv > 0 ? (iv*100).toFixed(0)+'%' : '—'}</td>`;
+        cells += `<td style="${bg}color:${oiC > 0 ? cColor : 'var(--muted)'};border-left:1px solid var(--border);">${fmtOI(oiC)}</td>`;
+        cells += `<td style="${bg}color:${oiP > 0 ? pColor : 'var(--muted)'};">${fmtOI(oiP)}</td>`;
+        cells += `<td style="${bg}color:var(--muted);font-size:10px;">${vol > 0 ? fmtOI(vol) : '—'}</td>`;
+        cells += `<td style="${bg}color:${iv > 0.3 ? '#FBBF24' : 'var(--muted)'};font-size:10px;">${iv > 0 ? (iv*100).toFixed(0)+'%' : '—'}</td>`;
+        prevOiC = oiC;
         prevOiP = oiP;
       }
 
-      const trendIcon = trendP >= 3 ? '<span style="color:#6EE7B7;font-weight:700;">&#9650;&#9650;&#9650;</span>'
-        : trendP >= 2 ? '<span style="color:#6EE7B7;font-weight:700;">&#9650;&#9650;</span>'
-        : trendP >= 1 ? '<span style="color:#6EE7B7;">&#9650;</span>'
-        : trendP <= -3 ? '<span style="color:#FCA5A5;font-weight:700;">&#9660;&#9660;&#9660;</span>'
-        : trendP <= -2 ? '<span style="color:#FCA5A5;font-weight:700;">&#9660;&#9660;</span>'
-        : trendP <= -1 ? '<span style="color:#FCA5A5;">&#9660;</span>'
+      const totalTrend = trendC + trendP;
+      const trendIcon = totalTrend >= 3 ? '<span style="color:#6EE7B7;font-weight:700;">&#9650;&#9650;&#9650;</span>'
+        : totalTrend >= 2 ? '<span style="color:#6EE7B7;font-weight:700;">&#9650;&#9650;</span>'
+        : totalTrend >= 1 ? '<span style="color:#6EE7B7;">&#9650;</span>'
+        : totalTrend <= -3 ? '<span style="color:#FCA5A5;font-weight:700;">&#9660;&#9660;&#9660;</span>'
+        : totalTrend <= -2 ? '<span style="color:#FCA5A5;font-weight:700;">&#9660;&#9660;</span>'
+        : totalTrend <= -1 ? '<span style="color:#FCA5A5;">&#9660;</span>'
         : '<span style="color:var(--muted);">—</span>';
 
       const hasOI = allColumns.some(col => {
