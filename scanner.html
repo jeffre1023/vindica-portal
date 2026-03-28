@@ -738,13 +738,6 @@ function renderOITrendForDte() {
   }
   html += '</tbody></table>';
   document.getElementById('oiTrendBody').innerHTML = html;
-  } catch (err) {
-    document.getElementById('oiTrendWrap').style.display = '';
-    document.getElementById('oiTrendBody').innerHTML = `<div style="color:#FCA5A5;padding:20px;text-align:center;">Error: ${err.message}</div>`;
-  } finally {
-    btn.innerHTML = 'OI Trend';
-    btn.disabled = false;
-  }
 }
 
 async function runDeepDive() {
