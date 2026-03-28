@@ -917,7 +917,7 @@ async function loadExpirations() {
     sel.innerHTML = '';
     let selectedFirst = false;
     for (const exp of exps) {
-      if (exp.dte > 90) continue; // max 90 DTE
+      if (exp.dte > 180) continue; // max 180 DTE (covers 2+ extra monthlies)
       const parts = exp.date.split('-');
       const dd = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
       const dayName = dayNames[dd.getDay()];
