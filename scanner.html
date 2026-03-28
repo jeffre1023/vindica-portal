@@ -107,7 +107,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--light);
 
   <!-- Toolbar -->
   <div class="toolbar">
-    <select id="scanDte" style="background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:9px 14px;color:#fff;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;">
+    <select id="scanDte" style="background:#1E293B;border:1px solid var(--border);border-radius:8px;padding:9px 14px;color:#fff;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;">
       <option value="">Cargando expiraciones...</option>
     </select>
     <button class="btn btn-ghost" onclick="loadExpirations()" style="font-size:11px;padding:6px 10px;">&#8635;</button>
@@ -929,8 +929,10 @@ async function loadExpirations() {
       const opt = document.createElement('option');
       opt.value = exp.date;
       opt.textContent = label;
-      if (exp.type === 'Monthly') opt.style.fontWeight = '700';
-      if (exp.type === 'Quarterly') opt.style.color = '#FBBF24';
+      opt.style.background = '#1E293B';
+      opt.style.color = '#fff';
+      if (exp.type === 'Monthly') { opt.style.fontWeight = '700'; opt.style.color = '#FBBF24'; }
+      if (exp.type === 'Quarterly') { opt.style.fontWeight = '700'; opt.style.color = '#F59E0B'; }
 
       // Select first 1DTE or closest
       if (!selectedFirst && exp.dte >= 1) { opt.selected = true; selectedFirst = true; }
