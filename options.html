@@ -205,9 +205,23 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--light);
     <script>
     // Mini calendar state
     let _calOpen = false, _calMonth = new Date().getMonth(), _calYear = new Date().getFullYear(), _selectedExpDate = null;
-    const DAILY_EXP_TICKERS = new Set(['SPY','QQQ','IWM','SPX','NDX','XSP']);
+    let _realExpirations = null; // { date, dte, type } from Polygon
+    let _expTicker = null;
 
-    function toggleCal() { _calOpen = !_calOpen; renderCal(); }
+    function toggleCal() { _calOpen = !_calOpen; loadRealExpirations(); renderCal(); }
+
+    async function loadRealExpirations() {
+      const ticker = getSelectedTicker();
+      if (_expTicker === ticker && _realExpirations) return;
+      _expTicker = ticker;
+      try {
+        const d = await authFetch(`/options/expirations?ticker=${ticker}`);
+        _realExpirations = new Set((d.expirations || []).map(e => e.date));
+        _realExpTypes = {};
+        for (const e of (d.expirations || [])) _realExpTypes[e.date] = e.type;
+        renderCal();
+      } catch { _realExpirations = null; }
+    }
 
     function getSelectedTicker() {
       const custom = document.getElementById('customTicker').value.trim().toUpperCase();
@@ -226,8 +240,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--light);
       }
       el.style.display = '';
 
-      const ticker = getSelectedTicker();
-      const isDaily = DAILY_EXP_TICKERS.has(ticker);
       const today = new Date(); today.setHours(0,0,0,0);
       const monthNames = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
@@ -251,7 +263,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--light);
         const isWeekend = dow === 0 || dow === 6;
         const isFriday = dow === 5;
         const isToday = d.getTime() === today.getTime();
-        const hasExp = !isPast && !isWeekend && (isDaily || isFriday);
+        const hasExp = _realExpirations ? _realExpirations.has(dateStr) : (!isPast && !isWeekend);
+        const expType = _realExpTypes ? _realExpTypes[dateStr] : null;
+        const isMonthlyExp = expType === 'Monthly' || expType === 'Quarterly';
         const yyyy = d.getFullYear();
         const mm = String(d.getMonth()+1).padStart(2,'0');
         const dd = String(day).padStart(2,'0');
@@ -261,19 +275,22 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--light);
         let style = 'padding:6px 2px;border-radius:6px;font-size:12px;cursor:default;';
         if (isWeekend || isPast) style += 'color:rgba(255,255,255,.15);';
         else if (isSelected) style += 'background:var(--purple);color:#fff;font-weight:700;cursor:pointer;';
-        else if (isToday) style += 'background:rgba(139,92,246,.2);color:#fff;font-weight:600;cursor:pointer;border:1px solid var(--purple);';
-        else if (hasExp && isFriday && !isDaily) style += 'background:rgba(16,185,129,.15);color:#6EE7B7;font-weight:600;cursor:pointer;';
+        else if (isToday && hasExp) style += 'background:rgba(139,92,246,.2);color:#fff;font-weight:600;cursor:pointer;border:1px solid var(--purple);';
+        else if (hasExp && isMonthlyExp) style += 'background:rgba(245,158,11,.2);color:#FBBF24;font-weight:700;cursor:pointer;';
         else if (hasExp) style += 'background:rgba(139,92,246,.08);color:#C4B5FD;cursor:pointer;';
+        else if (!isWeekend && !isPast) style += 'color:rgba(255,255,255,.25);';
         else style += 'color:var(--muted);';
 
-        const onclick = hasExp ? `onclick="selectExpDate('${dateStr}',${Math.round((d-today)/86400000)})"` : '';
-        html += `<div style="${style}" ${onclick}>${day}</div>`;
+        const expLabel = isMonthlyExp ? '★' : '';
+        const onclick = hasExp || isToday ? `onclick="selectExpDate('${dateStr}',${Math.round((d-today)/86400000)})"` : '';
+        html += `<div style="${style}" ${onclick}>${day}${expLabel ? '<span style="font-size:8px;">'+expLabel+'</span>' : ''}</div>`;
       }
       html += '</div>';
       html += `<div style="display:flex;gap:10px;margin-top:8px;font-size:10px;color:var(--muted);justify-content:center;">
-        <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:rgba(139,92,246,.3);margin-right:3px;"></span>${isDaily?'Diario':'Semanal'}</span>
-        <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:rgba(16,185,129,.3);margin-right:3px;"></span>Viernes</span>
+        <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:rgba(139,92,246,.3);margin-right:3px;"></span>Weekly</span>
+        <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:rgba(245,158,11,.3);margin-right:3px;"></span>★ Monthly</span>
       </div>`;
+      if (!_realExpirations) html += '<div style="font-size:9px;color:var(--muted);text-align:center;margin-top:4px;">Cargando expiraciones...</div>';
       el.innerHTML = html;
     }
 
@@ -300,8 +317,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--light);
     })();
 
     // Update calendar when ticker changes
-    document.getElementById('tickerSelect').addEventListener('change', renderCal);
-    document.getElementById('customTicker').addEventListener('input', renderCal);
+    document.getElementById('tickerSelect').addEventListener('change', () => { _realExpirations = null; _expTicker = null; loadRealExpirations(); });
+    document.getElementById('customTicker').addEventListener('input', () => { _realExpirations = null; _expTicker = null; });
     </script>
     <button class="btn btn-purple" id="loadBtn" onclick="loadChain()">Cargar Chain</button>
     <button class="btn btn-ghost" onclick="loadChain(true)">Refresh</button>

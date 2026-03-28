@@ -108,15 +108,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--light);
   <!-- Toolbar -->
   <div class="toolbar">
     <select id="scanDte" style="background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:9px 14px;color:#fff;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;">
-      <option value="0">0DTE — Scalp</option>
-      <option value="1" selected>1DTE — Scalp</option>
-      <option value="2">2DTE</option>
-      <option value="7">7DTE</option>
-      <option value="14">14DTE — Swing</option>
-      <option value="21">21DTE — Swing</option>
-      <option value="30">30DTE — Swing</option>
-      <option value="45">45DTE — Swing</option>
+      <option value="">Cargando expiraciones...</option>
     </select>
+    <button class="btn btn-ghost" onclick="loadExpirations()" style="font-size:11px;padding:6px 10px;">&#8635;</button>
     <button class="btn btn-purple" id="scanBtn" onclick="runScan()">Escanear</button>
     <button class="btn btn-ghost" id="autoScanBtn" onclick="toggleAutoScan()" style="min-width:110px;">Auto: OFF</button>
     <span id="autoScanTimer" style="font-size:11px;color:var(--muted);min-width:30px;"></span>
@@ -910,6 +904,49 @@ async function runDeepDive() {
   }
 }
 
+// ═══ Load real expirations from Polygon ═══
+async function loadExpirations() {
+  const sel = document.getElementById('scanDte');
+  sel.innerHTML = '<option value="">Cargando...</option>';
+  try {
+    const d = await authFetch('/options/expirations?ticker=SPY');
+    const exps = d.expirations || [];
+    const monthNames = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    const dayNames = ['Dom','Lun','Mar','Mie','Jue','Vie','Sab'];
+
+    sel.innerHTML = '';
+    let selectedFirst = false;
+    for (const exp of exps) {
+      if (exp.dte > 90) continue; // max 90 DTE
+      const parts = exp.date.split('-');
+      const dd = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
+      const dayName = dayNames[dd.getDay()];
+      const monthName = monthNames[dd.getMonth()];
+      const mode = exp.dte <= 7 ? 'Scalp' : 'Swing';
+      const typeTag = exp.type === 'Monthly' ? ' ★ Monthly' : exp.type === 'Quarterly' ? ' ★★ Quarterly' : '';
+      const label = `${dayName} ${dd.getDate()} ${monthName} (${exp.dte}d) ${mode}${typeTag}`;
+
+      const opt = document.createElement('option');
+      opt.value = exp.date;
+      opt.textContent = label;
+      if (exp.type === 'Monthly') opt.style.fontWeight = '700';
+      if (exp.type === 'Quarterly') opt.style.color = '#FBBF24';
+
+      // Select first 1DTE or closest
+      if (!selectedFirst && exp.dte >= 1) { opt.selected = true; selectedFirst = true; }
+      sel.appendChild(opt);
+    }
+  } catch (err) {
+    sel.innerHTML = '<option value="">Error cargando</option>';
+    console.warn('[Expirations]', err.message);
+  }
+}
+
+// Load on auth ready
+auth.onAuthStateChanged(u => {
+  if (u) setTimeout(loadExpirations, 500);
+});
+
 async function runScan() {
   if (_scanning) return;
   _scanning = true;
@@ -919,9 +956,9 @@ async function runScan() {
   document.getElementById('progressWrap').style.display = '';
   document.getElementById('scanStatus').textContent = 'Iniciando scan...';
 
-  const scanDte = document.getElementById('scanDte').value;
-  const expDate = getExpDate(scanDte);
-  const dteDays = parseInt(scanDte) || 0;
+  const expDate = document.getElementById('scanDte').value;
+  if (!expDate) { alert('Selecciona una fecha de expiracion'); _scanning = false; btn.innerHTML = 'Escanear'; btn.disabled = false; return; }
+  const dteDays = Math.round((new Date(expDate) - new Date()) / 86400000);
   const isSwing = dteDays > 7;
   const scanResults = [];
   const body = document.getElementById('scanBody');
@@ -968,7 +1005,7 @@ async function runScan() {
   renderResults(scanResults);
 
   const modeLabel = isSwing ? 'SWING' : 'SCALP';
-  document.getElementById('scanStatus').textContent = `${scanResults.length} tickers — ${modeLabel} ${scanDte}DTE — ${new Date().toLocaleTimeString()}`;
+  document.getElementById('scanStatus').textContent = `${scanResults.length} tickers — ${modeLabel} ${dteDays}d (${expDate}) — ${new Date().toLocaleTimeString()}`;
   document.getElementById('progressWrap').style.display = 'none';
   btn.innerHTML = 'Escanear';
   btn.disabled = false;
