@@ -198,6 +198,7 @@ auth.onAuthStateChanged(u => {
   if (!u) { window.location.href = 'index.html'; return; }
   document.getElementById('mainApp').style.display = '';
   document.getElementById('userEmail').textContent = u.email;
+  setTimeout(loadExpirations, 500);
 });
 function doLogout() { auth.signOut().then(() => window.location.href = 'index.html'); }
 
@@ -942,10 +943,6 @@ async function loadExpirations() {
   }
 }
 
-// Load on auth ready
-auth.onAuthStateChanged(u => {
-  if (u) setTimeout(loadExpirations, 500);
-});
 
 async function runScan() {
   if (_scanning) return;
