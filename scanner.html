@@ -507,7 +507,7 @@ async function scanTicker(ticker, expDate, isSwing) {
   return {
     ticker, S, prevC, gexTotal, ehpTotal, ehpRatio, dealerDeltaTotal,
     callWall, putWall, nearestWall, nearestDist, distCW, distPW,
-    isShortGamma, aggBuyPct, mps, mpsMode, premDominantSide, premRatio
+    isShortGamma, aggBuyPct, mps, mpsMode, premDominantSide, premRatio, totalPremC, totalPremP
   };
 }
 
@@ -984,7 +984,7 @@ function renderResults(results) {
 
     // Premium ratio display
     const premColor = r.premDominantSide === 'puts' ? '#FCA5A5' : '#6EE7B7';
-    const premLabel = `<span style="color:${premColor};font-weight:600;">${r.premRatio.toFixed(1)}x ${r.premDominantSide === 'puts' ? 'P' : 'C'}</span>`;
+    const premLabel = `<span style="font-size:10px;">C:${fmtM(r.totalPremC)} <span style="color:${premColor};font-weight:600;">|</span> P:${fmtM(r.totalPremP)}</span> <span style="color:${premColor};font-weight:600;font-size:11px;">(${r.premRatio.toFixed(1)}x)</span>`;
 
     // MPS display
     const mpsColor = r.mps >= 80 ? '#FCA5A5' : r.mps >= 60 ? '#FBBF24' : r.mps >= 40 ? '#C4B5FD' : '#6EE7B7';

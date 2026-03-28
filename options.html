@@ -974,7 +974,7 @@ async function processChain(chain, S, ticker, expDate) {
     oiConcentration * w.oi
   );
 
-  const mpsDetails = { gammaScore: Math.round(gammaScore), premImbalance: Math.round(premImbalance), wallProximity: Math.round(wallProximity), deltaExtreme: Math.round(deltaExtreme), oiConcentration: Math.round(oiConcentration), premDominantSide, nearestWallSide, premRatio, mpsMode, dteDays };
+  const mpsDetails = { gammaScore: Math.round(gammaScore), premImbalance: Math.round(premImbalance), wallProximity: Math.round(wallProximity), deltaExtreme: Math.round(deltaExtreme), oiConcentration: Math.round(oiConcentration), premDominantSide, nearestWallSide, premRatio, totalPremC, totalPremP, mpsMode, dteDays };
 
   RESULT = { results, gexTotal, ehpTotal, dealerDeltaTotal, callWall, putWall, flipPoint, S, ticker, expDate, ehpDiff, T, aggBuyPct, mps, mpsDetails };
 
@@ -1369,7 +1369,7 @@ function renderMetrics() {
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 24px;text-align:left;max-width:500px;margin:4px auto 0;font-size:12px;">
         <div>${chk(true)} Short Gamma (amplifica)</div>
         <div>${chk(nearWall)} Spot cerca de Wall</div>
-        <div><span style="color:${premColor};">&#9679;</span> Premium ${d.premRatio.toFixed(1)}x ${d.premDominantSide} <span style="color:${premColor};font-size:10px;">(${premLabel})</span></div>
+        <div><span style="color:${premColor};">&#9679;</span> C:${fmtM(d.totalPremC)} | P:${fmtM(d.totalPremP)} <span style="color:${premColor};font-size:10px;">(${d.premRatio.toFixed(1)}x ${premLabel})</span></div>
         <div><span style="color:${deltaColor};">&#9679;</span> Dealer Delta ${dK > 0 ? '+' : ''}${dK}K <span style="color:${deltaColor};font-size:10px;">(${deltaLabel})</span></div>
       </div>
       ${allChecks ? `<div style="margin-top:8px;padding:8px 14px;border-radius:8px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);font-size:12px;color:#6EE7B7;font-weight:700;max-width:500px;margin-left:auto;margin-right:auto;">CONDICIONES CUMPLIDAS — Espera reaccion en wall para entry</div>` : ''}`;
