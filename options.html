@@ -243,13 +243,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--light);
           sel.appendChild(opt);
         }
       } catch (err) {
-        sel.innerHTML = '<option value="">Error</option>';
+        sel.innerHTML = '<option value="">Error cargando DTEs</option>';
+        console.warn('[Expirations]', ticker, err.message);
       }
     }
 
     // Load on ticker change
     document.getElementById('tickerSelect').addEventListener('change', () => { _expTicker = null; loadGexExpirations(); });
     document.getElementById('customTicker').addEventListener('change', () => { _expTicker = null; loadGexExpirations(); });
+    document.getElementById('customTicker').addEventListener('keydown', (e) => { if (e.key === 'Enter') { _expTicker = null; loadGexExpirations(); } });
     </script>
     <button class="btn btn-purple" id="loadBtn" onclick="loadChain()">Cargar Chain</button>
     <button class="btn btn-ghost" onclick="loadChain(true)">Refresh</button>
