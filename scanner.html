@@ -146,10 +146,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--light);
   <div class="scan-wrap" style="margin-top:14px;">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
       <span style="font-family:'DM Serif Display',serif;font-size:15px;color:#fff;">Walls por DTE</span>
-      <input id="deepTicker" placeholder="Ticker..." style="background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:9px 14px;color:#fff;font-size:13px;font-family:'DM Sans',sans-serif;width:120px;" onkeydown="if(event.key==='Enter')runDeepDive()">
-      <button class="btn btn-purple" id="deepBtn" onclick="runDeepDive()">Analizar</button>
+      <input id="deepTicker" placeholder="Ticker..." style="background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:9px 14px;color:#fff;font-size:13px;font-family:'DM Sans',sans-serif;width:120px;" onkeydown="if(event.key==='Enter')loadDeepExpirations()">
+      <button class="btn btn-ghost" id="deepLoadBtn" onclick="loadDeepExpirations()">Cargar DTEs</button>
+      <button class="btn btn-purple" id="deepBtn" onclick="runDeepDive()" disabled>Analizar</button>
       <button class="btn btn-ghost" id="oiTrendBtn" onclick="loadOITrend()">OI Trend</button>
       <span id="deepStatus" style="font-size:11px;color:var(--muted);"></span>
+    </div>
+    <div id="deepDteSelector" style="display:none;margin-bottom:14px;flex-wrap:wrap;gap:6px;align-items:center;">
     </div>
     <!-- OI Trend table -->
     <div id="oiTrendWrap" style="display:none;margin-bottom:14px;">
@@ -563,16 +566,65 @@ async function quickDteCheck(ticker, expDate, S) {
 
 // ═══ Deep Dive: Walls by DTE for a single ticker ═══
 // ═══ OI Trend — Load historical OI from Firestore ═══
-// Shows: 3 monthly expirations + daily captures of current month
+
+let _deepExpirations = []; // cached expirations for deep dive
+
+async function loadDeepExpirations() {
+  const ticker = document.getElementById('deepTicker').value.trim().toUpperCase();
+  if (!ticker) return;
+  const btn = document.getElementById('deepLoadBtn');
+  btn.innerHTML = '<span class="loader"></span>';
+  btn.disabled = true;
+  document.getElementById('deepStatus').textContent = 'Cargando expirations...';
+
+  try {
+    const d = await authFetch(`/options/expirations?ticker=${ticker}`);
+    const exps = (d.expirations || []).filter(e => e.dte >= 0 && e.dte <= 180);
+    _deepExpirations = exps;
+
+    const sel = document.getElementById('deepDteSelector');
+    sel.style.display = 'flex';
+
+    const dayNames = ['Dom','Lun','Mar','Mie','Jue','Vie','Sab'];
+    const monthNames = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+    sel.innerHTML = '<span style="font-size:11px;color:var(--muted);margin-right:4px;">Selecciona hasta 7:</span>' +
+      exps.map((e, i) => {
+        const dd = new Date(e.date + 'T12:00:00');
+        const label = `${dayNames[dd.getDay()]} ${dd.getDate()} ${monthNames[dd.getMonth()]} (${e.dte}d)`;
+        const checked = i < 7 ? 'checked' : '';
+        const isMonthly = e.type === 'monthly';
+        const border = isMonthly ? 'border:1px solid rgba(139,92,246,.5);' : 'border:1px solid var(--border);';
+        return `<label style="display:flex;align-items:center;gap:4px;padding:5px 10px;border-radius:8px;${border}background:rgba(255,255,255,.04);cursor:pointer;font-size:11px;color:#fff;">
+          <input type="checkbox" value="${e.date}" ${checked} onchange="limitDeepSelection(this)" style="accent-color:#8B5CF6;">
+          ${label}${isMonthly ? ' <span style="color:#C4B5FD;font-size:9px;">M</span>' : ''}
+        </label>`;
+      }).join('');
+
+    document.getElementById('deepBtn').disabled = false;
+    document.getElementById('deepStatus').textContent = `${exps.length} expirations disponibles`;
+  } catch (err) {
+    document.getElementById('deepStatus').textContent = 'Error: ' + err.message;
+  } finally {
+    btn.innerHTML = 'Cargar DTEs';
+    btn.disabled = false;
+  }
+}
+
+function limitDeepSelection(cb) {
+  const sel = document.getElementById('deepDteSelector');
+  const checked = sel.querySelectorAll('input[type=checkbox]:checked');
+  if (checked.length > 7) {
+    cb.checked = false;
+  }
+}
 
 function getMonthlyExps(count) {
-  // Next N monthly expirations (3rd Friday of each month)
   const exps = [];
   let d = new Date();
   d.setDate(1);
   for (let m = 0; exps.length < count && m < 6; m++) {
     const month = new Date(d.getFullYear(), d.getMonth() + m, 1);
-    // Find 3rd Friday
     let firstDay = month.getDay();
     let firstFri = firstDay <= 5 ? (5 - firstDay + 1) : (5 + 7 - firstDay + 1);
     let thirdFri = firstFri + 14;
@@ -749,8 +801,22 @@ async function runDeepDive() {
   btn.disabled = true;
   document.getElementById('deepStatus').textContent = 'Cargando spot...';
 
-  const dtes = [0, 1, 2, 5, 7, 14, 30];
-  const dteLabels = {0:'0DTE',1:'1DTE',2:'2DTE',5:'5DTE',7:'7DTE',14:'14DTE',30:'30DTE'};
+  // Get selected expirations from checkboxes
+  const sel = document.getElementById('deepDteSelector');
+  const checkedBoxes = sel.querySelectorAll('input[type=checkbox]:checked');
+  const selectedExps = Array.from(checkedBoxes).map(cb => {
+    const exp = _deepExpirations.find(e => e.date === cb.value);
+    const dte = exp ? exp.dte : Math.round((new Date(cb.value) - new Date()) / 86400000);
+    return { expDate: cb.value, dte, label: `${dte}DTE` };
+  });
+
+  // Fallback if no checkboxes (direct call without loading exps)
+  if (!selectedExps.length) {
+    const fallbackDtes = [0, 1, 2, 5, 7, 14, 30];
+    for (const d of fallbackDtes) {
+      selectedExps.push({ expDate: getExpDate(d), dte: d, label: `${d}DTE` });
+    }
+  }
 
   try {
     // Get spot
@@ -762,10 +828,9 @@ async function runDeepDive() {
     if (spotMultiplier[ticker]) S = S * spotMultiplier[ticker];
 
     const results = [];
-    for (let i = 0; i < dtes.length; i++) {
-      const dte = dtes[i];
-      document.getElementById('deepStatus').textContent = `${dteLabels[dte]}...`;
-      const expDate = getExpDate(dte);
+    for (let i = 0; i < selectedExps.length; i++) {
+      const { expDate, dte, label } = selectedExps[i];
+      document.getElementById('deepStatus').textContent = `${label}...`;
       try {
         const isIndex = ['SPX','NDX','RUT'].includes(ticker);
         const rangePct = isIndex ? 0.03 : (S > 500 ? 0.04 : 0.06);
@@ -773,7 +838,7 @@ async function runDeepDive() {
         const strikeMax = Math.ceil(S * (1 + rangePct));
         const chainData = await authFetch(`/options/chain?ticker=${ticker}&expDate=${expDate}&strikeMin=${strikeMin}&strikeMax=${strikeMax}`);
         const chain = chainData.chain || [];
-        if (!chain.length) { results.push({ dte, label: dteLabels[dte], expDate, noData: true }); continue; }
+        if (!chain.length) { results.push({ dte, label, expDate, noData: true }); continue; }
 
         const r = 0.0525;
         const T = Math.max(1, Math.round((new Date(expDate) - new Date()) / 86400000)) / 365;
@@ -834,7 +899,7 @@ async function runDeepDive() {
           strikeResults.push({ K: st.K, oiC, oiP, gexCall, gexPut, gexNet, dealerDelta, premC, premP, pHedge });
         }
 
-        if (!strikeResults.length) { results.push({ dte, label: dteLabels[dte], expDate, noData: true }); continue; }
+        if (!strikeResults.length) { results.push({ dte, label, expDate, noData: true }); continue; }
 
         // Walls
         const gexTotal = strikeResults.reduce((s, r) => s + r.gexNet, 0);
@@ -853,29 +918,30 @@ async function runDeepDive() {
         const premSide = totalPremP > totalPremC ? 'puts' : 'calls';
 
         results.push({
-          dte, label: dteLabels[dte], expDate,
+          dte, label, expDate,
           putWall: pw.K, putWallPH: pw.pHedge,
           callWall: cw.K, callWallPH: cw.pHedge,
           isShortGamma: gexTotal < 0, gexTotal,
           premRatio, premSide, dealerDeltaTotal
         });
       } catch (err) {
-        results.push({ dte, label: dteLabels[dte], expDate, noData: true });
+        results.push({ dte, label, expDate, noData: true });
       }
-      if (i < dtes.length - 1) await new Promise(r => setTimeout(r, 300));
+      if (i < selectedExps.length - 1) await new Promise(r => setTimeout(r, 300));
     }
 
     // Render
     document.getElementById('deepTable').style.display = '';
     document.getElementById('deepBody').innerHTML = results.map(r => {
-      if (r.noData) return `<tr><td style="font-weight:600;color:#fff;">${r.label}</td><td colspan="8" style="color:var(--muted);">Sin data para ${r.expDate}</td></tr>`;
+      const expShort = r.expDate.slice(5); // MM-DD
+      if (r.noData) return `<tr><td style="font-weight:600;color:#fff;">${r.label}<br><span style="font-size:10px;color:var(--muted);">${expShort}</span></td><td colspan="8" style="color:var(--muted);">Sin data para ${r.expDate}</td></tr>`;
       const dK = r.dealerDeltaTotal / 1000;
       const premColor = r.premSide === 'puts' ? '#FCA5A5' : '#6EE7B7';
       const phColorPW = r.putWallPH > 0.70 ? '#6EE7B7' : (r.putWallPH > 0.40 ? '#FBBF24' : '#FCA5A5');
       const phColorCW = r.callWallPH > 0.70 ? '#6EE7B7' : (r.callWallPH > 0.40 ? '#FBBF24' : '#FCA5A5');
       const gexColor = r.gexTotal < 0 ? '#FCA5A5' : '#6EE7B7';
       return `<tr>
-        <td style="font-weight:600;color:#fff;">${r.label}</td>
+        <td style="font-weight:600;color:#fff;">${r.label}<br><span style="font-size:10px;color:var(--muted);">${expShort}</span></td>
         <td style="font-weight:600;">$${r.putWall.toFixed(0)}</td>
         <td style="color:${phColorPW};font-weight:700;">${(r.putWallPH*100).toFixed(0)}%</td>
         <td style="font-weight:600;">$${r.callWall.toFixed(0)}</td>
