@@ -217,8 +217,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--light);
       if (_expTicker === ticker) return;
       _expTicker = ticker;
       const sel = document.getElementById('expSelect');
-      sel.innerHTML = '<option value="">Cargando...</option>';
+      sel.innerHTML = '<option value="">Cargando DTEs...</option>';
       try {
+        console.log('[GEX] Loading expirations for', ticker);
         const d = await authFetch(`/options/expirations?ticker=${ticker}`);
         const exps = d.expirations || [];
         const monthNames = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
@@ -243,8 +244,22 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--light);
           sel.appendChild(opt);
         }
       } catch (err) {
-        sel.innerHTML = '<option value="">Error cargando DTEs</option>';
-        console.warn('[Expirations]', ticker, err.message);
+        console.warn('[GEX] Expirations error:', ticker, err.message);
+        // Fallback: generate basic dates if API fails
+        sel.innerHTML = '';
+        const dayNames = ['Dom','Lun','Mar','Mie','Jue','Vie','Sab'];
+        const monthNames = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+        [1,2,5,7,14,21,30,45].forEach(dte => {
+          const d = new Date(); d.setDate(d.getDate() + dte);
+          if (d.getDay() === 0) d.setDate(d.getDate() + 1);
+          if (d.getDay() === 6) d.setDate(d.getDate() + 2);
+          const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+          const opt = document.createElement('option');
+          opt.value = dateStr;
+          opt.textContent = `${dayNames[d.getDay()]} ${d.getDate()} ${monthNames[d.getMonth()]} (${dte}d)`;
+          opt.style.background = '#1E293B'; opt.style.color = '#fff';
+          sel.appendChild(opt);
+        });
       }
     }
 
