@@ -307,14 +307,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--light);
       <table class="rtbl chain-tbl">
         <thead>
           <tr>
-            <th colspan="5" style="text-align:center;color:#6EE7B7;border-right:2px solid var(--border);">CALLS</th>
+            <th colspan="6" style="text-align:center;color:#6EE7B7;border-right:2px solid var(--border);">CALLS</th>
             <th style="color:#fff;">Strike</th>
-            <th colspan="5" style="text-align:center;color:#FCA5A5;border-left:2px solid var(--border);">PUTS</th>
+            <th colspan="6" style="text-align:center;color:#FCA5A5;border-left:2px solid var(--border);">PUTS</th>
           </tr>
           <tr>
-            <th>Premium</th><th>Volume</th><th>OI</th><th>Delta</th><th style="border-right:2px solid var(--border);">GEX</th>
+            <th>Premium</th><th>Volume</th><th>OI</th><th>Delta</th><th>GEX</th><th style="border-right:2px solid var(--border);">Side</th>
             <th></th>
-            <th style="border-left:2px solid var(--border);">GEX</th><th>Delta</th><th>OI</th><th>Volume</th><th>Premium</th>
+            <th style="border-left:2px solid var(--border);">Side</th><th>GEX</th><th>Delta</th><th>OI</th><th>Volume</th><th>Premium</th>
           </tr>
         </thead>
         <tbody id="resultsBody"></tbody>
@@ -790,7 +790,10 @@ async function processChain(chain, S, ticker, expDate) {
       const flow = analyzeTradeFlow([...callTrades, ...putTrades], st.vwap, st.bid, st.ask);
       const callFlow = callTrades.length ? analyzeTradeFlow(callTrades, st.vwap, st.bid, st.ask) : null;
       const putFlow = putTrades.length ? analyzeTradeFlow(putTrades, st.vwap, st.bid, st.ask) : null;
-      return { K: st.K, flow, callDealerSign: callFlow ? callFlow.dealerSign : -1, putDealerSign: putFlow ? putFlow.dealerSign : -1 };
+      return { K: st.K, flow,
+        callDealerSign: callFlow ? callFlow.dealerSign : -1, putDealerSign: putFlow ? putFlow.dealerSign : -1,
+        callBuyPct: callFlow ? callFlow.buyPct : 0.5, putBuyPct: putFlow ? putFlow.buyPct : 0.5
+      };
     }));
     tradeResults.push(...batchResults);
     if (i + 3 < topStrikes.length) await new Promise(r => setTimeout(r, 500)); // pace between batches
@@ -807,6 +810,9 @@ async function processChain(chain, S, ticker, expDate) {
       const cds = tradeMap[r.K].callDealerSign;
       const pds = tradeMap[r.K].putDealerSign;
       r.dealerDelta = (cds * r.oiC * r.deltaCall * 100) + (pds * r.oiP * r.deltaPut * 100);
+      // Side: what % was bought at ask vs sold at bid (per side)
+      r.callBuyPct = tradeMap[r.K].callBuyPct;
+      r.putBuyPct = tradeMap[r.K].putBuyPct;
     } else {
       // Fallback heuristic for strikes without trade data
       const moneyness = Math.abs(r.K - S) / (S * (r.iv || 0.20) * Math.sqrt(T));
@@ -1566,14 +1572,27 @@ function renderResultsTable() {
     const gexCColor = s.gexCall > 0 ? '#6EE7B7' : 'var(--muted)';
     const gexPColor = s.gexPut < 0 ? '#FCA5A5' : 'var(--muted)';
 
+    // Side indicator (from 200 trades)
+    const callSide = s.callBuyPct != null ? s.callBuyPct : null;
+    const putSide = s.putBuyPct != null ? s.putBuyPct : null;
+    const sideLabel = (pct) => {
+      if (pct === null || pct === undefined) return '<span style="color:var(--muted);">—</span>';
+      const p = Math.round(pct * 100);
+      if (p >= 60) return `<span style="color:#6EE7B7;font-weight:600;">${p}% ASK</span>`;
+      if (p <= 40) return `<span style="color:#FCA5A5;font-weight:600;">${100-p}% BID</span>`;
+      return `<span style="color:var(--muted);">${p}%</span>`;
+    };
+
     return `<tr class="${isATM ? 'atm-row' : ''}">
       <td class="${callITM ? 'itm' : ''}" style="color:${premCColor};font-weight:${s.premC>5e6?'700':'400'};">${s.premC > 0 ? fmtM(s.premC) : '—'}</td>
       <td class="${callITM ? 'itm' : ''}" style="color:var(--muted);">${s.volC > 0 ? s.volC.toLocaleString() : '—'}</td>
       <td class="${callITM ? 'itm' : ''}">${s.oiC > 0 ? s.oiC.toLocaleString() : '—'}</td>
       <td class="${callITM ? 'itm' : ''}" style="color:#6EE7B7;">${s.deltaCall !== undefined ? s.deltaCall.toFixed(2) : '—'}</td>
-      <td class="${callITM ? 'itm' : ''} call-border" style="color:${gexCColor};font-weight:600;">${fmtM(s.gexCall)}</td>
+      <td class="${callITM ? 'itm' : ''}" style="color:${gexCColor};font-weight:600;">${fmtM(s.gexCall)}</td>
+      <td class="${callITM ? 'itm' : ''} call-border" style="font-size:10px;">${sideLabel(callSide)}</td>
       <td class="strike-col">${isATM ? '&#9654; ' : ''}$${s.K.toFixed(0)}</td>
-      <td class="${putITM ? 'itm' : ''} put-border" style="color:${gexPColor};font-weight:600;">${fmtM(Math.abs(s.gexPut))}</td>
+      <td class="${putITM ? 'itm' : ''} put-border" style="font-size:10px;">${sideLabel(putSide)}</td>
+      <td class="${putITM ? 'itm' : ''}" style="color:${gexPColor};font-weight:600;">${fmtM(Math.abs(s.gexPut))}</td>
       <td class="${putITM ? 'itm' : ''}" style="color:#FCA5A5;">${s.deltaPut !== undefined ? s.deltaPut.toFixed(2) : '—'}</td>
       <td class="${putITM ? 'itm' : ''}">${s.oiP > 0 ? s.oiP.toLocaleString() : '—'}</td>
       <td class="${putITM ? 'itm' : ''}" style="color:var(--muted);">${s.volP > 0 ? s.volP.toLocaleString() : '—'}</td>
