@@ -1028,22 +1028,54 @@ async function runScan() {
     try {
       const result = await scanTicker(ticker, expDate, isSwing);
       if (result) {
-        // Quick multi-DTE alignment check (14DTE + 30DTE)
+        // Get real expirations for this ticker to find weekly, ~14DTE, monthly
         document.getElementById('scanStatus').textContent = `${ticker} — verificando DTEs (${i + 1}/${SCAN_TICKERS.length})...`;
-        const exp14 = getExpDate(14);
-        const exp30 = getExpDate(30);
-        const [dte14, dte30] = await Promise.all([
-          quickDteCheck(ticker, exp14, result.S),
-          quickDteCheck(ticker, exp30, result.S)
+
+        let expWeekly = null, exp14 = null, expMonthly = null;
+        try {
+          const expData = await authFetch(`/options/expirations?ticker=${ticker}`);
+          const exps = expData.expirations || [];
+          const today = new Date(); today.setHours(0,0,0,0);
+
+          // Weekly: next Friday (dte 1-7, Friday)
+          expWeekly = exps.find(e => {
+            const dd = new Date(e.date); dd.setHours(0,0,0,0);
+            return dd.getDay() === 5 && e.dte >= 1 && e.dte <= 7;
+          });
+
+          // ~14DTE: closest real expiration to 14 days (not monthly)
+          exp14 = exps.filter(e => e.type !== 'Monthly' && e.type !== 'Quarterly')
+            .reduce((best, e) => {
+              if (!best) return e;
+              return Math.abs(e.dte - 14) < Math.abs(best.dte - 14) ? e : best;
+            }, null);
+
+          // Monthly: first Monthly or Quarterly
+          expMonthly = exps.find(e => e.type === 'Monthly' || e.type === 'Quarterly');
+        } catch {}
+
+        // Quick check each DTE
+        const checks = await Promise.all([
+          expWeekly ? quickDteCheck(ticker, expWeekly.date, result.S) : null,
+          exp14 ? quickDteCheck(ticker, exp14.date, result.S) : null,
+          expMonthly ? quickDteCheck(ticker, expMonthly.date, result.S) : null
         ]);
+        const [dteW, dte14, dteM] = checks;
+
+        result.dteW = dteW;
         result.dte14 = dte14;
-        result.dte30 = dte30;
+        result.dteM = dteM;
+        result.expWeeklyDate = expWeekly ? expWeekly.date : null;
+        result.exp14Date = exp14 ? exp14.date : null;
+        result.expMonthlyDate = expMonthly ? expMonthly.date : null;
+
         // Alignment: does the premium direction match across DTEs?
         const mainDir = result.premDominantSide;
+        const alignW = dteW && dteW.premSide === mainDir && dteW.premRatio >= 1.5;
         const align14 = dte14 && dte14.premSide === mainDir && dte14.premRatio >= 1.5;
-        const align30 = dte30 && dte30.premSide === mainDir && dte30.premRatio >= 1.5;
-        result.dteAlign = (align14 ? 1 : 0) + (align30 ? 1 : 0); // 0, 1, or 2
-        result.dteAlignLabel = result.dteAlign === 2 ? 'ALL' : result.dteAlign === 1 ? 'PARTIAL' : 'NONE';
+        const alignM = dteM && dteM.premSide === mainDir && dteM.premRatio >= 1.5;
+        result.dteAlign = (alignW ? 1 : 0) + (align14 ? 1 : 0) + (alignM ? 1 : 0); // 0, 1, 2, or 3
+        result.dteAlignLabel = result.dteAlign === 3 ? 'ALL' : result.dteAlign >= 2 ? 'PARTIAL' : result.dteAlign === 1 ? 'WEAK' : 'NONE';
         scanResults.push(result);
       }
     } catch (err) {
@@ -1104,12 +1136,14 @@ function renderResults(results) {
     // MPS display
     const mpsColor = r.mps >= 80 ? '#FCA5A5' : r.mps >= 60 ? '#FBBF24' : r.mps >= 40 ? '#C4B5FD' : '#6EE7B7';
 
-    // DTE Alignment display
-    const alignColor = r.dteAlign === 2 ? '#6EE7B7' : r.dteAlign === 1 ? '#FBBF24' : '#FCA5A5';
-    const alignIcon = r.dteAlign === 2 ? '&#10003;&#10003;' : r.dteAlign === 1 ? '&#10003;' : '&#10007;';
+    // DTE Alignment display (Weekly + ~14DTE + Monthly)
+    const alignColor = r.dteAlign === 3 ? '#6EE7B7' : r.dteAlign >= 2 ? '#FBBF24' : r.dteAlign === 1 ? '#FBBF24' : '#FCA5A5';
+    const alignIcon = r.dteAlign === 3 ? '&#10003;&#10003;&#10003;' : r.dteAlign >= 2 ? '&#10003;&#10003;' : r.dteAlign === 1 ? '&#10003;' : '&#10007;';
+    const fmtDte = (d, label) => d ? `${label}: ${d.premRatio.toFixed(1)}x ${d.premSide === 'puts' ? 'P' : 'C'}` : `${label}: —`;
     const alignTooltip = [
-      r.dte14 ? `14d: ${r.dte14.premRatio.toFixed(1)}x ${r.dte14.premSide === 'puts' ? 'P' : 'C'} ${r.dte14.deltaSign === 'negative' ? '&#9660;' : '&#9650;'}` : '14d: —',
-      r.dte30 ? `30d: ${r.dte30.premRatio.toFixed(1)}x ${r.dte30.premSide === 'puts' ? 'P' : 'C'} ${r.dte30.deltaSign === 'negative' ? '&#9660;' : '&#9650;'}` : '30d: —'
+      fmtDte(r.dteW, 'W'),
+      fmtDte(r.dte14, '14d'),
+      fmtDte(r.dteM, 'M★')
     ].join(' | ');
 
     return `<tr class="${rowClass}" style="cursor:pointer;" onclick="window.open('options.html?ticker=${r.ticker}','_self')">
