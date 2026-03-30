@@ -107,11 +107,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--light);
 
   <!-- Toolbar -->
   <div class="toolbar">
-    <select id="scanDte" style="background:#1E293B;border:1px solid var(--border);border-radius:8px;padding:9px 14px;color:#fff;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;color-scheme:dark;">
-      <option value="">Cargando expiraciones...</option>
-    </select>
-    <button class="btn btn-ghost" onclick="loadExpirations()" style="font-size:11px;padding:6px 10px;">&#8635;</button>
-    <button class="btn btn-purple" id="scanBtn" onclick="runScan()">Escanear</button>
+    <span style="font-size:12px;color:var(--muted);">Ventana: 21-45 DTE</span>
+    <button class="btn btn-purple" id="scanBtn" onclick="runWindowScan()">Escanear Ventana</button>
     <button class="btn btn-ghost" id="autoScanBtn" onclick="toggleAutoScan()" style="min-width:110px;">Auto: OFF</button>
     <span id="autoScanTimer" style="font-size:11px;color:var(--muted);min-width:30px;"></span>
     <div class="status" id="scanStatus">Listo</div>
@@ -127,11 +124,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--light);
           <th>Ticker</th>
           <th>Spot</th>
           <th>Regimen</th>
-          <th>Walls</th>
-          <th>Dist.</th>
-          <th>Prem</th>
-          <th>Delta</th>
-          <th>MPS</th>
+          <th>Best Prem</th>
           <th>DTE Align</th>
           <th>Status</th>
         </tr>
@@ -201,7 +194,6 @@ auth.onAuthStateChanged(u => {
   if (!u) { window.location.href = 'index.html'; return; }
   document.getElementById('mainApp').style.display = '';
   document.getElementById('userEmail').textContent = u.email;
-  setTimeout(loadExpirations, 500);
 });
 function doLogout() { auth.signOut().then(() => window.location.href = 'index.html'); }
 
@@ -962,202 +954,179 @@ async function runDeepDive() {
   }
 }
 
-// ═══ Load real expirations from Polygon ═══
-async function loadExpirations() {
-  const sel = document.getElementById('scanDte');
-  sel.innerHTML = '<option value="">Cargando...</option>';
-  try {
-    const d = await authFetch('/options/expirations?ticker=SPY');
-    const exps = d.expirations || [];
-    const monthNames = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-    const dayNames = ['Dom','Lun','Mar','Mie','Jue','Vie','Sab'];
-
-    sel.innerHTML = '';
-    let selectedFirst = false;
-    for (const exp of exps) {
-      if (exp.dte > 180) continue; // max 180 DTE (covers 2+ extra monthlies)
-      const parts = exp.date.split('-');
-      const dd = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
-      const dayName = dayNames[dd.getDay()];
-      const monthName = monthNames[dd.getMonth()];
-      const mode = exp.dte <= 7 ? 'Scalp' : 'Swing';
-      const typeTag = exp.type === 'Monthly' ? ' ★ Monthly' : exp.type === 'Quarterly' ? ' ★★ Quarterly' : '';
-      const label = `${dayName} ${dd.getDate()} ${monthName} (${exp.dte}d) ${mode}${typeTag}`;
-
-      const opt = document.createElement('option');
-      opt.value = exp.date;
-      opt.textContent = label;
-      opt.style.background = '#1E293B';
-      opt.style.color = '#fff';
-      if (exp.type === 'Monthly') { opt.style.fontWeight = '700'; opt.style.color = '#FBBF24'; }
-      if (exp.type === 'Quarterly') { opt.style.fontWeight = '700'; opt.style.color = '#F59E0B'; }
-
-      // Select first 1DTE or closest
-      if (!selectedFirst && exp.dte >= 1) { opt.selected = true; selectedFirst = true; }
-      sel.appendChild(opt);
-    }
-  } catch (err) {
-    sel.innerHTML = '<option value="">Error cargando</option>';
-    console.warn('[Expirations]', err.message);
+// ═══ Rolling Window Scan (21-45 DTE) ═══
+// Classifies each expiration: ⏳ cola (<21 or >45), ✓ activo (21-45), 📊 monthly ref
+function classifyDteWindow(dte, type) {
+  if (type === 'Monthly' || type === 'Quarterly') {
+    if (dte >= 21 && dte <= 45) return { status: '✓', label: 'activo', color: '#6EE7B7' };
+    return { status: '📊', label: 'monthly', color: '#FBBF24' };
   }
+  if (dte <= 1) return { status: '⏳', label: 'scalp', color: 'var(--muted)' };
+  if (dte < 21) return { status: '⏳', label: 'cola', color: 'var(--muted)' };
+  if (dte <= 45) return { status: '✓', label: 'activo', color: '#6EE7B7' };
+  if (dte <= 52) return { status: '⏳', label: 'cola', color: 'var(--muted)' };
+  return null; // too far, skip
 }
 
-
-async function runScan() {
+async function runWindowScan() {
   if (_scanning) return;
   _scanning = true;
   const btn = document.getElementById('scanBtn');
   btn.innerHTML = '<span class="loader"></span> Escaneando...';
   btn.disabled = true;
   document.getElementById('progressWrap').style.display = '';
-  document.getElementById('scanStatus').textContent = 'Iniciando scan...';
+  document.getElementById('scanStatus').textContent = 'Iniciando scan ventana 21-45 DTE...';
 
-  const expDate = document.getElementById('scanDte').value;
-  if (!expDate) { alert('Selecciona una fecha de expiracion'); _scanning = false; btn.innerHTML = 'Escanear'; btn.disabled = false; return; }
-  const dteDays = Math.round((new Date(expDate) - new Date()) / 86400000);
-  const isSwing = dteDays > 7;
   const scanResults = [];
-  const body = document.getElementById('scanBody');
 
   for (let i = 0; i < SCAN_TICKERS.length; i++) {
     const ticker = SCAN_TICKERS[i];
     const pct = ((i + 1) / SCAN_TICKERS.length * 100).toFixed(0);
     document.getElementById('progressBar').style.width = pct + '%';
-    document.getElementById('scanStatus').textContent = `Escaneando ${ticker} (${i + 1}/${SCAN_TICKERS.length})...`;
+    document.getElementById('scanStatus').textContent = `${ticker} (${i + 1}/${SCAN_TICKERS.length})...`;
 
     try {
-      const result = await scanTicker(ticker, expDate, isSwing);
-      if (result) {
-        // Get real expirations for this ticker to find weekly, ~14DTE, monthly
-        document.getElementById('scanStatus').textContent = `${ticker} — verificando DTEs (${i + 1}/${SCAN_TICKERS.length})...`;
+      // 1. Get spot
+      const spotData = await authFetch(`/options/spot?ticker=${ticker}`);
+      if (!spotData.spot || !spotData.spot.c) continue;
+      const S = spotData.spot.c;
+      const prevC = spotData.spot.prevClose || spotData.spot.o || S;
 
-        let expWeekly = null, exp14 = null, expMonthly = null;
-        try {
-          const expData = await authFetch(`/options/expirations?ticker=${ticker}`);
-          const exps = expData.expirations || [];
-          const today = new Date(); today.setHours(0,0,0,0);
+      // 2. Get real expirations
+      let exps = [];
+      try {
+        const expData = await authFetch(`/options/expirations?ticker=${ticker}`);
+        exps = expData.expirations || [];
+      } catch {}
+      if (!exps.length) continue;
 
-          // Weekly: next Friday (dte 1-7, Friday)
-          expWeekly = exps.find(e => {
-            const dd = new Date(e.date); dd.setHours(0,0,0,0);
-            return dd.getDay() === 5 && e.dte >= 1 && e.dte <= 7;
-          });
-
-          // ~14DTE: closest real expiration to 14 days (not monthly)
-          exp14 = exps.filter(e => e.type !== 'Monthly' && e.type !== 'Quarterly')
-            .reduce((best, e) => {
-              if (!best) return e;
-              return Math.abs(e.dte - 14) < Math.abs(best.dte - 14) ? e : best;
-            }, null);
-
-          // Monthly: first Monthly or Quarterly
-          expMonthly = exps.find(e => e.type === 'Monthly' || e.type === 'Quarterly');
-        } catch {}
-
-        // Quick check each DTE
-        const checks = await Promise.all([
-          expWeekly ? quickDteCheck(ticker, expWeekly.date, result.S) : null,
-          exp14 ? quickDteCheck(ticker, exp14.date, result.S) : null,
-          expMonthly ? quickDteCheck(ticker, expMonthly.date, result.S) : null
-        ]);
-        const [dteW, dte14, dteM] = checks;
-
-        result.dteW = dteW;
-        result.dte14 = dte14;
-        result.dteM = dteM;
-        result.expWeeklyDate = expWeekly ? expWeekly.date : null;
-        result.exp14Date = exp14 ? exp14.date : null;
-        result.expMonthlyDate = expMonthly ? expMonthly.date : null;
-
-        // Alignment: does the premium direction match across DTEs?
-        const mainDir = result.premDominantSide;
-        const alignW = dteW && dteW.premSide === mainDir && dteW.premRatio >= 1.5;
-        const align14 = dte14 && dte14.premSide === mainDir && dte14.premRatio >= 1.5;
-        const alignM = dteM && dteM.premSide === mainDir && dteM.premRatio >= 1.5;
-        result.dteAlign = (alignW ? 1 : 0) + (align14 ? 1 : 0) + (alignM ? 1 : 0); // 0, 1, 2, or 3
-        result.dteAlignLabel = result.dteAlign === 3 ? 'ALL' : result.dteAlign >= 2 ? 'PARTIAL' : result.dteAlign === 1 ? 'WEAK' : 'NONE';
-        scanResults.push(result);
+      // 3. Select DTEs for the window: 1DTE + cola(14-20) + activo(21-45) + cola(46-52) + 2 monthlies
+      const windowDTEs = [];
+      // 1DTE scalp reference
+      const dte1 = exps.find(e => e.dte >= 1 && e.dte <= 3);
+      if (dte1) windowDTEs.push({ ...dte1, window: classifyDteWindow(dte1.dte, dte1.type) });
+      // Cola before (14-20)
+      const cola14 = exps.filter(e => e.dte >= 14 && e.dte < 21).sort((a,b) => b.dte - a.dte)[0];
+      if (cola14) windowDTEs.push({ ...cola14, window: classifyDteWindow(cola14.dte, cola14.type) });
+      // Active (21-45) — pick up to 3 Fridays
+      const active = exps.filter(e => e.dte >= 21 && e.dte <= 45);
+      let activeCount = 0;
+      for (const e of active) {
+        if (activeCount >= 3) break;
+        windowDTEs.push({ ...e, window: classifyDteWindow(e.dte, e.type) });
+        activeCount++;
       }
+      // Cola after (46-52)
+      const cola46 = exps.find(e => e.dte >= 46 && e.dte <= 52);
+      if (cola46) windowDTEs.push({ ...cola46, window: classifyDteWindow(cola46.dte, cola46.type) });
+      // 2 monthlies beyond window
+      const monthlies = exps.filter(e => (e.type === 'Monthly' || e.type === 'Quarterly') && e.dte > 52);
+      for (const m of monthlies.slice(0, 2)) {
+        windowDTEs.push({ ...m, window: classifyDteWindow(m.dte, m.type) });
+      }
+
+      // 4. Quick-check each DTE
+      const dteChecks = [];
+      for (const dte of windowDTEs) {
+        try {
+          const check = await quickDteCheck(ticker, dte.date, S);
+          dteChecks.push({ ...dte, check });
+        } catch {
+          dteChecks.push({ ...dte, check: null });
+        }
+      }
+      await new Promise(r => setTimeout(r, 300));
+
+      // 5. Find best MPS from active DTEs
+      const activeDTEs = dteChecks.filter(d => d.window && d.window.status === '✓' && d.check);
+      const bestActive = activeDTEs.length
+        ? activeDTEs.reduce((b, d) => (d.check.premRatio || 0) > (b.check.premRatio || 0) ? d : b)
+        : null;
+
+      // 6. Determine regime from best active DTE
+      const regime = bestActive && bestActive.check ? (bestActive.check.dealerD < 0 ? 'Short Gamma' : 'Long Gamma') : 'Unknown';
+      const isShortGamma = regime === 'Short Gamma';
+
+      // 7. Count alignment
+      const mainDir = bestActive && bestActive.check ? bestActive.check.premSide : null;
+      let alignCount = 0;
+      const dteLabels = [];
+      for (const d of dteChecks) {
+        if (!d.check || !d.window) continue;
+        const matches = d.check.premSide === mainDir && d.check.premRatio >= 1.5;
+        if (matches) alignCount++;
+        const premLabel = d.check ? `${d.check.premRatio.toFixed(1)}x ${d.check.premSide === 'puts' ? 'P' : 'C'}` : '—';
+        dteLabels.push({ dte: d.dte, status: d.window.status, color: d.window.color, premLabel, matches, type: d.type, date: d.date });
+      }
+
+      scanResults.push({
+        ticker, S, prevC, isShortGamma, regime,
+        bestPremRatio: bestActive && bestActive.check ? bestActive.check.premRatio : 0,
+        bestPremSide: mainDir,
+        alignCount, dteLabels, dteChecks,
+      });
     } catch (err) {
       console.warn(`[Scanner] ${ticker} failed:`, err.message);
     }
 
-    // Pace requests to avoid rate limits
     if (i < SCAN_TICKERS.length - 1) await new Promise(r => setTimeout(r, 500));
   }
 
-  // Sort by MPS descending
-  scanResults.sort((a, b) => b.mps - a.mps);
+  // Sort by alignment then premium
+  scanResults.sort((a, b) => b.alignCount - a.alignCount || b.bestPremRatio - a.bestPremRatio);
 
-  // Render
-  renderResults(scanResults);
-
-  const modeLabel = isSwing ? 'SWING' : 'SCALP';
-  document.getElementById('scanStatus').textContent = `${scanResults.length} tickers — ${modeLabel} ${dteDays}d (${expDate}) — ${new Date().toLocaleTimeString()}`;
+  renderWindowResults(scanResults);
+  document.getElementById('scanStatus').textContent = `${scanResults.length} tickers — Ventana 21-45 DTE — ${new Date().toLocaleTimeString()}`;
   document.getElementById('progressWrap').style.display = 'none';
-  btn.innerHTML = 'Escanear';
+  btn.innerHTML = 'Escanear Ventana';
   btn.disabled = false;
   _scanning = false;
 }
 
-function renderResults(results) {
+function renderWindowResults(results) {
   const body = document.getElementById('scanBody');
   if (!results.length) {
-    body.innerHTML = '<tr><td colspan="10" style="color:var(--muted);padding:40px;">No se encontraron datos para hoy</td></tr>';
+    body.innerHTML = '<tr><td colspan="10" style="color:var(--muted);padding:40px;">No se encontraron datos</td></tr>';
     return;
   }
+
+  const monthNames = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 
   body.innerHTML = results.map(r => {
     const chg = ((r.S - r.prevC) / r.prevC * 100);
 
-    // Status badge based on MPS
+    // Status
     let statusClass, statusText;
-    if (r.mps >= 80) { statusClass = 'breakout'; statusText = 'ALERTA'; }
-    else if (r.mps >= 60) { statusClass = 'watch'; statusText = 'WATCH'; }
-    else if (r.mps >= 40) { statusClass = 'building'; statusText = 'NEUTRAL'; }
+    if (r.alignCount >= 5 && r.isShortGamma) { statusClass = 'breakout'; statusText = 'ALERTA'; }
+    else if (r.alignCount >= 3 && r.isShortGamma) { statusClass = 'watch'; statusText = 'WATCH'; }
+    else if (r.alignCount >= 2) { statusClass = 'building'; statusText = 'NEUTRAL'; }
     else { statusClass = 'range'; statusText = 'RANGE'; }
 
-    // Row class
-    const rowClass = r.mps >= 80 ? 'hot' : r.mps >= 60 ? 'watch' : '';
+    const rowClass = statusText === 'ALERTA' ? 'hot' : statusText === 'WATCH' ? 'watch' : '';
 
-    // Nearest wall display
-    const wallDist = r.nearestWall === 'CW'
-      ? `<span style="color:#6EE7B7;">${r.nearestDist.toFixed(1)}% CW</span>`
-      : `<span style="color:#FCA5A5;">${r.nearestDist.toFixed(1)}% PW</span>`;
+    // DTE labels row
+    const dteRow = r.dteLabels.map(d => {
+      const parts = d.date.split('-');
+      const dd = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
+      const dateLabel = `${dd.getDate()}${monthNames[dd.getMonth()].substring(0,3)}`;
+      const typeTag = d.type === 'Monthly' ? '★' : d.type === 'Quarterly' ? '★★' : '';
+      const matchColor = d.matches ? '#6EE7B7' : 'var(--muted)';
+      return `<span style="display:inline-block;margin:2px 4px;padding:2px 6px;border-radius:4px;font-size:10px;background:rgba(255,255,255,.04);border:1px solid ${d.color};">` +
+        `<span style="color:${d.color};">${d.status}</span> ` +
+        `<span style="color:${matchColor};">${d.dte}d${typeTag} ${d.premLabel}</span></span>`;
+    }).join('');
 
-    const dK = r.dealerDeltaTotal / 1000;
-
-    // Premium ratio display
-    const premColor = r.premDominantSide === 'puts' ? '#FCA5A5' : '#6EE7B7';
-    const pC = r.totalPremC || 0;
-    const pP = r.totalPremP || 0;
-    const premLabel = `<div style="font-size:10px;line-height:1.4;">C:<span style="color:#6EE7B7;">${fmtM(pC)}</span> P:<span style="color:#FCA5A5;">${fmtM(pP)}</span></div><div style="color:${premColor};font-weight:600;font-size:11px;">${r.premRatio.toFixed(1)}x ${r.premDominantSide === 'puts' ? 'P' : 'C'}</div>`;
-
-    // MPS display
-    const mpsColor = r.mps >= 80 ? '#FCA5A5' : r.mps >= 60 ? '#FBBF24' : r.mps >= 40 ? '#C4B5FD' : '#6EE7B7';
-
-    // DTE Alignment display (Weekly + ~14DTE + Monthly)
-    const alignColor = r.dteAlign === 3 ? '#6EE7B7' : r.dteAlign >= 2 ? '#FBBF24' : r.dteAlign === 1 ? '#FBBF24' : '#FCA5A5';
-    const alignIcon = r.dteAlign === 3 ? '&#10003;&#10003;&#10003;' : r.dteAlign >= 2 ? '&#10003;&#10003;' : r.dteAlign === 1 ? '&#10003;' : '&#10007;';
-    const fmtDte = (d, label) => d ? `${label}: ${d.premRatio.toFixed(1)}x ${d.premSide === 'puts' ? 'P' : 'C'}` : `${label}: —`;
-    const alignTooltip = [
-      fmtDte(r.dteW, 'W'),
-      fmtDte(r.dte14, '14d'),
-      fmtDte(r.dteM, 'M★')
-    ].join(' | ');
+    const premColor = r.bestPremSide === 'puts' ? '#FCA5A5' : '#6EE7B7';
 
     return `<tr class="${rowClass}" style="cursor:pointer;" onclick="window.open('options.html?ticker=${r.ticker}','_self')">
       <td style="font-weight:700;color:#fff;">${r.ticker}</td>
       <td>$${r.S.toFixed(2)} <span style="font-size:10px;color:${chg>=0?'#6EE7B7':'#FCA5A5'};">${chg>=0?'+':''}${chg.toFixed(1)}%</span></td>
-      <td><span class="regime ${r.isShortGamma?'short':'long'}">${r.isShortGamma?'SHORT':'LONG'} GAMMA</span></td>
-      <td style="font-size:11px;">$${r.putWall.toFixed(0)}-$${r.callWall.toFixed(0)}</td>
-      <td>${wallDist}</td>
-      <td>${premLabel}</td>
-      <td style="color:${dK>=0?'#6EE7B7':'#FCA5A5'};font-weight:600;">${dK>=0?'+':''}${dK.toFixed(1)}K</td>
-      <td style="color:${mpsColor};font-weight:700;font-size:16px;">${r.mps}</td>
-      <td style="color:${alignColor};font-size:12px;" title="${alignTooltip}">${alignIcon} <span style="font-size:10px;">${alignTooltip}</span></td>
+      <td><span class="regime ${r.isShortGamma?'short':'long'}">${r.isShortGamma?'SHORT':'LONG'}</span></td>
+      <td style="color:${premColor};font-weight:600;">${r.bestPremRatio.toFixed(1)}x ${r.bestPremSide === 'puts' ? 'P' : 'C'}</td>
+      <td style="color:${r.alignCount>=5?'#6EE7B7':r.alignCount>=3?'#FBBF24':'#FCA5A5'};font-weight:700;">${r.alignCount}/${r.dteLabels.length}</td>
       <td><span class="badge ${statusClass}">${statusText}</span></td>
-    </tr>`;
+    </tr>
+    <tr class="${rowClass}"><td colspan="6" style="padding:4px 10px 10px;">${dteRow}</td></tr>`;
   }).join('');
 }
 
@@ -1179,7 +1148,7 @@ function toggleAutoScan() {
     btn.style.color = '';
     timer.textContent = '';
   } else {
-    if (!_scanning) runScan();
+    if (!_scanning) runWindowScan();
     _autoScanSec = 300;
     timer.textContent = '5:00';
     _autoScanCountdown = setInterval(() => {
@@ -1190,7 +1159,7 @@ function toggleAutoScan() {
     }, 1000);
     _autoScanId = setInterval(() => {
       _autoScanSec = 300;
-      if (!_scanning) runScan();
+      if (!_scanning) runWindowScan();
     }, 300000); // 5 min
     btn.textContent = 'Auto: ON';
     btn.style.borderColor = 'rgba(16,185,129,.5)';
