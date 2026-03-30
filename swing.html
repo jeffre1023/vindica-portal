@@ -314,9 +314,12 @@ function renderTable(signals) {
     const sizeStr = trade.contracts ? `${trade.contracts}c / $${trade.totalRisk}` : '—';
 
     const f = s.factors || {};
+    const timingMap = { EARLY: ['✅', '#10B981'], MID: ['🟡', '#FBBF24'], LATE: ['⚠️', '#F59E0B'], EXTENDED: ['🛑', '#EF4444'], NO_DATA: ['❓', '#94A3B8'] };
+    const [timingIcon, timingColor] = timingMap[s.timing] || timingMap.NO_DATA;
 
     return `<tr onclick="toggleDetail(${i})" style="cursor:pointer;">
-      <td><strong>${s.ticker}</strong><br><span style="font-size:10px;color:var(--muted);">$${(s.spot||0).toFixed(2)}</span></td>
+      <td><strong>${s.ticker}</strong><br><span style="font-size:10px;color:var(--muted);">$${(s.spot||0).toFixed(2)}</span>
+        <br><span style="font-size:9px;color:${timingColor};">${timingIcon} ${s.timing || '?'} ${s.pctMoved || 0}%</span></td>
       <td>${dir}</td>
       <td>
         <span class="badge ${convClass}">${convLabel} ${s.conviction}%</span>
@@ -341,6 +344,7 @@ function renderTable(signals) {
               <span class="factor ${f.oi >= 15 ? 'active' : ''}">OI TREND ${f.oi || 0}/25</span>
               <span class="factor ${f.wall >= 10 ? 'active' : ''}">WALL ${f.wall || 0}/15</span>
               <span class="factor ${f.premium >= 10 ? 'active' : ''}">PREMIUM ${f.premium || 0}/15</span>
+              <span class="factor" style="${(f.exhaustion||0) < 0 ? 'color:#FCA5A5;border-color:rgba(239,68,68,.3);' : (f.exhaustion||0) > 0 ? 'color:#6EE7B7;border-color:rgba(16,185,129,.3);' : ''}">TIMING ${f.exhaustion || 0}</span>
             </div>
           </div>
           <div>
