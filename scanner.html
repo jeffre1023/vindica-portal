@@ -580,16 +580,38 @@ async function loadDeepExpirations() {
     const dayNames = ['Dom','Lun','Mar','Mie','Jue','Vie','Sab'];
     const monthNames = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 
-    sel.innerHTML = '<span style="font-size:11px;color:var(--muted);margin-right:4px;">Selecciona hasta 7:</span>' +
-      exps.map((e, i) => {
+    // Auto-classify DTEs using rolling window
+    const windowExps = [];
+    // 1DTE
+    const dte1 = exps.find(e => e.dte >= 1 && e.dte <= 3);
+    if (dte1) windowExps.push({ ...dte1, wStatus: '⏳' });
+    // Cola before (14-20)
+    const cola14 = exps.filter(e => e.dte >= 14 && e.dte < 21).sort((a,b) => b.dte - a.dte)[0];
+    if (cola14) windowExps.push({ ...cola14, wStatus: '⏳' });
+    // Active (21-45) — up to 3
+    let ac = 0;
+    for (const e of exps.filter(e => e.dte >= 21 && e.dte <= 45)) {
+      if (ac >= 3) break;
+      windowExps.push({ ...e, wStatus: '✓' }); ac++;
+    }
+    // Cola after (46-52)
+    const cola46 = exps.find(e => e.dte >= 46 && e.dte <= 52);
+    if (cola46) windowExps.push({ ...cola46, wStatus: '⏳' });
+    // 2 monthlies beyond
+    for (const m of exps.filter(e => (e.type === 'Monthly' || e.type === 'Quarterly') && e.dte > 52).slice(0, 2)) {
+      windowExps.push({ ...m, wStatus: '📊' });
+    }
+
+    sel.innerHTML = '<span style="font-size:11px;color:var(--muted);margin-right:4px;">Ventana 21-45 DTE:</span>' +
+      windowExps.map(e => {
         const dd = new Date(e.date + 'T12:00:00');
         const label = `${dayNames[dd.getDay()]} ${dd.getDate()} ${monthNames[dd.getMonth()]} (${e.dte}d)`;
-        const checked = i < 7 ? 'checked' : '';
-        const isMonthly = e.type === 'monthly';
-        const border = isMonthly ? 'border:1px solid rgba(139,92,246,.5);' : 'border:1px solid var(--border);';
-        return `<label style="display:flex;align-items:center;gap:4px;padding:5px 10px;border-radius:8px;${border}background:rgba(255,255,255,.04);cursor:pointer;font-size:11px;color:#fff;">
-          <input type="checkbox" value="${e.date}" ${checked} onchange="limitDeepSelection(this)" style="accent-color:#8B5CF6;">
-          ${label}${isMonthly ? ' <span style="color:#C4B5FD;font-size:9px;">M</span>' : ''}
+        const isMonthly = e.type === 'Monthly' || e.type === 'Quarterly';
+        const statusColor = e.wStatus === '✓' ? 'rgba(16,185,129,.3)' : e.wStatus === '📊' ? 'rgba(245,158,11,.3)' : 'var(--border)';
+        return `<label style="display:flex;align-items:center;gap:4px;padding:5px 10px;border-radius:8px;border:1px solid ${statusColor};background:rgba(255,255,255,.04);cursor:pointer;font-size:11px;color:#fff;">
+          <input type="checkbox" value="${e.date}" checked style="accent-color:#8B5CF6;">
+          <span style="color:${e.wStatus === '✓' ? '#6EE7B7' : e.wStatus === '📊' ? '#FBBF24' : 'var(--muted)'};">${e.wStatus}</span>
+          ${label}${isMonthly ? ' ★' : ''}
         </label>`;
       }).join('');
 
@@ -654,48 +676,90 @@ async function loadOITrend() {
       return;
     }
 
-    // Populate DTE dropdown with unique expDates from history
-    const expDates = [...new Set(history.map(h => h.expDate).filter(Boolean))].sort();
-    const sel = document.getElementById('oiDteSelect');
-    const monthNames = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-    const dayNames = ['Dom','Lun','Mar','Mie','Jue','Vie','Sab'];
-    sel.innerHTML = '';
-    for (const exp of expDates) {
-      const parts = exp.split('-');
-      const dd = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
-      if (dd < new Date()) continue; // skip expired
-      const dte = Math.round((dd - new Date()) / 86400000);
-      const isThirdFriday = dd.getDay() === 5 && dd.getDate() >= 15 && dd.getDate() <= 21;
-      const typeTag = isThirdFriday ? ' ★ Monthly' : '';
-      const opt = document.createElement('option');
-      opt.value = exp;
-      opt.textContent = `${dayNames[dd.getDay()]} ${dd.getDate()} ${monthNames[dd.getMonth()]} (${dte}d)${typeTag}`;
-      opt.style.background = '#1E293B';
-      opt.style.color = isThirdFriday ? '#FBBF24' : '#fff';
-      sel.appendChild(opt);
-    }
-
-    // Also fetch real expirations to add ones not yet in history
-    try {
-      const expData = await authFetch(`/options/expirations?ticker=${ticker}`);
-      for (const exp of (expData.expirations || [])) {
-        if (exp.dte > 180 || expDates.includes(exp.date)) continue;
-        const parts = exp.date.split('-');
-        const dd = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
-        const typeTag = exp.type === 'Monthly' ? ' ★ Monthly' : exp.type === 'Quarterly' ? ' ★★ Quarterly' : '';
-        const opt = document.createElement('option');
-        opt.value = exp.date;
-        opt.textContent = `${dayNames[dd.getDay()]} ${dd.getDate()} ${monthNames[dd.getMonth()]} (${exp.dte}d)${typeTag} (sin data)`;
-        opt.style.background = '#1E293B';
-        opt.style.color = exp.type === 'Monthly' || exp.type === 'Quarterly' ? '#FBBF24' : 'var(--muted)';
-        sel.appendChild(opt);
-      }
-    } catch {}
-
     const days = [...new Set(history.map(h => h.date))].length;
     document.getElementById('oiTrendDays').textContent = `(${days} dias de data)`;
 
-    renderOITrendForDte();
+    // Build summary table of ALL window DTEs
+    const expDates = [...new Set(history.map(h => h.expDate).filter(Boolean))].sort();
+    const monthNames = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    const fmtOI = n => n > 9999 ? (n/1000).toFixed(0)+'K' : n > 999 ? (n/1000).toFixed(1)+'K' : n > 0 ? n : '—';
+
+    // Classify each expDate in window
+    const windowExps = [];
+    for (const exp of expDates) {
+      const parts = exp.split('-');
+      const dd = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
+      if (dd < new Date()) continue;
+      const dte = Math.round((dd - new Date()) / 86400000);
+      const isThirdFriday = dd.getDay() === 5 && dd.getDate() >= 15 && dd.getDate() <= 21;
+      const type = isThirdFriday ? 'Monthly' : 'Weekly';
+      const w = classifyDteWindow(dte, type);
+      if (!w && dte > 52 && !isThirdFriday) continue; // skip non-monthly far out
+      windowExps.push({ expDate: exp, dte, type, window: w || { status: '📊', color: '#FBBF24' } });
+    }
+
+    // For each window DTE, find the strike with most OI growth
+    let summaryHTML = `<table class="stbl" style="font-size:11px;"><thead><tr>
+      <th>DTE</th><th>Status</th><th>Top Strike</th><th>OI Inicio → Ahora</th><th>IV</th><th>Trend</th>
+    </tr></thead><tbody>`;
+
+    for (const we of windowExps) {
+      const snaps = history.filter(h => h.expDate === we.expDate).sort((a,b) => a.date.localeCompare(b.date));
+      if (!snaps.length) {
+        summaryHTML += `<tr><td style="font-weight:600;color:#fff;">${we.dte}d${we.type === 'Monthly' ? ' ★' : ''}</td><td style="color:${we.window.color};">${we.window.status}</td><td colspan="4" style="color:var(--muted);">sin data</td></tr>`;
+        continue;
+      }
+      const first = snaps[0], last = snaps[snaps.length - 1];
+
+      // Find strike with most put OI growth
+      let bestStrike = null;
+      for (const ls of (last.strikes || [])) {
+        const fs = (first.strikes || []).find(s => s.K === ls.K);
+        if (!fs) continue;
+        if (ls.oiP > 100 && fs.oiP > 0) {
+          const growth = (ls.oiP - fs.oiP) / fs.oiP;
+          if (!bestStrike || growth > bestStrike.growth) {
+            bestStrike = { K: ls.K, side: 'P', oiStart: fs.oiP, oiEnd: ls.oiP, growth, iv: ls.ivP || ls.ivC || 0, ivStart: fs.ivP || fs.ivC || 0 };
+          }
+        }
+        if (ls.oiC > 100 && fs.oiC > 0) {
+          const growth = (ls.oiC - fs.oiC) / fs.oiC;
+          if (!bestStrike || growth > bestStrike.growth) {
+            bestStrike = { K: ls.K, side: 'C', oiStart: fs.oiC, oiEnd: ls.oiC, growth, iv: ls.ivC || 0, ivStart: fs.ivC || 0 };
+          }
+        }
+      }
+
+      const arrow = bestStrike ? (bestStrike.growth >= 1.0 ? '▲▲▲' : bestStrike.growth >= 0.5 ? '▲▲' : bestStrike.growth >= 0.2 ? '▲' : '—') : '—';
+      const arrowColor = arrow.includes('▲') ? '#6EE7B7' : 'var(--muted)';
+      const ivUp = bestStrike && bestStrike.iv > bestStrike.ivStart ? '↑' : '';
+      const dateLabel = `${we.dte}d${we.type === 'Monthly' ? ' ★' : ''}`;
+
+      summaryHTML += `<tr style="cursor:pointer;" onclick="document.getElementById('oiDteSelect').value='${we.expDate}';renderOITrendForDte()">
+        <td style="font-weight:600;color:#fff;">${dateLabel}</td>
+        <td style="color:${we.window.color};">${we.window.status}</td>
+        <td>${bestStrike ? `$${bestStrike.K}${bestStrike.side}` : '—'}</td>
+        <td>${bestStrike ? `${fmtOI(bestStrike.oiStart)}→${fmtOI(bestStrike.oiEnd)} (+${(bestStrike.growth*100).toFixed(0)}%)` : '—'}</td>
+        <td style="color:${bestStrike && bestStrike.iv > 0.3 ? '#FBBF24' : 'var(--muted)'};">${bestStrike && bestStrike.iv > 0 ? (bestStrike.iv*100).toFixed(0)+'%'+ivUp : '—'}</td>
+        <td style="color:${arrowColor};font-weight:600;">${arrow}</td>
+      </tr>`;
+    }
+    summaryHTML += '</tbody></table>';
+    summaryHTML += '<div style="font-size:10px;color:var(--muted);margin-top:6px;">Click en una fila para ver detalle por strike</div>';
+
+    // Populate dropdown for detailed view (keep existing)
+    const sel = document.getElementById('oiDteSelect');
+    sel.innerHTML = '<option value="">— Detalle por strike —</option>';
+    for (const we of windowExps) {
+      const opt = document.createElement('option');
+      opt.value = we.expDate;
+      opt.textContent = `${we.dte}d ${we.type === 'Monthly' ? '★ ' : ''}${we.window.status}`;
+      opt.style.background = '#1E293B';
+      opt.style.color = we.window.color;
+      sel.appendChild(opt);
+    }
+
+    document.getElementById('oiTrendBody').innerHTML = summaryHTML;
   } catch (err) {
     document.getElementById('oiTrendWrap').style.display = '';
     document.getElementById('oiTrendBody').innerHTML = `<div style="color:#FCA5A5;padding:20px;text-align:center;">Error: ${err.message}</div>`;
