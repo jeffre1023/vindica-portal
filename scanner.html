@@ -1294,9 +1294,9 @@ function fmtCtrs(n) {
 async function loadBlockFlow() {
   try {
     const data = await authFetch('/options/block-flow');
-    const pp = data.putPrem || 0;
-    const cp = data.callPrem || 0;
-    const total = pp + cp;
+    const bull = data.bullPrem || 0;
+    const bear = data.bearPrem || 0;
+    const total = bull + bear;
 
     if (total === 0) {
       document.getElementById('gaugeDominant').textContent = 'Sin data';
@@ -1304,25 +1304,25 @@ async function loadBlockFlow() {
       return;
     }
 
-    const putPct = pp / total;
-    const callPct = cp / total;
+    const bearPct = bear / total;
+    const bullPct = bull / total;
 
     // Update chart
-    flowGaugeChart.data.datasets[0].data = [putPct * 100, callPct * 100];
+    flowGaugeChart.data.datasets[0].data = [bearPct * 100, bullPct * 100];
     flowGaugeChart.update();
 
-    // Needle: -90deg = full PUT, 0deg = balanced, 90deg = full CALL
-    const angle = -90 + (callPct * 180);
+    // Needle: -90deg = full BEARISH, 0deg = balanced, 90deg = full BULLISH
+    const angle = -90 + (bullPct * 180);
     document.getElementById('gaugeNeedle').style.transform = `rotate(${angle}deg)`;
 
     // Labels
-    const domPct = Math.round(Math.max(putPct, callPct) * 100);
-    const isBearish = pp > cp;
+    const domPct = Math.round(Math.max(bearPct, bullPct) * 100);
+    const isBearish = bear > bull;
     document.getElementById('gaugeDominant').textContent = `${isBearish ? '🔴 BEARISH' : '🟢 BULLISH'} ${domPct}%`;
     document.getElementById('gaugeDominant').style.color = isBearish ? '#FCA5A5' : '#6EE7B7';
-    document.getElementById('gaugePuts').textContent = `PUT: ${fmtDollarGauge(pp)} (${fmtCtrs(data.putCtrs || 0)} ctrs)`;
-    document.getElementById('gaugeCalls').textContent = `CALL: ${fmtDollarGauge(cp)} (${fmtCtrs(data.callCtrs || 0)} ctrs)`;
-    document.getElementById('gaugeTotal').textContent = `Total: ${fmtDollarGauge(total)} | ${fmtCtrs((data.putCtrs||0)+(data.callCtrs||0))} ctrs | δ0.20-0.60`;
+    document.getElementById('gaugePuts').textContent = `🔴 Bearish: ${fmtDollarGauge(bear)} (${fmtCtrs(data.bearCtrs || 0)} ctrs)`;
+    document.getElementById('gaugeCalls').textContent = `🟢 Bullish: ${fmtDollarGauge(bull)} (${fmtCtrs(data.bullCtrs || 0)} ctrs)`;
+    document.getElementById('gaugeTotal').textContent = `Total: ${fmtDollarGauge(total)} | ${fmtCtrs((data.bullCtrs||0)+(data.bearCtrs||0))} ctrs | δ0.20-0.60`;
   } catch (err) {
     console.error('Block flow error:', err);
   }
