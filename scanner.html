@@ -1294,13 +1294,16 @@ function fmtCtrs(n) {
 async function loadBlockFlow() {
   try {
     const data = await authFetch('/options/block-flow');
-    const bull = data.bullPrem || 0;
-    const bear = data.bearPrem || 0;
+    const bull = Number(data.bullPrem) || 0;
+    const bear = Number(data.bearPrem) || 0;
     const total = bull + bear;
 
     if (total === 0) {
       document.getElementById('gaugeDominant').textContent = 'Sin data';
       document.getElementById('gaugeDominant').style.color = 'var(--muted)';
+      document.getElementById('gaugePuts').textContent = '🔴 Bearish: $0';
+      document.getElementById('gaugeCalls').textContent = '🟢 Bullish: $0';
+      document.getElementById('gaugeTotal').textContent = 'Esperando market hours...';
       return;
     }
 
