@@ -1398,7 +1398,23 @@ async function loadBlockFlow() {
     document.getElementById('gaugeDominant').style.color = isBearish ? '#FCA5A5' : '#6EE7B7';
     document.getElementById('gaugePuts').textContent = `🔴 Bearish: ${fmtDollarGauge(bear)} (${fmtCtrs(data.bearCtrs || 0)} ctrs)`;
     document.getElementById('gaugeCalls').textContent = `🟢 Bullish: ${fmtDollarGauge(bull)} (${fmtCtrs(data.bullCtrs || 0)} ctrs)`;
-    document.getElementById('gaugeTotal').textContent = `Total: ${fmtDollarGauge(total)} | ${fmtCtrs((data.bullCtrs||0)+(data.bearCtrs||0))} ctrs | δ0.20-0.60`;
+    // Check if SPY already moved in direction of dominant flow
+    let moveWarning = '';
+    try {
+      const spotData = await authFetch('/options/spot?ticker=SPY');
+      if (spotData.spot && spotData.spot.c && spotData.spot.prevClose) {
+        const spotChg = ((spotData.spot.c - spotData.spot.prevClose) / spotData.spot.prevClose * 100);
+        const spotDir = spotChg < 0 ? 'bearish' : 'bullish';
+        const flowDir = isBearish ? 'bearish' : 'bullish';
+        if (spotDir === flowDir && Math.abs(spotChg) > 1) {
+          moveWarning = `⚠️ SPY ${spotChg > 0 ? '+' : ''}${spotChg.toFixed(1)}% hoy — blocks pueden ser cierre de profit`;
+        } else if (Math.abs(spotChg) < 0.3) {
+          moveWarning = `✅ SPY flat (${spotChg > 0 ? '+' : ''}${spotChg.toFixed(1)}%) — flow puede anticipar movimiento`;
+        }
+      }
+    } catch {}
+
+    document.getElementById('gaugeTotal').innerHTML = `Total: ${fmtDollarGauge(total)} | ${fmtCtrs((data.bullCtrs||0)+(data.bearCtrs||0))} ctrs | δ0.20-0.60${moveWarning ? '<br><span style="font-size:10px;">' + moveWarning + '</span>' : ''}`;
 
     // Save day totals for gauge 2 delta calculation
     _lastDayBull = bull;
