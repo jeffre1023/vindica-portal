@@ -725,8 +725,9 @@ async function loadOITrend() {
     const monthNames = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
     const fmtOI = n => n > 9999 ? (n/1000).toFixed(0)+'K' : n > 999 ? (n/1000).toFixed(1)+'K' : n > 0 ? n : '—';
 
-    // Classify each expDate in window
+    // Classify each expDate in window: 1DTE + cola + active + cola + 2 monthlies max
     const windowExps = [];
+    let monthlyCount = 0;
     for (const exp of expDates) {
       const parts = exp.split('-');
       const dd = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
@@ -734,9 +735,17 @@ async function loadOITrend() {
       const dte = Math.round((dd - new Date()) / 86400000);
       const isThirdFriday = dd.getDay() === 5 && dd.getDate() >= 15 && dd.getDate() <= 21;
       const type = isThirdFriday ? 'Monthly' : 'Weekly';
-      const w = classifyDteWindow(dte, type);
-      if (!w && dte > 52 && !isThirdFriday) continue; // skip non-monthly far out
-      windowExps.push({ expDate: exp, dte, type, window: w || { status: '📊', color: '#FBBF24' } });
+
+      // 1DTE (scalp ref)
+      if (dte <= 1) { windowExps.push({ expDate: exp, dte, type, window: { status: '⏳', label: 'scalp', color: 'var(--muted)' } }); continue; }
+      // Cola before (14-20)
+      if (dte >= 14 && dte <= 20) { windowExps.push({ expDate: exp, dte, type, window: { status: '⏳', label: 'cola', color: 'var(--muted)' } }); continue; }
+      // Active (21-45)
+      if (dte >= 21 && dte <= 45) { windowExps.push({ expDate: exp, dte, type, window: { status: '✓', label: 'activo', color: '#6EE7B7' } }); continue; }
+      // Cola after (46-52)
+      if (dte >= 46 && dte <= 52) { windowExps.push({ expDate: exp, dte, type, window: { status: '⏳', label: 'cola', color: 'var(--muted)' } }); continue; }
+      // Max 2 monthlies beyond window
+      if (isThirdFriday && dte > 52 && monthlyCount < 2) { windowExps.push({ expDate: exp, dte, type, window: { status: '📊', label: 'monthly', color: '#FBBF24' } }); monthlyCount++; continue; }
     }
 
     // For each window DTE, find the strike with most OI growth
