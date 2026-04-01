@@ -788,7 +788,14 @@ async function loadOITrend() {
       summaryHTML += `<tr style="cursor:pointer;" onclick="document.getElementById('oiDteSelect').value='${we.expDate}';renderOITrendForDte()">
         <td style="font-weight:600;color:#fff;">${dateLabel}</td>
         <td style="color:${we.window.color};">${we.window.status}</td>
-        <td>${bestStrike ? `$${bestStrike.K}${bestStrike.side}` : '—'}</td>
+        <td>${bestStrike ? (() => {
+          const T = Math.max(1, we.dte) / 365;
+          const iv = bestStrike.iv || 0.20;
+          const g = bsGreeks(last.spot || 1, bestStrike.K, T, iv, 0.0525);
+          const d = bestStrike.side === 'P' ? g.deltaPut : g.deltaCall;
+          const inst = Math.abs(d) >= 0.20 && Math.abs(d) <= 0.30 ? ' 🏦' : '';
+          return `$${bestStrike.K}${bestStrike.side} <span style="color:var(--muted);font-size:10px;">δ${d.toFixed(2)}${inst}</span>`;
+        })() : '—'}</td>
         <td>${bestStrike ? `${fmtOI(bestStrike.oiStart)}→${fmtOI(bestStrike.oiEnd)} (+${(bestStrike.growth*100).toFixed(0)}%)` : '—'}</td>
         <td style="color:${bestStrike && bestStrike.iv > 0.3 ? '#FBBF24' : 'var(--muted)'};">${bestStrike && bestStrike.iv > 0 ? (bestStrike.iv*100).toFixed(0)+'%'+ivUp : '—'}</td>
         <td style="color:${arrowColor};font-weight:600;">${arrow}</td>
