@@ -1583,6 +1583,7 @@ function renderTimeline(blocks) {
       <span style="font-weight:600;min-width:50px;">$${b.strike}</span>
       <span style="color:${sideColor};font-weight:700;min-width:34px;">${sideLabel}</span>
       <span style="color:${sentColor};min-width:70px;">(${premSign}${fmtDollarGauge(b.premium)})</span>
+      <span style="color:var(--slate);font-size:10px;min-width:38px;">δ${b.delta ? Math.abs(b.delta).toFixed(2) : '—'}</span>
       <span style="color:var(--muted);font-size:11px;">SPY: $${b.spot.toFixed(2)}</span>
       ${annotation}${flipLabel}
     </div>`;
