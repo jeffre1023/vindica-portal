@@ -1526,8 +1526,13 @@ function renderTimeline(blocks) {
     else if (b.sentiment === 'BEAR') bearPrem += b.premium;
   }
 
-  document.getElementById('tlRunningBull').textContent = `BULL: ${fmtDollarGauge(bullPrem)}`;
-  document.getElementById('tlRunningBear').textContent = `BEAR: ${fmtDollarGauge(bearPrem)}`;
+  let bullCtrs = 0, bearCtrs = 0;
+  for (const b of blocks) {
+    if (b.sentiment === 'BULL') bullCtrs += b.size;
+    else if (b.sentiment === 'BEAR') bearCtrs += b.size;
+  }
+  document.getElementById('tlRunningBull').textContent = `BULL: ${fmtDollarGauge(bullPrem)} (${fmtCtrs(bullCtrs)})`;
+  document.getElementById('tlRunningBear').textContent = `BEAR: ${fmtDollarGauge(bearPrem)} (${fmtCtrs(bearCtrs)})`;
   const net = bullPrem - bearPrem;
   const netEl = document.getElementById('tlNetFlow');
   netEl.textContent = `NET: ${net >= 0 ? '+' : ''}${fmtDollarGauge(Math.abs(net))} ${net >= 0 ? 'BULL' : 'BEAR'}`;
