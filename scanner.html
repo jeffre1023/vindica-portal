@@ -143,6 +143,26 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--light);
     </div>
   </div>
 
+  <!-- Block Timeline Tracker -->
+  <div class="scan-wrap" id="timelineWrap" style="margin-bottom:14px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-family:'DM Serif Display',serif;font-size:15px;color:#fff;">Block Timeline</span>
+        <span style="font-size:10px;color:var(--muted);background:rgba(139,92,246,.12);border:1px solid rgba(139,92,246,.25);border-radius:6px;padding:3px 8px;">SPY 0DTE &ge;500 ctrs</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span id="tlRunningBull" style="font-size:11px;color:#6EE7B7;">BULL: $0</span>
+        <span style="color:var(--border);">|</span>
+        <span id="tlRunningBear" style="font-size:11px;color:#FCA5A5;">BEAR: $0</span>
+        <span style="color:var(--border);">|</span>
+        <span id="tlNetFlow" style="font-size:11px;font-weight:700;">NET: —</span>
+      </div>
+    </div>
+    <div id="timelineBody" style="max-height:340px;overflow-y:auto;font-family:'DM Sans',monospace;">
+      <div style="color:var(--muted);font-size:12px;padding:20px;text-align:center;">Esperando blocks &ge;500 contratos...</div>
+    </div>
+  </div>
+
   <!-- Toolbar -->
   <div class="toolbar">
     <span style="font-size:12px;color:var(--muted);">Ventana: 21-45 DTE</span>
@@ -234,7 +254,9 @@ auth.onAuthStateChanged(u => {
   document.getElementById('userEmail').textContent = u.email;
   initFlowGauge();
   loadBlockFlow();
+  loadBlockTimeline();
   setInterval(loadBlockFlow, 60000);
+  setInterval(loadBlockTimeline, 60000);
 });
 function doLogout() { auth.signOut().then(() => window.location.href = 'index.html'); }
 
@@ -1451,6 +1473,123 @@ async function loadBlockFlow() {
   }
 }
 
+// ── Block Timeline Tracker ────────────────────────────────────
+async function loadBlockTimeline() {
+  try {
+    const data = await authFetch('/options/block-timeline');
+    const blocks = data.blocks || [];
+    if (blocks.length === 0) return;
+    renderTimeline(blocks);
+  } catch (err) {
+    console.error('Block timeline error:', err);
+  }
+}
+
+function detectCloses(blocks) {
+  // For each SELL, check if there was a prior BUY on same strike+type with similar size (±30%)
+  const opens = []; // track BUY blocks
+  const annotations = new Map(); // tradeId → annotation string
+
+  for (const b of blocks) {
+    if (b.side === 'BUY') {
+      opens.push({ ...b, remaining: b.size });
+    } else if (b.side === 'SELL') {
+      // Find matching open: same strike, same type, size within ±30%
+      const match = opens.find(o =>
+        o.strike === b.strike && o.type === b.type &&
+        o.remaining > 0 && Math.abs(o.remaining - b.size) / o.remaining <= 0.30
+      );
+      if (match) {
+        const pnl = (b.price - match.price) * b.size * 100;
+        const pnlDir = b.type === 'put' ? -pnl : pnl; // puts: sell higher = profit
+        const pnlActual = b.type === 'put' ? (match.price - b.price) * b.size * 100 : (b.price - match.price) * b.size * 100;
+        annotations.set(b.tradeId, {
+          label: 'PROBABLE CIERRE',
+          matchTs: match.ts,
+          pnl: pnlActual,
+        });
+        match.remaining -= b.size;
+      }
+    }
+  }
+  return annotations;
+}
+
+function renderTimeline(blocks) {
+  const body = document.getElementById('timelineBody');
+  const annotations = detectCloses(blocks);
+
+  // Running totals
+  let bullPrem = 0, bearPrem = 0;
+  for (const b of blocks) {
+    if (b.sentiment === 'BULL') bullPrem += b.premium;
+    else if (b.sentiment === 'BEAR') bearPrem += b.premium;
+  }
+
+  document.getElementById('tlRunningBull').textContent = `BULL: ${fmtDollarGauge(bullPrem)}`;
+  document.getElementById('tlRunningBear').textContent = `BEAR: ${fmtDollarGauge(bearPrem)}`;
+  const net = bullPrem - bearPrem;
+  const netEl = document.getElementById('tlNetFlow');
+  netEl.textContent = `NET: ${net >= 0 ? '+' : ''}${fmtDollarGauge(Math.abs(net))} ${net >= 0 ? 'BULL' : 'BEAR'}`;
+  netEl.style.color = net >= 0 ? '#6EE7B7' : '#FCA5A5';
+
+  // Detect sentiment flips
+  let lastSentiment = null;
+  const flips = new Set();
+  for (let i = 0; i < blocks.length; i++) {
+    if (blocks[i].sentiment !== 'NEUTRAL') {
+      if (lastSentiment && blocks[i].sentiment !== lastSentiment) {
+        flips.add(i);
+      }
+      lastSentiment = blocks[i].sentiment;
+    }
+  }
+
+  // Render rows (newest at top)
+  const reversed = [...blocks].reverse();
+  let html = '';
+  for (let ri = 0; ri < reversed.length; ri++) {
+    const b = reversed[ri];
+    const origIdx = blocks.length - 1 - ri;
+    const time = new Date(b.ts).toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit', hour12: true });
+    const icon = b.type === 'put' ? '📕' : '📗';
+    const sideColor = b.side === 'BUY' ? '#FBBF24' : '#60A5FA';
+    const sideLabel = b.side === 'BUY' ? 'BUY' : b.side === 'SELL' ? 'SELL' : 'MID';
+    const premSign = b.sentiment === 'BEAR' ? '-' : '+';
+    const sentColor = b.sentiment === 'BULL' ? '#6EE7B7' : b.sentiment === 'BEAR' ? '#FCA5A5' : 'var(--muted)';
+
+    let annotation = '';
+    const closeInfo = annotations.get(b.tradeId);
+    if (closeInfo) {
+      const pnlStr = closeInfo.pnl >= 0
+        ? `+${fmtDollarGauge(closeInfo.pnl)}`
+        : `-${fmtDollarGauge(Math.abs(closeInfo.pnl))}`;
+      const pnlColor = closeInfo.pnl >= 0 ? '#6EE7B7' : '#FCA5A5';
+      annotation = ` <span style="color:#FBBF24;font-weight:700;">⚠️ PROBABLE CIERRE</span> <span style="color:${pnlColor};font-size:10px;">(P&L: ${pnlStr})</span>`;
+    }
+
+    let flipLabel = '';
+    if (flips.has(origIdx)) {
+      const dir = b.sentiment === 'BULL' ? 'ALCISTA' : 'BAJISTA';
+      const flipColor = b.sentiment === 'BULL' ? '#6EE7B7' : '#FCA5A5';
+      flipLabel = ` <span style="background:${flipColor}22;color:${flipColor};border:1px solid ${flipColor}44;border-radius:4px;padding:1px 6px;font-size:9px;font-weight:700;">FLIP ${dir}</span>`;
+    }
+
+    html += `<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px;${ri === 0 ? 'background:rgba(139,92,246,.06);' : ''}">
+      <span style="color:var(--muted);min-width:72px;font-size:11px;">${time}</span>
+      <span>${icon}</span>
+      <span style="min-width:38px;">${b.size}</span>
+      <span style="color:var(--muted);min-width:45px;">${b.type}s</span>
+      <span style="font-weight:600;min-width:50px;">$${b.strike}</span>
+      <span style="color:${sideColor};font-weight:700;min-width:34px;">${sideLabel}</span>
+      <span style="color:${sentColor};min-width:70px;">(${premSign}${fmtDollarGauge(b.premium)})</span>
+      <span style="color:var(--muted);font-size:11px;">SPY: $${b.spot.toFixed(2)}</span>
+      ${annotation}${flipLabel}
+    </div>`;
+  }
+
+  body.innerHTML = html;
+}
 
 </script>
 </body>
