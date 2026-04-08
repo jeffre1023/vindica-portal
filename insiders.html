@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vindica — Smart Money Radar</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --dark:#0F172A;--mid:#1E293B;--slate:#475569;
+  --muted:#94A3B8;--light:#F8FAFC;--white:#FFFFFF;
+  --border:rgba(255,255,255,.08);
+  --red:#EF4444;--green:#10B981;--purple:#8B5CF6;
+  --gold:#D97706;--gold-l:#F59E0B;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--light);min-height:100vh;}
+.bg-layer{position:fixed;inset:0;background:
+  radial-gradient(ellipse 70% 60% at 5% 15%,rgba(217,119,6,.08) 0%,transparent 55%),
+  radial-gradient(ellipse 50% 70% at 95% 85%,rgba(139,92,246,.08) 0%,transparent 55%),
+  linear-gradient(160deg,#0F172A 0%,#1E293B 50%,#0F172A 100%);z-index:0;}
+.grid-overlay{position:fixed;inset:0;background-image:
+  linear-gradient(rgba(217,119,6,.02) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(217,119,6,.02) 1px,transparent 1px);
+  background-size:40px 40px;z-index:0;}
+.outer{position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:28px 20px 80px;}
+.user-bar{display:flex;align-items:center;justify-content:flex-end;gap:12px;margin-bottom:12px;}
+.user-badge{display:flex;align-items:center;gap:8px;padding:6px 14px;border-radius:100px;background:rgba(217,119,6,.1);border:1px solid rgba(217,119,6,.25);color:#fff;font-size:12px;}
+.user-badge span{color:#F59E0B;font-weight:600;}
+.logout-btn{padding:6px 14px;border-radius:100px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.08);color:#FCA5A5;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.scan-wrap{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:14px;padding:18px;margin-top:14px;}
+.cluster-card{background:rgba(217,119,6,.04);border:1px solid rgba(217,119,6,.2);border-radius:10px;padding:14px;margin-bottom:10px;}
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:9px;font-weight:700;letter-spacing:.3px;}
+.tag-gold{background:rgba(217,119,6,.15);color:#FBBF24;border:1px solid rgba(217,119,6,.3);}
+.tag-green{background:rgba(16,185,129,.12);color:#6EE7B7;border:1px solid rgba(16,185,129,.3);}
+.tag-purple{background:rgba(139,92,246,.12);color:#C4B5FD;border:1px solid rgba(139,92,246,.3);}
+</style>
+</head>
+<body>
+<div class="bg-layer"></div>
+<div class="grid-overlay"></div>
+
+<div class="outer" id="mainApp" style="display:none;">
+  <div class="user-bar">
+    <div class="user-badge"><span id="userEmail"></span></div>
+    <button class="logout-btn" onclick="doLogout()">Cerrar sesion</button>
+  </div>
+
+  <!-- Nav -->
+  <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:20px;flex-wrap:wrap;">
+    <a href="options.html" style="padding:8px 20px;border-radius:100px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:var(--muted);font-size:12px;font-weight:600;text-decoration:none;">Options GEX</a>
+    <a href="scanner.html" style="padding:8px 20px;border-radius:100px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:var(--muted);font-size:12px;font-weight:600;text-decoration:none;">GEX Scanner</a>
+    <a href="whale.html" style="padding:8px 20px;border-radius:100px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:var(--muted);font-size:12px;font-weight:600;text-decoration:none;">Whale Tracker</a>
+    <a href="shipping.html" style="padding:8px 20px;border-radius:100px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:var(--muted);font-size:12px;font-weight:600;text-decoration:none;">Shipping</a>
+    <a href="insiders.html" style="padding:8px 20px;border-radius:100px;background:var(--gold);color:white;font-size:12px;font-weight:600;text-decoration:none;">Smart Money</a>
+  </div>
+
+  <div style="text-align:center;margin-bottom:20px;">
+    <div style="display:inline-flex;align-items:center;gap:12px;margin-bottom:10px;">
+      <div style="width:42px;height:42px;background:linear-gradient(135deg,var(--gold),var(--gold-l));border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 0 28px rgba(217,119,6,.45);">&#128176;</div>
+      <div style="font-family:'DM Serif Display',serif;font-size:22px;color:#fff;">Smart<span style="color:#F59E0B;">Money</span></div>
+    </div>
+    <p style="color:var(--muted);font-size:13px;">SEC Insider Buying + 13F Institutional Filings — Detect accumulation before the market</p>
+  </div>
+
+  <!-- Insider Clusters -->
+  <div class="scan-wrap">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <div style="font-family:'DM Serif Display',serif;font-size:15px;color:#fff;">Insider Clusters <span class="tag tag-gold">FORM 4</span></div>
+      <span id="clusterCount" style="font-size:11px;color:var(--muted);">—</span>
+    </div>
+    <div id="clusterBody">
+      <div style="color:var(--muted);font-size:12px;padding:20px;text-align:center;">Esperando data... el scan corre cada 4 horas</div>
+    </div>
+  </div>
+
+  <!-- Recent Insider Purchases -->
+  <div class="scan-wrap">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <div style="font-family:'DM Serif Display',serif;font-size:15px;color:#fff;">Recent Insider Purchases <span style="font-size:10px;color:var(--muted);">&ge;$100K</span></div>
+      <span id="purchaseCount" style="font-size:11px;color:var(--muted);">—</span>
+    </div>
+    <div id="purchaseBody" style="max-height:400px;overflow-y:auto;">
+      <div style="color:var(--muted);font-size:12px;padding:20px;text-align:center;">Esperando data...</div>
+    </div>
+  </div>
+
+  <!-- 13F Institutional Filings -->
+  <div class="scan-wrap">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <div style="font-family:'DM Serif Display',serif;font-size:15px;color:#fff;">13F Institutional Filings <span class="tag tag-purple">HEDGE FUNDS</span></div>
+      <span id="fundCount" style="font-size:11px;color:var(--muted);">Tracking 20 funds</span>
+    </div>
+    <div id="f13Body">
+      <div style="color:var(--muted);font-size:12px;padding:20px;text-align:center;">Esperando data... 13F se publican trimestralmente</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const VINDICA_API = 'https://vindica-cf-v4-10-5-82635207094.us-east1.run.app';
+
+const firebaseConfig = {
+  apiKey:"AIzaSyBKmZkxsdP1p0uxKvmSJBYlQPiRPC0eXJ4",authDomain:"vindica-production.firebaseapp.com",
+  projectId:"vindica-production",storageBucket:"vindica-production.firebasestorage.app",
+  messagingSenderId:"82635207094",appId:"1:82635207094:web:59efd62fe671b764695117"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+auth.onAuthStateChanged(u => {
+  if (!u) { window.location.href = 'index.html'; return; }
+  document.getElementById('mainApp').style.display = '';
+  document.getElementById('userEmail').textContent = u.email;
+  loadDashboard();
+  setInterval(loadDashboard, 300000); // refresh every 5 min
+});
+function doLogout() { auth.signOut().then(() => window.location.href = 'index.html'); }
+
+async function authFetch(path) {
+  const user = auth.currentUser;
+  if (!user) throw new Error('No autenticado');
+  const token = await user.getIdToken();
+  const res = await fetch(`${VINDICA_API}${path}`, { headers: { 'Authorization': 'Bearer ' + token } });
+  if (!res.ok) throw new Error(`API ${res.status}`);
+  return res.json();
+}
+
+function fmtUSD(n) {
+  if (n >= 1e9) return '$' + (n / 1e9).toFixed(1) + 'B';
+  if (n >= 1e6) return '$' + (n / 1e6).toFixed(1) + 'M';
+  if (n >= 1e3) return '$' + (n / 1e3).toFixed(0) + 'K';
+  return '$' + n.toFixed(0);
+}
+
+async function loadDashboard() {
+  try {
+    const data = await authFetch('/sec/dashboard');
+    renderInsider(data.insider);
+    render13F(data.institutional);
+  } catch (err) {
+    console.error('SEC dashboard error:', err);
+  }
+}
+
+function renderInsider(data) {
+  const clusters = data.clusters || [];
+  const purchases = data.purchases || [];
+
+  // Clusters
+  document.getElementById('clusterCount').textContent = clusters.length > 0
+    ? `${clusters.length} clusters detected` : 'No clusters yet';
+
+  const clusterBody = document.getElementById('clusterBody');
+  if (clusters.length === 0) {
+    clusterBody.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:15px;text-align:center;">No insider clusters detected — when 2+ insiders buy the same stock within 14 days, it appears here</div>';
+  } else {
+    let html = '';
+    for (const c of clusters) {
+      html += `<div class="cluster-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <div>
+            <span style="font-size:18px;font-weight:700;color:#F59E0B;">${c.ticker}</span>
+            <span style="font-size:12px;color:var(--muted);margin-left:8px;">${c.company}</span>
+          </div>
+          <span style="font-size:16px;font-weight:700;color:#6EE7B7;">${fmtUSD(c.totalValue)}</span>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">${c.insiders.length} insiders comprando</div>`;
+      for (const ins of c.insiders) {
+        html += `<div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;">
+          <span style="color:#FBBF24;font-weight:600;min-width:120px;">${ins.name}</span>
+          <span style="color:var(--muted);min-width:80px;">${ins.role}</span>
+          <span style="color:#6EE7B7;font-weight:700;">${fmtUSD(ins.value)}</span>
+          <span style="color:var(--muted);font-size:10px;margin-left:auto;">${ins.date}</span>
+        </div>`;
+      }
+      html += '</div>';
+    }
+    clusterBody.innerHTML = html;
+  }
+
+  // Recent purchases
+  document.getElementById('purchaseCount').textContent = `${purchases.length} purchases`;
+  const purchaseBody = document.getElementById('purchaseBody');
+  if (purchases.length === 0) {
+    purchaseBody.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:15px;text-align:center;">No insider purchases &ge;$100K detected yet today</div>';
+  } else {
+    let html = '';
+    for (const p of purchases) {
+      html += `<div style="display:flex;align-items:center;gap:10px;padding:8px;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px;">
+        <span style="font-weight:700;color:#F59E0B;min-width:55px;">${p.ticker}</span>
+        <span style="min-width:130px;">${p.insider}</span>
+        <span style="color:var(--muted);min-width:70px;">${p.role}</span>
+        <span style="color:#6EE7B7;font-weight:700;min-width:70px;">${fmtUSD(p.totalValue)}</span>
+        <span style="color:var(--muted);font-size:11px;">${Math.round(p.totalShares).toLocaleString()} shares @ $${p.avgPrice.toFixed(2)}</span>
+        <span style="color:var(--muted);font-size:10px;margin-left:auto;">${p.date}</span>
+      </div>`;
+    }
+    purchaseBody.innerHTML = html;
+  }
+}
+
+function render13F(data) {
+  const updates = data.updates || [];
+  const funds = data.funds || [];
+
+  document.getElementById('fundCount').textContent = `Tracking ${funds.length} funds`;
+
+  const body = document.getElementById('f13Body');
+  if (updates.length === 0) {
+    body.innerHTML = `<div style="color:var(--muted);font-size:12px;padding:15px;text-align:center;">
+      No new 13F filings detected recently<br>
+      <span style="font-size:10px;">Monitoring: ${funds.slice(0, 10).join(', ')}${funds.length > 10 ? '...' : ''}</span>
+    </div>`;
+  } else {
+    let html = '';
+    for (const u of updates.slice().reverse()) {
+      html += `<div style="display:flex;align-items:center;gap:10px;padding:8px;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px;">
+        <span class="tag tag-purple">${u.form}</span>
+        <span style="font-weight:700;color:#C4B5FD;min-width:160px;">${u.fund}</span>
+        <span style="color:var(--muted);">Filed: ${u.filingDate}</span>
+        ${u.isNew ? '<span class="tag tag-green">NEW POSITION</span>' : ''}
+      </div>`;
+    }
+    body.innerHTML = html;
+  }
+}
+
+</script>
+</body>
+</html>
