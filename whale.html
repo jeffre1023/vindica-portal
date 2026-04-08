@@ -109,6 +109,46 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--light);
     </div>
   </div>
 
+  <!-- Asset Summary Cards -->
+  <div style="display:flex;gap:12px;margin-top:14px;flex-wrap:wrap;">
+    <div class="scan-wrap" style="flex:1;min-width:180px;padding:14px;">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+        <span style="color:#627EEA;font-weight:700;">ETH</span>
+        <span style="font-size:10px;color:var(--muted);">Ethereum</span>
+      </div>
+      <div id="cardETHNet" style="font-size:18px;font-weight:700;margin-bottom:4px;">—</div>
+      <div style="display:flex;gap:12px;font-size:11px;">
+        <span id="cardETHOut" style="color:#6EE7B7;">Retiros: $0</span>
+        <span id="cardETHIn" style="color:#FCA5A5;">Depositos: $0</span>
+      </div>
+      <div id="cardETHCount" style="font-size:10px;color:var(--muted);margin-top:4px;">0 transfers</div>
+    </div>
+    <div class="scan-wrap" style="flex:1;min-width:180px;padding:14px;">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+        <span style="color:#F7931A;font-weight:700;">BTC</span>
+        <span style="font-size:10px;color:var(--muted);">Bitcoin (WBTC)</span>
+      </div>
+      <div id="cardBTCNet" style="font-size:18px;font-weight:700;margin-bottom:4px;">—</div>
+      <div style="display:flex;gap:12px;font-size:11px;">
+        <span id="cardBTCOut" style="color:#6EE7B7;">Retiros: $0</span>
+        <span id="cardBTCIn" style="color:#FCA5A5;">Depositos: $0</span>
+      </div>
+      <div id="cardBTCCount" style="font-size:10px;color:var(--muted);margin-top:4px;">0 transfers</div>
+    </div>
+    <div class="scan-wrap" style="flex:1;min-width:180px;padding:14px;">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+        <span style="color:#26A17B;font-weight:700;">STABLES</span>
+        <span style="font-size:10px;color:var(--muted);">USDT + USDC</span>
+      </div>
+      <div id="cardStableNet" style="font-size:18px;font-weight:700;margin-bottom:4px;">—</div>
+      <div style="display:flex;gap:12px;font-size:11px;">
+        <span id="cardStableIn" style="color:#6EE7B7;">Depositado: $0</span>
+        <span id="cardStableOut" style="color:#FCA5A5;">Retirado: $0</span>
+      </div>
+      <div id="cardStableCount" style="font-size:10px;color:var(--muted);margin-top:4px;">0 transfers</div>
+    </div>
+  </div>
+
   <!-- Confluence Alerts -->
   <div id="confluenceWrap" class="scan-wrap" style="display:none;margin-top:14px;border-color:rgba(247,147,26,.3);background:rgba(247,147,26,.04);">
     <div style="font-size:13px;font-weight:700;color:#F7931A;margin-bottom:8px;">CONFLUENCE ALERTS</div>
@@ -119,20 +159,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--light);
   <div class="scan-wrap" style="margin-top:14px;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
       <div style="display:flex;align-items:center;gap:8px;">
-        <span style="font-family:'DM Serif Display',serif;font-size:15px;color:#fff;">Whale Timeline</span>
+        <span style="font-family:'DM Serif Display',serif;font-size:15px;color:#fff;">Timeline</span>
         <button class="filter-btn active" onclick="setFilter('ALL')" id="fAll">All</button>
-        <button class="filter-btn" onclick="setFilter('BTC')" id="fBTC">BTC</button>
         <button class="filter-btn" onclick="setFilter('ETH')" id="fETH">ETH</button>
+        <button class="filter-btn" onclick="setFilter('BTC')" id="fBTC">BTC</button>
+        <button class="filter-btn" onclick="setFilter('STABLE')" id="fSTABLE">Stables</button>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <span id="tlCount" style="font-size:11px;color:var(--muted);">0 transfers</span>
-        <span style="color:var(--border);">|</span>
-        <span id="tlBull" style="font-size:11px;color:#6EE7B7;">OUT: $0</span>
-        <span style="color:var(--border);">|</span>
-        <span id="tlBear" style="font-size:11px;color:#FCA5A5;">IN: $0</span>
-        <span style="color:var(--border);">|</span>
-        <span id="tlNet" style="font-size:11px;font-weight:700;">NET: —</span>
-      </div>
+      <span id="tlCount" style="font-size:11px;color:var(--muted);">0 transfers</span>
     </div>
     <div id="timelineBody" style="max-height:500px;overflow-y:auto;">
       <div style="color:var(--muted);font-size:12px;padding:30px;text-align:center;">Cargando whale transfers...</div>
@@ -206,11 +239,18 @@ let _lastData = null;
 function setFilter(f) {
   _currentFilter = f;
   document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('f' + f.charAt(0).toUpperCase() + f.slice(1).toLowerCase().replace('all','All').replace('btc','BTC').replace('eth','ETH')).classList.add('active');
-  if (f === 'ALL') document.getElementById('fAll').classList.add('active');
-  else if (f === 'BTC') document.getElementById('fBTC').classList.add('active');
-  else if (f === 'ETH') document.getElementById('fETH').classList.add('active');
+  const btnId = f === 'ALL' ? 'fAll' : f === 'STABLE' ? 'fSTABLE' : 'f' + f;
+  document.getElementById(btnId).classList.add('active');
   if (_lastData) renderTimeline(_lastData);
+}
+
+function isStable(asset) { return asset === 'USDT' || asset === 'USDC'; }
+function isInternal(t) {
+  // Filter out exchange-to-exchange transfers (noise)
+  const allExNames = ['Binance','Binance 2','Binance 3','Binance 4','Binance 5','Coinbase','Coinbase 2','Coinbase 3','Kraken','Kraken 2','OKX','OKX 2','Bybit','Bitfinex','Gemini'];
+  const fromEx = allExNames.includes(t.from) || allExNames.includes(t.fromLabel);
+  const toEx = allExNames.includes(t.to) || allExNames.includes(t.toLabel);
+  return fromEx && toEx;
 }
 
 // ── Load data ──
@@ -269,93 +309,124 @@ async function loadWhaleTimeline() {
 
 function renderTimeline(data) {
   const body = document.getElementById('timelineBody');
-  let transfers = data.transfers || [];
+  const all = (data.transfers || []).filter(t => !isInternal(t));
 
-  // Apply filter
-  if (_currentFilter !== 'ALL') {
-    transfers = transfers.filter(t => t.chain === _currentFilter);
+  // ── Asset summary cards ──
+  function calcCard(list) {
+    let bullUSD = 0, bearUSD = 0, count = 0;
+    for (const t of list) {
+      if (t.sentiment === 'BULL') bullUSD += t.valueUSD;
+      else if (t.sentiment === 'BEAR') bearUSD += t.valueUSD;
+      count++;
+    }
+    return { bullUSD, bearUSD, net: bullUSD - bearUSD, count };
   }
+
+  const ethOnly = all.filter(t => t.chain === 'ETH' && !isStable(t.asset));
+  const btcOnly = all.filter(t => t.chain === 'BTC');
+  const stableOnly = all.filter(t => isStable(t.asset));
+
+  const ethCard = calcCard(ethOnly);
+  const btcCard = calcCard(btcOnly);
+  const stableCard = calcCard(stableOnly);
+
+  function updateCard(prefix, card, isStablecoin) {
+    const netEl = document.getElementById(`card${prefix}Net`);
+    const net = card.net;
+    if (isStablecoin) {
+      // For stables: positive net = more deposited to exchanges (ready to buy)
+      netEl.textContent = `${net >= 0 ? '+' : ''}${fmtUSD(Math.abs(net))} ${net >= 0 ? 'COMPRANDO' : 'VENDIENDO'}`;
+    } else {
+      netEl.textContent = `${net >= 0 ? '+' : ''}${fmtUSD(Math.abs(net))} ${net >= 0 ? 'ACUMULANDO' : 'VENDIENDO'}`;
+    }
+    netEl.style.color = net >= 0 ? '#6EE7B7' : '#FCA5A5';
+
+    if (isStablecoin) {
+      document.getElementById(`card${prefix}In`).textContent = `Depositado: ${fmtUSD(card.bullUSD)}`;
+      document.getElementById(`card${prefix}Out`).textContent = `Retirado: ${fmtUSD(card.bearUSD)}`;
+    } else {
+      document.getElementById(`card${prefix}Out`).textContent = `Retiros: ${fmtUSD(card.bullUSD)}`;
+      document.getElementById(`card${prefix}In`).textContent = `Depositos: ${fmtUSD(card.bearUSD)}`;
+    }
+    document.getElementById(`card${prefix}Count`).textContent = `${card.count} transfers`;
+  }
+
+  updateCard('ETH', ethCard, false);
+  updateCard('BTC', btcCard, false);
+  updateCard('Stable', stableCard, true);
+
+  // ── Filter ──
+  let transfers = all;
+  if (_currentFilter === 'ETH') transfers = ethOnly;
+  else if (_currentFilter === 'BTC') transfers = btcOnly;
+  else if (_currentFilter === 'STABLE') transfers = stableOnly;
+
+  document.getElementById('tlCount').textContent = `${transfers.length} transfers`;
 
   if (transfers.length === 0) {
     body.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:30px;text-align:center;">No whale transfers detected yet today</div>';
     return;
   }
 
-  // Running totals for filtered view
-  let bullUSD = 0, bearUSD = 0;
-  for (const t of transfers) {
-    if (t.sentiment === 'BULL') bullUSD += t.valueUSD;
-    else if (t.sentiment === 'BEAR') bearUSD += t.valueUSD;
-  }
-  document.getElementById('tlCount').textContent = `${transfers.length} transfers`;
-  document.getElementById('tlBull').textContent = `OUT: ${fmtUSD(bullUSD)}`;
-  document.getElementById('tlBear').textContent = `IN: ${fmtUSD(bearUSD)}`;
-  const net = bullUSD - bearUSD;
-  const netEl = document.getElementById('tlNet');
-  netEl.textContent = `NET: ${net >= 0 ? '+' : ''}${fmtUSD(Math.abs(net))} ${net >= 0 ? 'BUY' : 'SELL'}`;
-  netEl.style.color = net >= 0 ? '#6EE7B7' : '#FCA5A5';
-
-  // Detect flips
-  let lastSentiment = null;
-  const flips = new Set();
-  for (let i = 0; i < transfers.length; i++) {
-    if (transfers[i].sentiment !== 'NEUTRAL') {
-      if (lastSentiment && transfers[i].sentiment !== lastSentiment) flips.add(i);
-      lastSentiment = transfers[i].sentiment;
-    }
-  }
-
-  // Render (newest first)
+  // ── Render rows (newest first) ──
   const reversed = [...transfers].reverse();
   let html = '';
   for (let ri = 0; ri < reversed.length; ri++) {
     const t = reversed[ri];
-    const origIdx = transfers.length - 1 - ri;
     const time = new Date(t.ts).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-    const chainIcon = t.chain === 'BTC' ? '<span style="color:#F7931A;font-weight:700;">BTC</span>' : '<span style="color:#627EEA;font-weight:700;">ETH</span>';
-    const dirIcon = t.sentiment === 'BEAR' ? '🔴' : t.sentiment === 'BULL' ? '🟢' : '⚪';
-    const dirLabel = t.direction === 'EXCHANGE_IN' ? 'IN' : 'OUT';
-    const dirColor = t.sentiment === 'BEAR' ? '#FCA5A5' : t.sentiment === 'BULL' ? '#6EE7B7' : 'var(--muted)';
 
-    // From/To labels
-    let fromLabel, toLabel;
-    if (t.direction === 'EXCHANGE_IN') {
-      fromLabel = t.fromLabel || shortAddr(t.from);
-      toLabel = `<span style="color:#FBBF24;font-weight:600;">${t.to}</span>`;
+    // Color by sentiment
+    const sentColor = t.sentiment === 'BULL' ? '#6EE7B7' : t.sentiment === 'BEAR' ? '#FCA5A5' : 'var(--muted)';
+    const sentBg = t.sentiment === 'BULL' ? 'rgba(16,185,129,.06)' : t.sentiment === 'BEAR' ? 'rgba(239,68,68,.06)' : 'transparent';
+
+    // Description — clear, human readable
+    let desc = '';
+    const amtStr = `<span style="font-weight:700;font-size:14px;color:${sentColor};">${fmtUSD(t.valueUSD)}</span>`;
+    const assetColor = t.chain === 'BTC' ? '#F7931A' : isStable(t.asset) ? '#26A17B' : '#627EEA';
+    const assetTag = `<span style="color:${assetColor};font-weight:600;">${t.asset}</span>`;
+    const exchange = t.direction === 'EXCHANGE_IN' ? (t.to || '') : (t.from || '');
+    const wallet = t.direction === 'EXCHANGE_IN' ? (t.fromLabel || shortAddr(t.from)) : (t.toLabel || shortAddr(t.to));
+
+    if (isStable(t.asset)) {
+      if (t.direction === 'EXCHANGE_IN') {
+        desc = `${amtStr} ${assetTag} depositado en <span style="color:#FBBF24;">${exchange}</span> <span style="color:var(--muted);font-size:10px;">desde ${wallet}</span>`;
+      } else {
+        desc = `${amtStr} ${assetTag} retirado de <span style="color:#FBBF24;">${exchange}</span> <span style="color:var(--muted);font-size:10px;">hacia ${wallet}</span>`;
+      }
     } else {
-      fromLabel = `<span style="color:#FBBF24;font-weight:600;">${t.from}</span>`;
-      toLabel = t.toLabel || shortAddr(t.to);
+      if (t.direction === 'EXCHANGE_IN') {
+        desc = `${amtStr} ${assetTag} enviado a <span style="color:#FBBF24;">${exchange}</span> <span style="color:var(--muted);font-size:10px;">desde ${wallet}</span>`;
+      } else {
+        desc = `${amtStr} ${assetTag} retirado de <span style="color:#FBBF24;">${exchange}</span> <span style="color:var(--muted);font-size:10px;">hacia ${wallet}</span>`;
+      }
     }
 
-    // Closure annotation
+    // Sentiment label
+    let sentLabel = '';
+    if (isStable(t.asset)) {
+      sentLabel = t.sentiment === 'BULL'
+        ? '<span style="color:#6EE7B7;font-size:10px;font-weight:600;">LISTO PARA COMPRAR</span>'
+        : '<span style="color:#FCA5A5;font-size:10px;font-weight:600;">TOMO GANANCIAS</span>';
+    } else {
+      sentLabel = t.sentiment === 'BULL'
+        ? '<span style="color:#6EE7B7;font-size:10px;font-weight:600;">ACUMULANDO</span>'
+        : '<span style="color:#FCA5A5;font-size:10px;font-weight:600;">VENDIENDO</span>';
+    }
+
+    // Closure
     let annotation = '';
     if (t.closure) {
       const pnlPct = t.closure.pnlPct;
       const pnlColor = pnlPct >= 0 ? '#6EE7B7' : '#FCA5A5';
-      const pnlSign = pnlPct >= 0 ? '+' : '';
-      annotation = ` <span style="color:#FBBF24;font-weight:700;">PROBABLE CIERRE</span> <span style="color:${pnlColor};font-size:10px;">(precio ${pnlSign}${pnlPct.toFixed(1)}% desde entrada)</span>`;
+      annotation = `<div style="margin-top:2px;"><span style="color:#FBBF24;font-weight:700;font-size:10px;">PROBABLE CIERRE</span> <span style="color:${pnlColor};font-size:10px;">(precio ${pnlPct >= 0 ? '+' : ''}${pnlPct.toFixed(1)}% desde entrada)</span></div>`;
     }
 
-    // Flip
-    let flipLabel = '';
-    if (flips.has(origIdx)) {
-      const dir = t.sentiment === 'BULL' ? 'ACUMULACION' : 'DISTRIBUCION';
-      const flipColor = t.sentiment === 'BULL' ? '#6EE7B7' : '#FCA5A5';
-      flipLabel = ` <span style="background:${flipColor}22;color:${flipColor};border:1px solid ${flipColor}44;border-radius:4px;padding:1px 6px;font-size:9px;font-weight:700;">FLIP ${dir}</span>`;
-    }
-
-    const spotLabel = t.chain === 'BTC' ? `$${t.spot?.toLocaleString() || '—'}` : `$${t.spot?.toLocaleString() || '—'}`;
-
-    html += `<div style="display:flex;align-items:center;gap:8px;padding:7px 8px;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px;${ri === 0 ? 'background:rgba(247,147,26,.04);' : ''}">
-      <span style="color:var(--muted);min-width:72px;font-size:11px;">${time}</span>
-      <span>${dirIcon}</span>
-      <span style="min-width:32px;">${chainIcon}</span>
-      <span style="font-weight:600;min-width:55px;">${fmtAmount(t.amount, t.asset)} ${t.asset}</span>
-      <span style="color:${dirColor};font-weight:700;min-width:60px;">${fmtUSD(t.valueUSD)}</span>
-      <span style="color:var(--muted);font-size:11px;min-width:28px;">${dirLabel}</span>
-      <span style="font-size:11px;">${fromLabel} &rarr; ${toLabel}</span>
-      <span style="color:var(--muted);font-size:10px;margin-left:auto;">${t.chain}: ${spotLabel}</span>
-      ${annotation}${flipLabel}
+    html += `<div style="padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.04);background:${sentBg};">
+      <div style="display:flex;align-items:center;gap:10px;font-size:12px;">
+        <span style="color:var(--muted);min-width:65px;font-size:11px;">${time}</span>
+        <div style="flex:1;">${desc}</div>
+        ${sentLabel}
+      </div>${annotation}
     </div>`;
   }
 
