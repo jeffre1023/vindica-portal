@@ -87,14 +87,24 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--light);
     </div>
   </div>
 
-  <!-- 13F Institutional Filings -->
+  <!-- 13F Changes — What hedge funds bought/sold -->
   <div class="scan-wrap">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-      <div style="font-family:'DM Serif Display',serif;font-size:15px;color:#fff;">13F Institutional Filings <span class="tag tag-purple">HEDGE FUNDS</span></div>
+      <div style="font-family:'DM Serif Display',serif;font-size:15px;color:#fff;">13F Changes — What Funds Bought/Sold <span class="tag tag-purple">QUARTERLY</span></div>
       <span id="fundCount" style="font-size:11px;color:var(--muted);">Tracking 20 funds</span>
     </div>
+    <div id="f13ChangesBody">
+      <div style="color:var(--muted);font-size:12px;padding:20px;text-align:center;">Esperando data...</div>
+    </div>
+  </div>
+
+  <!-- 13F Filing Links -->
+  <div class="scan-wrap">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <div style="font-family:'DM Serif Display',serif;font-size:15px;color:#fff;">13F Filing Links</div>
+    </div>
     <div id="f13Body">
-      <div style="color:var(--muted);font-size:12px;padding:20px;text-align:center;">Esperando data... 13F se publican trimestralmente</div>
+      <div style="color:var(--muted);font-size:12px;padding:20px;text-align:center;">Esperando data...</div>
     </div>
   </div>
 </div>
@@ -138,6 +148,7 @@ async function loadDashboard() {
   try {
     const data = await authFetch('/sec/dashboard');
     renderInsider(data.insider);
+    render13FChanges(data.fundChanges || []);
     render13F(data.institutional);
   } catch (err) {
     console.error('SEC dashboard error:', err);
@@ -201,6 +212,82 @@ function renderInsider(data) {
     }
     purchaseBody.innerHTML = html;
   }
+}
+
+function render13FChanges(fundChanges) {
+  const body = document.getElementById('f13ChangesBody');
+  if (!fundChanges || fundChanges.length === 0) {
+    body.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:15px;text-align:center;">No 13F comparisons available yet — run /sec/13f-changes to analyze</div>';
+    return;
+  }
+
+  let html = '';
+  for (const fc of fundChanges) {
+    const hasChanges = (fc.newPositions?.length || 0) + (fc.increased?.length || 0) + (fc.sold?.length || 0) + (fc.decreased?.length || 0);
+    if (hasChanges === 0) continue;
+
+    html += `<div style="background:rgba(139,92,246,.04);border:1px solid rgba(139,92,246,.15);border-radius:10px;padding:14px;margin-bottom:12px;">
+      <div style="font-size:16px;font-weight:700;color:#C4B5FD;margin-bottom:10px;">${fc.fund}
+        <span style="font-size:10px;color:var(--muted);font-weight:400;margin-left:8px;">${fc.totalCurrent} positions (prev: ${fc.totalPrevious})</span>
+      </div>`;
+
+    // New positions
+    if (fc.newPositions?.length) {
+      html += '<div style="margin-bottom:8px;"><span style="color:#6EE7B7;font-weight:700;font-size:11px;">NUEVAS POSICIONES:</span></div>';
+      for (const p of fc.newPositions.slice(0, 10)) {
+        html += `<div style="display:flex;gap:8px;padding:3px 0;font-size:12px;">
+          <span style="color:#6EE7B7;min-width:12px;">+</span>
+          <span style="font-weight:600;min-width:140px;">${p.name}</span>
+          <span style="color:#6EE7B7;font-weight:700;">${fmtUSD(p.value)}</span>
+          <span style="color:var(--muted);font-size:11px;">${p.shares.toLocaleString()} shares</span>
+        </div>`;
+      }
+      if (fc.newPositions.length > 10) html += `<div style="color:var(--muted);font-size:10px;padding:2px 0;">...y ${fc.newPositions.length - 10} mas</div>`;
+    }
+
+    // Increased
+    if (fc.increased?.length) {
+      html += '<div style="margin-top:8px;margin-bottom:4px;"><span style="color:#38BDF8;font-weight:700;font-size:11px;">INCREMENTARON:</span></div>';
+      for (const p of fc.increased.slice(0, 10)) {
+        html += `<div style="display:flex;gap:8px;padding:3px 0;font-size:12px;">
+          <span style="color:#38BDF8;min-width:12px;">&#9650;</span>
+          <span style="font-weight:600;min-width:140px;">${p.name}</span>
+          <span style="color:#38BDF8;font-weight:700;">+${Math.round(p.pctChange)}%</span>
+          <span style="color:var(--muted);font-size:11px;">${p.prevShares.toLocaleString()} → ${p.shares.toLocaleString()} shares</span>
+          <span style="color:var(--muted);font-size:11px;">(${fmtUSD(p.value)})</span>
+        </div>`;
+      }
+    }
+
+    // Decreased
+    if (fc.decreased?.length) {
+      html += '<div style="margin-top:8px;margin-bottom:4px;"><span style="color:#FBBF24;font-weight:700;font-size:11px;">REDUJERON:</span></div>';
+      for (const p of fc.decreased.slice(0, 10)) {
+        html += `<div style="display:flex;gap:8px;padding:3px 0;font-size:12px;">
+          <span style="color:#FBBF24;min-width:12px;">&#9660;</span>
+          <span style="font-weight:600;min-width:140px;">${p.name}</span>
+          <span style="color:#FBBF24;font-weight:700;">${Math.round(p.pctChange)}%</span>
+          <span style="color:var(--muted);font-size:11px;">${p.prevShares.toLocaleString()} → ${p.shares.toLocaleString()}</span>
+        </div>`;
+      }
+    }
+
+    // Sold completely
+    if (fc.sold?.length) {
+      html += '<div style="margin-top:8px;margin-bottom:4px;"><span style="color:#FCA5A5;font-weight:700;font-size:11px;">VENDIERON TODO:</span></div>';
+      for (const p of fc.sold.slice(0, 10)) {
+        html += `<div style="display:flex;gap:8px;padding:3px 0;font-size:12px;">
+          <span style="color:#FCA5A5;min-width:12px;">&#10005;</span>
+          <span style="font-weight:600;min-width:140px;">${p.name}</span>
+          <span style="color:#FCA5A5;">${fmtUSD(p.prevValue)} eliminado</span>
+        </div>`;
+      }
+    }
+
+    html += '</div>';
+  }
+
+  body.innerHTML = html || '<div style="color:var(--muted);font-size:12px;padding:15px;text-align:center;">No changes detected</div>';
 }
 
 function render13F(data) {
