@@ -313,9 +313,9 @@ function renderTimeline(data) {
     const origIdx = transfers.length - 1 - ri;
     const time = new Date(t.ts).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
     const chainIcon = t.chain === 'BTC' ? '<span style="color:#F7931A;font-weight:700;">BTC</span>' : '<span style="color:#627EEA;font-weight:700;">ETH</span>';
-    const dirIcon = t.direction === 'EXCHANGE_IN' ? '🔴' : '🟢';
+    const dirIcon = t.sentiment === 'BEAR' ? '🔴' : t.sentiment === 'BULL' ? '🟢' : '⚪';
     const dirLabel = t.direction === 'EXCHANGE_IN' ? 'IN' : 'OUT';
-    const dirColor = t.direction === 'EXCHANGE_IN' ? '#FCA5A5' : '#6EE7B7';
+    const dirColor = t.sentiment === 'BEAR' ? '#FCA5A5' : t.sentiment === 'BULL' ? '#6EE7B7' : 'var(--muted)';
 
     // From/To labels
     let fromLabel, toLabel;
