@@ -109,6 +109,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--light);
         <button class="filter-btn active" onclick="setFilter('ALL')" id="fAll">All</button>
         <button class="filter-btn" onclick="setFilter('ACCUMULATION')" id="fACC">Accumulation</button>
         <button class="filter-btn" onclick="setFilter('DISTRIBUTION')" id="fDIST">Distribution</button>
+        <button id="scanBtn" onclick="runManualScan()" style="padding:6px 14px;border-radius:100px;border:1px solid rgba(16,185,129,.4);background:rgba(16,185,129,.1);color:#6EE7B7;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">Scan Now</button>
       </div>
     </div>
     <div style="overflow-x:auto;">
@@ -201,6 +202,20 @@ function setFilter(f) {
   const id = f === 'ALL' ? 'fAll' : f === 'ACCUMULATION' ? 'fACC' : 'fDIST';
   document.getElementById(id).classList.add('active');
   if (_data) render(_data);
+}
+
+async function runManualScan() {
+  const btn = document.getElementById('scanBtn');
+  btn.textContent = 'Scanning...';
+  btn.disabled = true;
+  try {
+    await authFetch('/confluence/scan?force=true');
+    await loadSignals();
+  } catch (err) {
+    console.error('Scan error:', err);
+  }
+  btn.textContent = 'Scan Now';
+  btn.disabled = false;
 }
 
 async function loadSignals() {
