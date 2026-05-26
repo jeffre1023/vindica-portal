@@ -98,6 +98,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--light);
     <a href="whale.html" style="padding:8px 20px;border-radius:100px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:var(--muted);font-size:12px;font-weight:600;text-decoration:none;">Whale Tracker</a>
     <a href="insiders.html" style="padding:8px 20px;border-radius:100px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:var(--muted);font-size:12px;font-weight:600;text-decoration:none;">Smart Money</a>
     <a href="confluence.html" style="padding:8px 20px;border-radius:100px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:var(--muted);font-size:12px;font-weight:600;text-decoration:none;">Swing Scanner</a>
+    <a href="flow.html" style="padding:8px 20px;border-radius:100px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:var(--muted);font-size:12px;font-weight:600;text-decoration:none;">Flow AI</a>
   </div>
 
   <div class="header">
@@ -235,6 +236,55 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--light);
       <tbody id="deepBody"></tbody>
     </table>
   </div>
+
+  <!-- OI Smart Search -->
+  <div class="scan-wrap" style="margin-top:14px;" id="oiSmartWrap">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+      <span style="font-family:'DM Serif Display',serif;font-size:15px;color:#fff;">OI Smart Search</span>
+      <span style="font-size:10px;color:var(--muted);padding:2px 8px;border:1px solid rgba(139,92,246,.3);border-radius:100px;background:rgba(139,92,246,.08);">Claude + Polygon</span>
+    </div>
+
+    <!-- Natural language input -->
+    <div style="display:flex;gap:8px;margin-bottom:12px;align-items:flex-start;">
+      <textarea id="oiNlQuery" placeholder="Ej: busca puts de SPY con delta 0.20-0.30 y 21-45 DTE donde el OI se esté acumulando..." style="flex:1;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:#fff;font-size:13px;font-family:'DM Sans',sans-serif;resize:vertical;min-height:56px;line-height:1.5;" onkeydown="if(event.key==='Enter'&&(event.metaKey||event.ctrlKey))parseOIQuery()"></textarea>
+      <button class="btn btn-ghost" id="oiParseBtn" onclick="parseOIQuery()" style="white-space:nowrap;align-self:flex-start;">Interpretar</button>
+    </div>
+
+    <!-- Structured filters (auto-filled by Claude) -->
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;align-items:center;">
+      <input id="oiSTicker" placeholder="Ticker" style="background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:7px 12px;color:#fff;font-size:12px;font-family:'DM Sans',sans-serif;width:90px;text-transform:uppercase;">
+      <select id="oiSType" style="background:#1E293B;border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:#fff;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;color-scheme:dark;">
+        <option value="both">Call + Put</option>
+        <option value="call">Call</option>
+        <option value="put">Put</option>
+      </select>
+      <div style="display:flex;align-items:center;gap:4px;">
+        <span style="font-size:11px;color:var(--muted);">δ</span>
+        <input id="oiSDeltaMin" placeholder="0.15" style="background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:#fff;font-size:12px;font-family:'DM Sans',sans-serif;width:64px;">
+        <span style="color:var(--muted);font-size:11px;">–</span>
+        <input id="oiSDeltaMax" placeholder="0.35" style="background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:#fff;font-size:12px;font-family:'DM Sans',sans-serif;width:64px;">
+      </div>
+      <div style="display:flex;align-items:center;gap:4px;">
+        <span style="font-size:11px;color:var(--muted);">DTE</span>
+        <input id="oiSDteMin" placeholder="1" style="background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:#fff;font-size:12px;font-family:'DM Sans',sans-serif;width:56px;">
+        <span style="color:var(--muted);font-size:11px;">–</span>
+        <input id="oiSDteMax" placeholder="60" style="background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:#fff;font-size:12px;font-family:'DM Sans',sans-serif;width:56px;">
+      </div>
+      <div style="display:flex;align-items:center;gap:4px;">
+        <span style="font-size:11px;color:var(--muted);">OI min</span>
+        <input id="oiSMinOI" placeholder="500" style="background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:#fff;font-size:12px;font-family:'DM Sans',sans-serif;width:72px;">
+      </div>
+      <div style="display:flex;align-items:center;gap:4px;">
+        <span style="font-size:11px;color:var(--muted);">IV min</span>
+        <input id="oiSMinIV" placeholder="0.20" style="background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:#fff;font-size:12px;font-family:'DM Sans',sans-serif;width:64px;">
+      </div>
+      <button class="btn btn-purple" id="oiSearchBtn" onclick="runOISearch()">Buscar</button>
+      <span id="oiSearchStatus" style="font-size:11px;color:var(--muted);"></span>
+    </div>
+
+    <!-- Results -->
+    <div id="oiSearchResults" style="overflow-x:auto;"></div>
+  </div>
 </div>
 
 <script>
@@ -262,17 +312,23 @@ auth.onAuthStateChanged(u => {
 });
 function doLogout() { auth.signOut().then(() => window.location.href = 'index.html'); }
 
-async function authFetch(path, retries) {
-  retries = retries || 0;
+async function authFetch(path, optsOrRetries, retries) {
+  // Support both authFetch(path) and authFetch(path, fetchOpts)
+  let fetchOpts = {};
+  let _retries = 0;
+  if (typeof optsOrRetries === 'number') { _retries = optsOrRetries; }
+  else if (optsOrRetries && typeof optsOrRetries === 'object') { fetchOpts = optsOrRetries; _retries = retries || 0; }
+
   const user = auth.currentUser;
   if (!user) throw new Error('No autenticado');
   const token = await user.getIdToken();
   const res = await fetch(`${VINDICA_API}${path}`, {
-    headers: { 'Authorization': 'Bearer ' + token }
+    ...fetchOpts,
+    headers: { 'Authorization': 'Bearer ' + token, ...(fetchOpts.headers || {}) },
   });
-  if (res.status === 429 && retries < 3) {
-    await new Promise(r => setTimeout(r, 2000 * (retries + 1)));
-    return authFetch(path, retries + 1);
+  if (res.status === 429 && _retries < 3) {
+    await new Promise(r => setTimeout(r, 2000 * (_retries + 1)));
+    return authFetch(path, fetchOpts, _retries + 1);
   }
   if (!res.ok) throw new Error(`API ${res.status}`);
   return res.json();
@@ -1597,6 +1653,123 @@ function renderTimeline(blocks) {
   }
 
   body.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// OI SMART SEARCH
+// ═══════════════════════════════════════════════════════════════
+
+async function parseOIQuery() {
+  const query = document.getElementById('oiNlQuery').value.trim();
+  if (!query) return;
+
+  const btn = document.getElementById('oiParseBtn');
+  const status = document.getElementById('oiSearchStatus');
+  btn.innerHTML = '<span class="loader"></span>';
+  btn.disabled = true;
+  status.textContent = 'Interpretando...';
+
+  try {
+    const parsed = await authFetch('/options/oi-query/parse', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query }),
+    });
+
+    if (parsed.ticker) document.getElementById('oiSTicker').value = parsed.ticker;
+    if (parsed.type)   document.getElementById('oiSType').value = parsed.type;
+    if (parsed.deltaMin != null) document.getElementById('oiSDeltaMin').value = parsed.deltaMin;
+    if (parsed.deltaMax != null) document.getElementById('oiSDeltaMax').value = parsed.deltaMax;
+    if (parsed.dteMin   != null) document.getElementById('oiSDteMin').value   = parsed.dteMin;
+    if (parsed.dteMax   != null) document.getElementById('oiSDteMax').value   = parsed.dteMax;
+    if (parsed.minOI    != null) document.getElementById('oiSMinOI').value    = parsed.minOI;
+    if (parsed.minIV    != null) document.getElementById('oiSMinIV').value    = parsed.minIV;
+
+    status.textContent = 'Listo — revisa los filtros y presiona Buscar';
+  } catch (err) {
+    status.textContent = 'Error: ' + err.message;
+  } finally {
+    btn.innerHTML = 'Interpretar';
+    btn.disabled = false;
+  }
+}
+
+async function runOISearch() {
+  const ticker   = document.getElementById('oiSTicker').value.trim().toUpperCase();
+  const type     = document.getElementById('oiSType').value;
+  const deltaMin = document.getElementById('oiSDeltaMin').value.trim();
+  const deltaMax = document.getElementById('oiSDeltaMax').value.trim();
+  const dteMin   = document.getElementById('oiSDteMin').value.trim();
+  const dteMax   = document.getElementById('oiSDteMax').value.trim();
+  const minOI    = document.getElementById('oiSMinOI').value.trim();
+  const minIV    = document.getElementById('oiSMinIV').value.trim();
+
+  if (!ticker) { document.getElementById('oiSearchStatus').textContent = 'Ingresa un ticker'; return; }
+
+  const btn    = document.getElementById('oiSearchBtn');
+  const status = document.getElementById('oiSearchStatus');
+  const results = document.getElementById('oiSearchResults');
+  btn.innerHTML = '<span class="loader"></span>';
+  btn.disabled  = true;
+  status.textContent = 'Buscando en Polygon...';
+  results.innerHTML  = '';
+
+  try {
+    const params = new URLSearchParams({ ticker, type });
+    if (deltaMin) params.set('deltaMin', deltaMin);
+    if (deltaMax) params.set('deltaMax', deltaMax);
+    if (dteMin)   params.set('dteMin',   dteMin);
+    if (dteMax)   params.set('dteMax',   dteMax);
+    if (minOI)    params.set('minOI',    minOI);
+    if (minIV)    params.set('minIV',    minIV);
+
+    const data = await authFetch(`/options/oi-search?${params}`);
+    const { results: rows, total, spot } = data;
+
+    status.textContent = `${total} resultados${spot ? ` — Spot: $${spot.toFixed(2)}` : ''}`;
+
+    if (!rows || !rows.length) {
+      results.innerHTML = '<div style="color:var(--muted);padding:20px;text-align:center;">Sin resultados con esos filtros</div>';
+      return;
+    }
+
+    const fmtOI = n => n > 9999 ? (n/1000).toFixed(0)+'K' : n > 999 ? (n/1000).toFixed(1)+'K' : n;
+    const typeColor = t => t === 'call' ? '#6EE7B7' : '#FCA5A5';
+    const ivColor   = iv => parseFloat(iv) > 40 ? '#FBBF24' : parseFloat(iv) > 25 ? '#C4B5FD' : 'var(--muted)';
+
+    let html = `<table class="stbl" style="font-size:11px;">
+      <thead><tr>
+        <th>Ticker</th><th>Strike</th><th>Tipo</th><th>DTE</th><th>Exp</th>
+        <th>OI</th><th>Volumen</th><th>IV</th><th>Delta</th><th>Theta</th><th>Gamma</th>
+      </tr></thead><tbody>`;
+
+    for (const r of rows) {
+      const isNearSpot = spot && Math.abs(r.strike - spot) / spot < 0.02;
+      const rowBg = isNearSpot ? 'background:rgba(139,92,246,.08);' : '';
+      html += `<tr style="${rowBg}cursor:pointer;" title="${r.ticker} $${r.strike}${r.type === 'call' ? 'C' : 'P'} exp ${r.expDate}">
+        <td style="font-weight:600;color:#fff;">${r.ticker}</td>
+        <td style="font-weight:600;color:#fff;">$${r.strike}${isNearSpot ? ' <span style="color:#C4B5FD;font-size:9px;">ATM</span>' : ''}</td>
+        <td style="color:${typeColor(r.type)};font-weight:600;">${r.type === 'call' ? 'CALL' : 'PUT'}</td>
+        <td>${r.dte}d</td>
+        <td style="color:var(--muted);">${r.expDate}</td>
+        <td style="font-weight:600;color:#fff;">${fmtOI(r.oi)}</td>
+        <td style="color:var(--muted);">${fmtOI(r.volume)}</td>
+        <td style="color:${ivColor(parseFloat(r.iv))};">${r.iv}</td>
+        <td>${r.delta}</td>
+        <td style="color:#FCA5A5;">${r.theta}</td>
+        <td style="color:var(--muted);font-size:10px;">${r.gamma}</td>
+      </tr>`;
+    }
+    html += '</tbody></table>';
+    if (total > rows.length) html += `<div style="font-size:10px;color:var(--muted);margin-top:6px;">Mostrando ${rows.length} de ${total} resultados</div>`;
+    results.innerHTML = html;
+  } catch (err) {
+    status.textContent = 'Error: ' + err.message;
+    results.innerHTML  = `<div style="color:#FCA5A5;padding:20px;">Error: ${err.message}</div>`;
+  } finally {
+    btn.innerHTML = 'Buscar';
+    btn.disabled  = false;
+  }
 }
 
 </script>
