@@ -141,11 +141,11 @@ textarea#chatInput::placeholder{color:var(--muted);}
       <div style="font-size:28px;opacity:.3;">⚡</div>
       <p style="color:var(--muted);font-size:13px;">Pregunta sobre opciones, escanea el mercado o analiza un ticker</p>
       <div class="chips" id="chips">
-        <div class="chip" onclick="useChip(this)">Busca calls con IV alto</div>
-        <div class="chip" onclick="useChip(this)">OI acumulándose en NVDA</div>
-        <div class="chip" onclick="useChip(this)">Puts con volumen inusual</div>
-        <div class="chip" onclick="useChip(this)">¿Qué es el gamma squeeze?</div>
-        <div class="chip" onclick="useChip(this)">Chain de SPY para junio</div>
+        <div class="chip" onclick="useChip(this)">¿Dónde se acumula OI en NVDA?</div>
+        <div class="chip" onclick="useChip(this)">Escanea SPY QQQ AAPL TSLA buscando puts con OI creciendo</div>
+        <div class="chip" onclick="useChip(this)">OI chain de SPY calls y puts</div>
+        <div class="chip" onclick="useChip(this)">¿Qué es open interest y cómo detectar smart money?</div>
+        <div class="chip" onclick="useChip(this)">Analiza TSLA: ¿acumulan calls o puts?</div>
         <div class="chip" onclick="useChip(this)">Precio actual de AAPL</div>
       </div>
     </div>
@@ -202,48 +202,42 @@ async function authFetch(path, opts = {}) {
 // ── Claude tool definitions ────────────────────────────────────
 const TOOLS = [
   {
-    name: 'scan_options',
-    description: 'Busca opciones en el mercado que cumplan criterios. Usar cuando el usuario pide buscar, escanear, encontrar o listar opciones.',
+    name: 'get_oi_chain',
+    description: 'Analiza acumulación de Open Interest para un ticker específico. Muestra qué strikes/expiraciones están acumulando OI (smart money posicionándose). Usar cuando el usuario menciona un ticker y quiere ver chain, OI, acumulación, o actividad inusual.',
     input_schema: {
       type: 'object',
       properties: {
-        option_type:      { type: 'string', enum: ['calls','puts','both'] },
-        tickers:          { type: 'array', items: { type: 'string' }, description: 'Tickers específicos. Vacío = mercado completo.' },
-        iv_min:           { type: 'number', description: 'IV% mínima' },
-        iv_max:           { type: 'number', description: 'IV% máxima' },
-        delta_min:        { type: 'number' },
-        delta_max:        { type: 'number' },
-        oi_trend:         { type: 'string', enum: ['accumulating','decreasing','any'], description: 'Tendencia de OI en últimos días' },
-        sort_by:          { type: 'string', enum: ['iv','oi','volume','vol_oi_ratio','delta','slope_pct'] },
-        limit:            { type: 'number' },
-        reason:           { type: 'string' },
-      },
-      required: ['option_type'],
-    },
-  },
-  {
-    name: 'get_chain',
-    description: 'Obtiene la cadena de opciones completa de un ticker específico.',
-    input_schema: {
-      type: 'object',
-      properties: {
-        ticker:      { type: 'string' },
-        option_type: { type: 'string', enum: ['calls','puts','both'] },
-        expiration:  { type: 'string', description: 'YYYYMMDD o "0" para todas' },
+        ticker:   { type: 'string', description: 'Ticker del subyacente' },
+        days:     { type: 'number', description: 'Días de historia de OI, default 14' },
+        max_exps: { type: 'number', description: 'Máximo de expiraciones a analizar, default 6' },
       },
       required: ['ticker'],
     },
   },
   {
+    name: 'scan_oi',
+    description: 'Escanea múltiples tickers buscando acumulación inusual de OI. Usar cuando el usuario pide buscar, escanear, o encontrar contratos con actividad inusual en el mercado.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        tickers:     { type: 'array', items: { type: 'string' }, description: 'Lista de tickers. Si vacío usa el universo por defecto (top 10 tickers).' },
+        days:        { type: 'number', description: 'Días de historia, default 14' },
+        min_slope:   { type: 'number', description: 'Cambio mínimo % en OI para reportar, default 15' },
+        type_filter: { type: 'string', enum: ['calls','puts','both'], description: 'Filtrar por tipo' },
+      },
+      required: [],
+    },
+  },
+  {
     name: 'get_oi_history',
-    description: 'OI histórico de un contrato para ver si se acumula o reduce.',
+    description: 'OI histórico diario de un contrato específico. Ver tendencia detallada de acumulación o reducción.',
     input_schema: {
       type: 'object',
       properties: {
         ticker:     { type: 'string' },
-        expiration: { type: 'string', description: 'YYYYMMDD' },
+        expiration: { type: 'string', description: 'YYYY-MM-DD o YYYYMMDD' },
         strike:     { type: 'number' },
-        right:      { type: 'string', enum: ['C','P'] },
+        right:      { type: 'string', enum: ['C','P','call','put'] },
         days:       { type: 'number', description: 'Días de historia, default 14' },
       },
       required: ['ticker','expiration','strike','right'],
@@ -260,19 +254,25 @@ const TOOLS = [
   },
 ];
 
-const SYSTEM = `Eres VINDICA FLOW, un asistente experto en opciones financieras con acceso a datos del mercado en tiempo real vía ThetaData.
+const SYSTEM = `Eres VINDICA FLOW, un asistente experto en opciones financieras con acceso a datos históricos de Open Interest vía ThetaData (suscripción Standard).
+
+CAPACIDADES DISPONIBLES:
+- get_oi_chain: analiza acumulación de OI para un ticker (strikes/expiraciones donde se está posicionando smart money)
+- scan_oi: escanea múltiples tickers buscando acumulación inusual de OI
+- get_oi_history: historial diario de OI de un contrato específico
+- get_quote: precio actual del subyacente vía Finnhub
+
+IMPORTANTE - LO QUE NO ESTÁ DISPONIBLE:
+- Greeks en tiempo real (IV, delta, gamma, theta) requieren suscripción Professional de ThetaData
+- Eso no es un problema: el OI acumulado es más valioso para detectar smart money
 
 COMPORTAMIENTO:
 - Responde en el mismo idioma del usuario (español o inglés)
 - Tono: directo, cuantitativo, como un trader profesional
-- Cuando el usuario pide buscar/escanear opciones → usa scan_options
-- Cuando menciona un ticker + opciones → usa get_chain
-- Cuando pide historial de OI de un contrato → usa get_oi_history
-- Cuando pide precio de un stock → usa get_quote
-- Preguntas conceptuales → responde directo sin tools
-- Después de recibir data, analiza brevemente: señala contratos inusuales, patrones, alertas
-- Nunca digas que no tienes datos en tiempo real — sí los tienes vía tools
-- Si ThetaData no está activo, informa al usuario que el Terminal debe estar corriendo`;
+- Siempre usa las tools para dar data real, no inventes números
+- Después de recibir data, analiza: ¿dónde se acumula más OI? ¿calls o puts? ¿qué expiraciones tienen más actividad?
+- slope_pct > 15% = acumulación notable; > 50% = acumulación fuerte; < -15% = reducción de posiciones
+- Si ThetaData no está activo, informa al usuario que el Terminal debe estar corriendo en la PC`;
 
 // ── State ──────────────────────────────────────────────────────
 let history = [];
@@ -336,16 +336,20 @@ async function sendMessage(text) {
 }
 
 function toolLabel(name) {
-  return { scan_options:'Escaneando mercado', get_chain:'Obteniendo chain', get_oi_history:'Cargando historial OI', get_quote:'Obteniendo precio' }[name] || name;
+  return {
+    get_oi_chain:  'Analizando OI chain',
+    scan_oi:       'Escaneando OI mercado',
+    get_oi_history:'Cargando historial OI',
+    get_quote:     'Obteniendo precio',
+  }[name] || name;
 }
 
 async function executeTool(name, input) {
-  const useOITrend = name === 'scan_options' && input.oi_trend && input.oi_trend !== 'any';
   const endpoint = {
-    scan_options:   useOITrend ? '/api/flow/scan_with_oi_trend' : '/api/flow/scan',
-    get_chain:      '/api/flow/chain',
-    get_oi_history: '/api/flow/oi_history',
-    get_quote:      `/api/flow/quote/${input.ticker}`,
+    get_oi_chain:  '/api/flow/oi_chain',
+    scan_oi:       '/api/flow/scan_oi',
+    get_oi_history:'/api/flow/oi_history',
+    get_quote:     `/api/flow/quote/${input.ticker}`,
   }[name];
 
   const method = name === 'get_quote' ? 'GET' : 'POST';
@@ -403,27 +407,46 @@ function renderToolResult(name, input, data) {
       ${sparkline}
     </div>`;
 
-  } else if (data.contracts) {
-    const rows = data.contracts.slice(0, 25);
-    const hasSlopePct = rows.some(r => r.slope_pct !== undefined);
-    content = `<div style="overflow-x:auto">
-      <table class="ftbl">
-        <thead><tr>
-          <th>Ticker</th><th>Tipo</th><th>Strike</th><th>Expiry</th><th>IV%</th>
-          <th>OI</th><th>Vol</th><th>V/OI</th><th>Delta</th><th>Theta</th><th>Bid</th><th>Ask</th>
-          ${hasSlopePct ? '<th>OI Trend</th>' : ''}
-        </tr></thead>
-        <tbody>
-          ${rows.map(r => contractRow(r, hasSlopePct)).join('')}
-        </tbody>
-      </table>
-      ${data.count > rows.length ? `<div style="font-size:10px;color:var(--muted);margin-top:6px;padding:2px 4px;">${rows.length} de ${data.count} contratos</div>` : ''}
-    </div>`;
+  } else if (data.results !== undefined) {
+    // OI chain or scan_oi result
+    const rows = (data.results || []).slice(0, 30);
+    if (!rows.length) {
+      content = `<div style="color:var(--muted);font-size:12px;padding:8px;">No se encontraron contratos con OI activo en el rango analizado.</div>`;
+    } else {
+      const showTicker = rows.some(r => r.ticker !== rows[0].ticker);
+      content = `<div style="overflow-x:auto">
+        <table class="ftbl">
+          <thead><tr>
+            ${showTicker ? '<th>Ticker</th>' : ''}
+            <th>Tipo</th><th>Strike</th><th>Expiry</th><th>OI Actual</th><th>Cambio OI</th><th>Tendencia</th>
+          </tr></thead>
+          <tbody>
+            ${rows.map(r => oiRow(r, showTicker)).join('')}
+          </tbody>
+        </table>
+        ${data.contracts_checked ? `<div style="font-size:10px;color:var(--muted);margin-top:4px;padding:2px 4px;">${rows.length} contratos con OI activo de ${data.contracts_checked} analizados</div>` : ''}
+        ${data.price ? `<div style="font-size:10px;color:var(--muted);padding:2px 4px;">${(data.ticker||'').toUpperCase()} @ $${data.price}</div>` : ''}
+      </div>`;
+    }
   }
 
   div.innerHTML = `<div class="tool-card"><div class="tool-label">${escHtml(labelText)}</div>${content}</div>`;
   wrap.appendChild(div);
   scrollBottom();
+}
+
+function oiRow(r, showTicker) {
+  const trendColor = r.trend === 'accumulating' ? 'var(--green)' : r.trend === 'declining' ? 'var(--red)' : 'var(--muted)';
+  const spark = r.oi_history && r.oi_history.length >= 2 ? renderSparkline(r.oi_history) : '';
+  return `<tr>
+    ${showTicker ? `<td style="font-weight:700">${r.ticker}</td>` : ''}
+    <td><span class="${r.type === 'CALL' ? 'badge-call' : 'badge-put'}">${r.type}</span></td>
+    <td>$${r.strike}</td>
+    <td style="color:var(--muted);font-size:10px">${r.expiry}</td>
+    <td>${fmtNum(r.current_oi)}</td>
+    <td>${slopeBar(r.slope_pct, r.trend)}</td>
+    <td style="color:${trendColor};font-size:10px;font-weight:600">${(r.trend||'').toUpperCase()} ${spark}</td>
+  </tr>`;
 }
 
 function contractRow(r, hasSlopePct) {
